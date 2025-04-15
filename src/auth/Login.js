@@ -1,8 +1,9 @@
 import * as React from 'react';
 
 import { signInWithEmailAndPassword} from 'firebase/auth';
+import { Navigate } from "react-router-dom";
 import { auth } from '../firebase';
-
+import Login2 from './Login2';
 function Login({
     setAuthState,
     setUser
@@ -58,6 +59,15 @@ function Login({
                         onClick={() => setAuthState('register')}
                         className='ml-2 font-medium text-base text-violet-500'>Sign up</button>
                 </div>
+
+                <div className='mt-8 flex justify-center items-center'>
+                    <p className='font-medium text-base'>Login </p>
+                    <button 
+                        onClick={() =>  <Navigate to="/login" />}
+                        className='ml-2 font-medium text-base text-violet-500'>Login</button>
+                </div>
+
+            
             </div>
         </div>
       </div>

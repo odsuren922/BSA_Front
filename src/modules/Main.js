@@ -64,6 +64,8 @@ function Main({ setAuthState }) {
   return (
     <div className="app-layout">
       <Router>
+        {/* Public Route: Only for login */}
+       
         <CustomNavBar user={user} setAuthState={setAuthState} />
         <div className="content">
           <SideBar user={user} />
