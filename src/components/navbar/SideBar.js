@@ -9,13 +9,20 @@ function SideBar({ user }) {
   const rootSubMenuKeys = ["main-menu"];
 
   let sidebarItems = [];
+  let dashboardLink = "/dashboard";// user role based dashboard links
+
+
   if (user?.email === "department@gmail.com") {
+    dashboardLink = "/admin/dashboard";
     sidebarItems = SidebarData.department;
   } else if (user?.email === "supervisor@gmail.com") {
+    dashboardLink = "/supervisor/dashboard";
     sidebarItems = SidebarData.supervisor;
   } else if (user?.email === "teacher@gmail.com") {
+    dashboardLink = "/supervisor/dashboard";
     sidebarItems = SidebarData.teacher;
   } else if (user?.email === "student@gmail.com") {
+    dashboardLink = "/student/dashboard";
     sidebarItems = SidebarData.student;
   }
 
@@ -47,6 +54,11 @@ function SideBar({ user }) {
         fontSize: "16px",
       }}
       items={[
+        {
+          key: "dashboard-menu",
+          icon: <DashboardOutlined />,
+          label: <Link to={dashboardLink}>Хянах самбар</Link>,
+        },
         {
           key: "main-menu",
           icon: <BookOutlined />,
