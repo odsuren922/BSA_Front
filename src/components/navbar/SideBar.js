@@ -53,6 +53,12 @@ function SideBar({ user }) {
           label: "Бакалаврын судалгаа",
           children: menuItems,
         },
+        // {
+        //     key: "main-menu",
+        //     icon: <BookOutlined />,
+        //     label: "Бакалаврын судалгаа",
+        //     children: menuItems,
+        //   },
       ]}
     />
   );

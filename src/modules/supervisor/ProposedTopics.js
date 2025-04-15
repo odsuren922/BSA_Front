@@ -78,10 +78,10 @@ const ProposedTopics = () => {
     } catch (error) {
       // Алдаа гарвал мэдэгдэл харуулах
       console.error("Error fetching topics:", error);
-      notification.error({
-        message: "Алдаа",
-        description: "Мэдээлэл татахад алдаа гарлаа. Дахин оролдоно уу!",
-      });
+    //   notification.error({
+    //     message: "Алдаа",
+    //     description: "Мэдээлэл татахад алдаа гарлаа. Дахин оролдоно уу!",
+    //   });
     } finally {
       setLoading(false); // Ачаалал дууссаныг заах
     }

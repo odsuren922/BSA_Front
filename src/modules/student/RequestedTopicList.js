@@ -80,10 +80,10 @@ const RequestedTopicList = () => {
       setLoading(false);
     } catch (error) {
       console.log("Error fetching topics:", error);
-      notification.error({
-        message: "Error",
-        description: "Failed to fetch topics. Check console for details.",
-      });
+    //   notification.error({
+    //     message: "Error",
+    //     description: "Failed to fetch topics. Check console for details.",
+    //   });
       setLoading(false);
     }
   }, []);

@@ -86,10 +86,10 @@ const ConfirmedTopicList = () => {
       }
     } catch (error) {
       console.error("Error fetching topics:", error);
-      notification.error({
-        message: "Error",
-        description: "Failed to fetch topics. Check console for details.",
-      });
+    //   notification.error({
+    //     message: "Error",
+    //     description: "Failed to fetch topics. Check console for details.",
+    //   });
     } finally {
       setLoading(false);
     }

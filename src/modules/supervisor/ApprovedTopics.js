@@ -64,10 +64,10 @@ const ApprovedTopics = () => {
       setDataSource(parsedData); // Өгөгдлийг хүснэгтэд дамжуулах
     } catch (error) {
       console.error("Failed to fetch topics:", error); // Алдаа гарах үед консолд хэвлэх
-      notification.error({
-        message: "Fetch Error", // Алдааны мессежийн гарчиг
-        description: "Failed to load data: " + error.message, // Алдааны дэлгэрэнгүй мэдээлэл
-      });
+    //   notification.error({
+    //     message: "Fetch Error", // Алдааны мессежийн гарчиг
+    //     description: "Failed to load data: " + error.message, // Алдааны дэлгэрэнгүй мэдээлэл
+    //   });
     } finally {
       setLoading(false); // Ачаалал дууссаныг заах
     }

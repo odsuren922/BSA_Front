@@ -61,10 +61,10 @@ const CheckedTopicList = ({ active }) => {
       }
     } catch (error) {
       console.error("Error fetching topics:", error);
-      notification.error({
-        message: "Error",
-        description: "Failed to fetch topics. Please try again later.",
-      });
+    //   notification.error({
+    //     message: "Error",
+    //     description: "Failed to fetch topics. Please try again later.",
+    //   });
     } finally {
       setLoading(false);
     }
