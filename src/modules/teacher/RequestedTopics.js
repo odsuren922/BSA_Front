@@ -4,12 +4,23 @@ import { fetchData } from "../../utils";
 import ApproveDetail from "../ApproveDetail";
 import CustomTable from "../../components/CustomTable";
 
-const RequestedTopics = () => {
+const RequestedTopicList = () => {
   const [loading, setLoading] = useState(true);
   const [dataSource, setDataSource] = useState([]);
   const [columns, setColumns] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState(null);
+
+  const parseFields = (rawFields) => {
+    try {
+      // Хэт давхар escape хийсэн JSON string болхоор хоёр удаа parse хийнэ
+      const onceParsed = typeof rawFields === "string" ? JSON.parse(rawFields) : rawFields;
+      return typeof onceParsed === "string" ? JSON.parse(onceParsed) : onceParsed;
+    } catch (error) {
+      console.error("⚠️ Fields parse error:", rawFields, error);
+      return [];
+    }
+  };
 
   const fetchTopics = useCallback(async () => {
     try {
@@ -21,28 +32,30 @@ const RequestedTopics = () => {
       }
 
       const transformedData = rawData.map((item) => {
-        try {
-          const fieldsArray = JSON.parse(item.fields);
-          const fieldsObject = fieldsArray.reduce(
-            (acc, field) => ({
-              ...acc,
-              [field.field]: field.value,
-              [`${field.field}_name`]: field.field2,
-            }),
-            {}
-          );
-          return { ...item, ...fieldsObject, key: item.id };
-        } catch (error) {
-          console.error("Error parsing fields:", item.fields, error);
-          return { ...item, key: item.id };
-        }
+        const fieldsArray = parseFields(item.fields);
+
+        const fieldsObject = fieldsArray.reduce(
+          (acc, field) => ({
+            ...acc,
+            [field.field]: field.value,
+            [`${field.field}_name`]: field.field2,
+          }),
+          {}
+        );
+
+        return {
+          ...item,
+          ...fieldsObject,
+          key: item.req_id || item.id || item.topic_id,
+        };
       });
 
       setDataSource(transformedData);
 
-      if (rawData[0]?.fields) {
-        const fieldsArray = JSON.parse(rawData[0].fields);
-        const dynamicColumns = fieldsArray
+      if (transformedData.length > 0) {
+        const sampleFields = parseFields(transformedData[0].fields);
+
+        const dynamicColumns = sampleFields
           .filter((field) => ["name_mongolian"].includes(field.field))
           .map((field) => ({
             title: field.field2,
@@ -82,12 +95,13 @@ const RequestedTopics = () => {
           },
         ]);
       }
+
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching topics:", error);
+      console.log("Error fetching topics:", error);
       notification.error({
         message: "Error",
-        description: "Failed to fetch topics. Check console for details.",
+        description: "Сэдвийн хүсэлт татахад алдаа гарлаа.",
       });
       setLoading(false);
     }
@@ -95,7 +109,6 @@ const RequestedTopics = () => {
 
   useEffect(() => {
     fetchTopics();
-
     const intervalId = setInterval(fetchTopics, 5000);
     return () => clearInterval(intervalId);
   }, [fetchTopics]);
@@ -103,10 +116,6 @@ const RequestedTopics = () => {
   const handleDetails = (record) => {
     setSelectedRowData(record);
     setIsModalOpen(true);
-  };
-
-  const handleRefresh = () => {
-    fetchTopics();
   };
 
   return (
@@ -118,9 +127,10 @@ const RequestedTopics = () => {
           bordered
           scroll={{ x: "max-content" }}
           hasLookupField={true}
-          onRefresh={handleRefresh}
+          onRefresh={fetchTopics}
         />
       </Spin>
+
       {isModalOpen && (
         <ApproveDetail
           isModalOpen={isModalOpen}
@@ -132,4 +142,4 @@ const RequestedTopics = () => {
   );
 };
 
-export default RequestedTopics;
+export default RequestedTopicList;

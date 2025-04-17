@@ -12,43 +12,60 @@ const ConfirmedTopicList = () => {
     try {
       setLoading(true);
       const response = await fetchData("topics_confirmed");
-      const rawData = response.data;
 
-      if (!rawData || !Array.isArray(rawData)) {
-        throw new Error("Invalid data format received from API");
+      const rawData = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.data || [];
+
+      if (!Array.isArray(rawData)) {
+        throw new Error("Invalid data format from backend");
       }
 
       const transformedData = rawData.map((item) => {
+        let fieldsArray = [];
         try {
-          const fieldsArray = JSON.parse(item.fields);
-          const fieldsObject = fieldsArray.reduce(
-            (acc, field) => ({
-              ...acc,
-              [field.field]: field.value,
-              [`${field.field}_name`]: field.field2,
-            }),
-            {}
-          );
-          return { ...item, ...fieldsObject, key: item.id };
+          fieldsArray =
+            typeof item.fields === "string"
+              ? JSON.parse(item.fields)
+              : item.fields;
         } catch (error) {
-          console.error("Error parsing fields:", item.fields, error);
-          return { ...item, key: item.id };
+          console.error("fields parse error:", error);
         }
+
+        const fieldsObject = Array.isArray(fieldsArray)
+          ? fieldsArray.reduce(
+              (acc, field) => ({
+                ...acc,
+                [field.field]: field.value,
+                [`${field.field}_name`]: field.field2,
+              }),
+              {}
+            )
+          : {};
+
+        return { ...item, ...fieldsObject, key: item.id };
       });
 
       setDataSource(transformedData);
 
-      if (rawData[0]?.fields) {
-        const fieldsArray = JSON.parse(rawData[0].fields);
-        const dynamicColumns = fieldsArray
-          .filter((field) =>
-            ["name_mongolian", "name_english"].includes(field.field)
-          )
-          .map((field) => ({
-            title: field.field2,
-            dataIndex: field.field,
-            key: field.field,
-          }));
+      // Dynamic Columns
+      if (transformedData.length > 0) {
+        const sampleFields =
+          typeof transformedData[0].fields === "string"
+            ? JSON.parse(transformedData[0].fields)
+            : transformedData[0].fields;
+
+        const dynamicColumns = Array.isArray(sampleFields)
+          ? sampleFields
+              .filter((field) =>
+                ["name_mongolian", "name_english"].includes(field.field)
+              )
+              .map((field) => ({
+                title: field.field2,
+                dataIndex: field.field,
+                key: field.field,
+              }))
+          : [];
 
         setColumns([
           ...dynamicColumns,
@@ -56,8 +73,8 @@ const ConfirmedTopicList = () => {
             title: "Сонгосон оюутан",
             key: "fullname",
             render: (_, record) => {
-              const firstLetterOfLastName = record.lastname?.charAt(0) || "";
-              return `${firstLetterOfLastName}.${record.firstname}`;
+              const lastInit = record.lastname?.charAt(0) || "";
+              return `${lastInit}.${record.firstname || ""}`;
             },
           },
           {
@@ -72,9 +89,8 @@ const ConfirmedTopicList = () => {
             width: 150,
             render: (_, record) => (
               <Popconfirm
-                title="Та цуцлахдаа итгэлтэй байна уу?"
+                title="Та энэ сэдвийг цуцлахдаа итгэлтэй байна уу?"
                 onConfirm={() => handleAction(record)}
-                onCancel={() => console.log("Cancelled!")}
                 okText="Тийм"
                 cancelText="Үгүй"
               >
@@ -85,20 +101,18 @@ const ConfirmedTopicList = () => {
         ]);
       }
     } catch (error) {
-      console.error("Error fetching topics:", error);
+      console.error("Error fetching confirmed topics:", error);
       notification.error({
-        message: "Error",
-        description: "Failed to fetch topics. Check console for details.",
+        message: "Алдаа",
+        description: "Сэдвийн мэдээллийг татаж чадсангүй!",
       });
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line
   }, []);
 
   const handleAction = useCallback(
     async (data) => {
-
       try {
         const payload = {
           topic_id: data.topic_id,
@@ -114,9 +128,9 @@ const ConfirmedTopicList = () => {
           description: "Сэдвийг амжилттай цуцаллаа!",
         });
 
-        fetchTopics();
+        fetchTopics(); // refresh data
       } catch (error) {
-        console.error(`Error handling topic:`, error);
+        console.error("Error cancelling topic:", error);
         message.error("Алдаа гарлаа!");
       }
     },

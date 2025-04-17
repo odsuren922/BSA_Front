@@ -1,108 +1,195 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Spin, notification, Typography, Tag } from "antd";
+import {
+  Layout,
+  Spin,
+  notification,
+  Typography,
+  Tag,
+  Button,
+} from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
 import { fetchData } from "../../utils";
 import CustomTable from "../../components/CustomTable";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { registerMongolFont } from "../../fonts/noto-mongolian-font";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import { Content } from "antd/lib/layout/layout";
 
 const { Title } = Typography;
 
 const StudentList = () => {
-  const [loading, setLoading] = useState(true); // Өгөгдөл ачаалж байгаа эсэхийг заана
-  const [dataSource, setDataSource] = useState([]); // Оюутнуудын өгөгдлийг хадгалах
+  const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState([]);
 
-  // Хүснэгтийн багануудын тохиргоо
   const columns = [
+    { title: "SISI ID", dataIndex: "sisi_id", key: "id" },
+    { title: "Нэр", dataIndex: "firstname", key: "name" },
+    { title: "Овог", dataIndex: "lastname", key: "lname" },
+    { title: "Хөтөлбөр", dataIndex: "program", key: "program" },
     {
-      title: "SISI ID", // SISI ID багана
-      dataIndex: "sisi_id", // Өгөгдлийн түлхүүр
-      key: "id",
-    },
-    {
-      title: "Нэр", // Оюутны нэрийг харуулах багана
-      dataIndex: "firstname",
-      key: "name",
-    },
-    {
-      title: "Овог", // Оюутны овгийг харуулах багана
-      dataIndex: "lastname",
-      key: "lname",
-    },
-    {
-      title: "Хөтөлбөр", // Оюутны хөтөлбөрийг харуулах багана
-      dataIndex: "program",
-      key: "program",
-    },
-    {
-      title: "Сэдэв сонгосон эсэх", // Сэдэв сонгосон эсэхийг харуулах багана
+      title: "Сэдэв сонгосон эсэх",
       dataIndex: "is_choosed",
       key: "is_choosed",
       filters: [
-        { text: "Тийм", value: true }, // Тийм сонголтын шүүлт
-        { text: "Үгүй", value: false }, // Үгүй сонголтын шүүлт
+        { text: "Тийм", value: true },
+        { text: "Үгүй", value: false },
       ],
-      onFilter: (value, record) => record.is_choosed === value, // Сонгосон утгаас хамаарч шүүх функц
+      onFilter: (value, record) => record.is_choosed === value,
       render: (is_choosed) => (
         <Tag color={is_choosed ? "green" : "yellow"}>
           {is_choosed ? "Тийм" : "Үгүй"}
         </Tag>
-      ), // Сэдэв сонгосон эсэхийг өнгө болон текстээр харуулах
+      ),
     },
     {
-      title: "Цахим хаяг", // Оюутны цахим хаяг
-      dataIndex: "mail",
-      key: "mail",
+      title: "Сонгосон сэдэв",
+      dataIndex: "topic_title",
+      key: "topic_title",
+      render: (text, record) => record.is_choosed ? text || "-" : "-",
     },
     {
-      title: "Утасны дугаар", // Оюутны утасны дугаар
-      dataIndex: "phone",
-      key: "phone",
+      title: "Удирдагч багш",
+      dataIndex: "teacher_name",
+      key: "teacher_name",
+      render: (text, record) => record.is_choosed ? text || "-" : "-",
     },
+    { title: "Цахим хаяг", dataIndex: "mail", key: "mail" },
+    { title: "Утасны дугаар", dataIndex: "phone", key: "phone" },
   ];
 
-  // Серверээс оюутнуудын өгөгдлийг татах функц
   const fetchStudents = async () => {
     try {
-      const rawData = await fetchData("students/all"); // Сервер рүү хүсэлт илгээх
-      if (!rawData.length) throw new Error("No data returned"); // Өгөгдөл байхгүй үед алдаа шидэх
-
-      setDataSource(rawData); // Өгөгдлийг хүснэгтэд дамжуулах
-      setLoading(false); // Ачаалал дууссан
+      const rawData = await fetchData("students/all"); // or "students-with-topics"
+      if (!rawData.length) throw new Error("No data returned");
+      setDataSource(rawData);
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching students:", error); // Алдааг консолд хэвлэх
+      console.error("Error fetching students:", error);
       notification.error({
-        message: "Алдаа", // Алдааны мэдэгдлийн гарчиг
-        description: "Оюутнуудын мэдээллийг татахад алдаа гарлаа.", // Алдааны дэлгэрэнгүй мэдээлэл
+        message: "Алдаа",
+        description: "Оюутнуудын мэдээллийг татахад алдаа гарлаа.",
       });
-      setLoading(false); // Ачаалал дууссан
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStudents(); // Компонент анх ачаалагдах үед өгөгдөл татах
-  }, []); // Зөвхөн анхны ачаалалд ажиллана
+    fetchStudents();
+  }, []);
+
+  const handleDownloadPDF = () => {
+    registerMongolFont();
+    const doc = new jsPDF();
+    doc.setFont("NotoSansMongolian");
+    doc.setFontSize(18);
+
+    const filteredData = dataSource.filter((student) => student.is_choosed === true);
+    const tableColumn = [
+      "SISI ID", "Нэр", "Овог", "Хөтөлбөр",
+      "Сэдэв", "Удирдагч багш", "Цахим хаяг", "Утас"
+    ];
+
+    const tableRows = filteredData.map((student) => [
+      student.sisi_id,
+      student.firstname,
+      student.lastname,
+      student.program,
+      student.topic_title || "-",
+      student.teacher_name || "-",
+      student.mail,
+      student.phone,
+    ]);
+
+    const rowsPerPage = 20;
+    let currentPage = 1;
+
+    for (let i = 0; i < tableRows.length; i += rowsPerPage) {
+      const pageRows = tableRows.slice(i, i + rowsPerPage);
+      if (currentPage > 1) doc.addPage();
+      doc.setFont("NotoSansMongolian");
+      doc.setFontSize(18);
+      doc.text("Сэдэв сонгосон оюутны жагсаалт", 14, 22);
+      doc.setFontSize(12);
+      doc.text(`Хуудас ${currentPage}`, 180, 15);
+      autoTable(doc, {
+        head: [tableColumn],
+        body: pageRows,
+        startY: 30,
+      });
+      currentPage++;
+    }
+
+    doc.save("sedev-songoson-oyutnuud.pdf");
+  };
+
+  const handleDownloadExcel = () => {
+    const filteredData = dataSource
+      .filter((s) => s.is_choosed === true)
+      .map((s) => ({
+        ...s,
+        topic_title: s.topic_title || "-",
+        teacher_name: s.teacher_name || "-",
+      }));
+
+    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Оюутнууд");
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const file = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(file, "oyutnuud.xlsx");
+  };
+
+  const handleDownloadCSV = () => {
+    const filteredData = dataSource
+      .filter((s) => s.is_choosed === true)
+      .map((s) => ({
+        ...s,
+        topic_title: s.topic_title || "-",
+        teacher_name: s.teacher_name || "-",
+      }));
+
+    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+    const csv = XLSX.utils.sheet_to_csv(worksheet);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, "oyutnuud.csv");
+  };
 
   return (
     <div style={{ padding: "0 16px", background: "transparent" }}>
-      {/* Хуудасны гарчиг */}
       <header style={{ textAlign: "left" }}>
         <Title level={3}>Оюутны Жагсаалт</Title>
       </header>
 
-      {/* Хүснэгт байрлах хэсэг */}
       <Layout
         style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}
       >
         <Content style={{ padding: "0 16px" }}>
           <div className="p-4">
-            {/* Өгөгдөл ачаалж байгааг харуулах Spin */}
             <Spin spinning={loading}>
+              <div style={{ marginBottom: "16px", textAlign: "right" }}>
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  onClick={handleDownloadPDF}
+                  style={{ marginRight: 8 }}
+                >
+                  PDF татах
+                </Button>
+                <Button onClick={handleDownloadExcel} style={{ marginRight: 8 }}>
+                  Excel татах
+                </Button>
+                <Button onClick={handleDownloadCSV}>CSV татах</Button>
+              </div>
+
               <CustomTable
-                columns={columns} // Хүснэгтийн баганууд
-                dataSource={dataSource} // Хүснэгтийн өгөгдөл
-                bordered // Хүрээтэй хүснэгт
-                scroll={{ x: "max-content" }} // Хэвтээ гүйлгэх тохиргоо
-                hasLookupField={true} // Хайлт хийх боломжтой эсэхийг тодорхойлох
-                onRefresh={fetchStudents} // Дахин ачаалах функц
+                columns={columns}
+                dataSource={dataSource}
+                bordered
+                scroll={{ x: "max-content" }}
+                hasLookupField={true}
+                onRefresh={fetchStudents}
               />
             </Spin>
           </div>

@@ -1,45 +1,104 @@
-import React, { useState } from "react";
-import { Layout, Tabs, Typography } from "antd";
-import SendPropTopic from "./SendPropTopic";
-import DraftList from "./DraftList";
+import React, { useState, useEffect } from "react";
+import { Table, Spin, Button } from "antd";
+import { fetchData } from "../../utils";
+import DraftDetail from "../DraftDetail";
 
-const { Content } = Layout;
-const { Title } = Typography;
+const DraftList = () => {
+  const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState([]);
+  const [columns, setColumns] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRowData, setSelectedRowData] = useState(null);
 
-function ProposeTopicStud() {
-  const [activeKey, setActiveKey] = useState("1");
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        const rawData = await fetchData("topics/draftstudent");
+        const transformedData = rawData.map((item) => {
+          if (!item.fields) {
+            return { ...item, key: item.id };
+          }
 
-  const handleTabChange = (key) => {
-    setActiveKey(key);
-    console.log(`Tab: ${key}`);
+          const fieldsArray = JSON.parse(item.fields);
+          const fieldsObject = fieldsArray.reduce(
+            (acc, field) => ({
+              ...acc,
+              [field.field]: field.value,
+              [`${field.field}_name`]: field.field2,
+            }),
+            {}
+          );
+
+          return { ...item, ...fieldsObject, key: item.id };
+        });
+
+        setDataSource(transformedData);
+
+        const firstRowFields = rawData.find((item) => item.fields);
+        if (firstRowFields) {
+          const dynamicColumns = JSON.parse(firstRowFields.fields)
+            .filter((field) =>
+              ["name_english", "name_mongolian", "description"].includes(
+                field.field
+              )
+            )
+            .map((field) => ({
+              title: field.field2,
+              dataIndex: field.field,
+              key: field.field,
+            }));
+
+          setColumns([
+            ...dynamicColumns,
+            {
+              title: "Үйлдэл",
+              fixed: "right",
+              width: 150,
+              render: (_, record) => (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button type="default" onClick={() => handleDetails(record)}>
+                    Дэлгэрэнгүй
+                  </Button>
+                </div>
+              ),
+            },
+          ]);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching topics:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchTopics();
+  }, []);
+
+  const handleDetails = (record) => {
+    setSelectedRowData(record);
+    setIsModalOpen(true);
   };
 
-  const items = [
-    {
-      key: "1",
-      label: "Сэдэв дэвшүүлэх",
-      children: activeKey === "1" && <SendPropTopic />,
-    },
-    {
-      key: "2",
-      label: "Ноорог",
-      children: activeKey === "2" && <DraftList />,
-    },
-  ];
-
   return (
-    <div className="p-4 bg-transparent">
-      <header className="text-left mb-4">
-        <Title level={3}>Сэдэв дэвшүүлэх</Title>
-      </header>
-
-      <Layout className="bg-white rounded-lg p-4">
-        <Content className="p-4">
-          <Tabs items={items} onChange={handleTabChange} />
-        </Content>
-      </Layout>
+    <div className="p-4">
+      <Spin spinning={loading}>
+        <Table
+          bordered
+          columns={columns}
+          dataSource={dataSource}
+          scroll={{ x: "max-content" }}
+        />
+      </Spin>
+      {isModalOpen && (
+        <DraftDetail
+          isModalOpen={isModalOpen}
+          data={selectedRowData}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
-}
+};
 
-export default ProposeTopicStud;
+export default DraftList;

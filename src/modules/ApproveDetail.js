@@ -10,7 +10,15 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
   const renderFields = () => {
     if (!data?.fields) return null;
 
-    const fieldsArray = JSON.parse(data.fields);
+  let fieldsArray = [];
+
+    try {
+      fieldsArray =
+        typeof data.fields === "string" ? JSON.parse(data.fields) : data.fields;
+    } catch (err) {
+      console.error("fields parse алдаа:", err);
+      return <div>Мэдээллийг уншиж чадсангүй</div>;
+    }
 
     const rows = [];
     for (let i = 0; i < fieldsArray.length; i += 3) {
