@@ -9,6 +9,8 @@ import {
   Spinner,
   Modal,
 } from "react-bootstrap";
+import Breadcrumbs from "../../components/Common/Breadcrumb";
+
 import { Empty } from "antd";
 import { Link } from "react-router-dom";
 import { CalendarPlus, PeopleFill } from "react-bootstrap-icons";
@@ -18,7 +20,7 @@ import GradingSchemaTable from "../../components/grading/GradingSchemaTable";
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [thesisCycle, setThesisCycle] = useState([]);
-  const firstLetter = user.lastname.charAt(0);
+
   const [loading, setLoading] = useState(true);
   const [showOptions, setShowOptions] = useState(false);
   const [gradingSchema, setGradingSchema] = useState([]);
@@ -53,14 +55,14 @@ const AdminDashboard = () => {
 
   const quickActions = [
     {
-      title: "Шинэ цикл үүсгэх",
+      title: "Шинэ улирал үүсгэх",
       icon: <CalendarPlus size={20} />,
       link: "/thesis-cycles",
     },
     {
-      title: "Add Committee (Coming soon)",
+      title: "Комисс товлох",
       icon: <PeopleFill size={20} />,
-      //link: "/committees/new",
+      link: "/CommitteeScheduler",
     },
   ];
 
@@ -105,7 +107,7 @@ const AdminDashboard = () => {
                 setShowGradingModal(true); // Then open modal
               }}
             >
-              Committee
+              Үнэлгээний схем харах
             </button>
 
             {/* <button 
@@ -153,8 +155,8 @@ const AdminDashboard = () => {
 
   return (
     <Container fluid className="p-4">
-      <h3 className="mb-4">Бакалаврын судалгааны ажил удирдах систем</h3>
 
+  <Breadcrumbs breadcrumbItem="Бакалаврын судалгааны ажил удирдах систем" />
       {/* Stats Row */}
       <Row className="mb-4 mt-2">
         <Col xs={12} md={8} className="mb-3">

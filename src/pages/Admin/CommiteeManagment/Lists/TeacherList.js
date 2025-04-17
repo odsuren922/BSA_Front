@@ -1,3 +1,4 @@
+// TeacherList.jsx
 import React from "react";
 import { Table, Input, Select, Row, Col } from "antd";
 // Багш нарын мэдээлэл
@@ -13,7 +14,7 @@ const TeacherList = ({
   getTeacherCommittees, // багшийн хамт олныг тооцох функц
   handleDeleteMember,
 }) => {
-  //  нэр болон статустайгаар шүүх
+  // Багшдыг нэр болон статустайгаар шүүх
   const filteredTeachers = teachers.filter((teacher) => {
     const fullName = `${teacher.lastname} ${teacher.firstname}`.toLowerCase();
     const matchesName = fullName.includes(filterName.toLowerCase());

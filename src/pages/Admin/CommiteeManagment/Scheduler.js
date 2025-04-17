@@ -19,6 +19,7 @@ import {
   Button,
   Space,
   Popover,
+  Collapse,
 } from "antd";
 import api from "../../../context/api_helper";
 import { toast } from "react-toastify";
@@ -53,7 +54,6 @@ const CommitteeScheduler = () => {
       const committeesData = await api.get(`/committees/active-cycle`);
       setCommittees(committeesData.data.data);
       updateEvents(committeesData.data.data);
-
     } catch (error) {
       console.error("Error fetching committees:", error);
     }
@@ -69,7 +69,7 @@ const CommitteeScheduler = () => {
         end: new Date(schedule.end_datetime),
         committee: committee.id,
         location: schedule.location,
-        room : schedule.room
+        room: schedule.room,
 
         // agenda: schedule.agenda,
       }))
@@ -117,12 +117,12 @@ const CommitteeScheduler = () => {
     setModalVisible(true);
   };
 
- const handleDeleteMeeting = () => {
+  const handleDeleteMeeting = () => {
     if (!selectedEvent) return;
     setShowDeleteModal(true);
   };
 
-const handleSaveMeeting = async () => {
+  const handleSaveMeeting = async () => {
     try {
       const values = await form.validateFields();
       const payload = {
@@ -133,7 +133,7 @@ const handleSaveMeeting = async () => {
         end_datetime: values.time[1].toISOString(),
         room: values.room,
       };
-  
+
       if (isEditMode && selectedEvent) {
         // Update
         await api.patch(`/schedules/${selectedEvent.id}`, payload);
@@ -141,10 +141,13 @@ const handleSaveMeeting = async () => {
       } else {
         // Create
         payload.committee_id = selectedCommittee.id;
-        await api.post(`/committees/${selectedCommittee.id}/schedules`, payload);
+        await api.post(
+          `/committees/${selectedCommittee.id}/schedules`,
+          payload
+        );
         toast.success("Meeting created");
       }
-  
+
       fetchData();
       setModalVisible(false);
       setSelectedEvent(null);
@@ -154,7 +157,7 @@ const handleSaveMeeting = async () => {
       toast.error("Failed to save schedule");
     }
   };
-  
+
   const confirmDelete = async () => {
     try {
       await api.delete(
@@ -210,51 +213,83 @@ const handleSaveMeeting = async () => {
     };
   };
 
-//   const CustomEvent = ({ event }) => {
-//     const committee = committees.find((c) => c.id === event.committee);
-//     return (
-//       <div>
-//         <div style={{ fontWeight: "bold" }}>{event.title}</div>
-//         <div style={{ fontSize: "12px" }}>
-//           {event.location && <div>📍 {event.location}</div>}
-//           {event.notes && <div>📝 {event.notes}</div>}
-//           {committee && <div>Комисс: {committee.name}</div>}
-//           {committee?.grading_component?.name && (
-//             <div>Шалгуур: {committee.grading_component.name}</div>
-//           )}
-//         </div>
-//       </div>
-//     );
-//   };
-const CustomEvent = ({ event }) => {
+  //   const CustomEvent = ({ event }) => {
+  //     const committee = committees.find((c) => c.id === event.committee);
+  //     return (
+        // <div>
+        //   <div style={{ fontWeight: "bold" }}>{event.title}</div>
+        //   <div style={{ fontSize: "12px" }}>
+        //     {event.location && <div>📍 {event.location}</div>}
+        //     {event.notes && <div>📝 {event.notes}</div>}
+        //     {committee && <div>Комисс: {committee.name}</div>}
+        //     {committee?.grading_component?.name && (
+        //       <div>Шалгуур: {committee.grading_component.name}</div>
+        //     )}
+        //   </div>
+        // </div>
+  //     );
+  //   };
+  const CustomEvent = ({ event }) => {
     const committee = committees.find((c) => c.id === event.committee);
     const popoverContent = (
-      <div style={{ padding: '8px' }}>
-        {event.location && <div>📍 <strong>Location:</strong> {event.location}</div>}
-        {event.notes && <div>📝 <strong>Notes:</strong> {event.notes}</div>}
-        {event.room && <div>📝 <strong>Room:</strong> {event.room}</div>}
-        {committee && <div>🏛 <strong>Committee:</strong> {committee.name}</div>}
-        {committee?.grading_component?.name && (
-          <div>📊 <strong>Grading Component:</strong> {committee.grading_component.name}</div>
+      <div style={{ padding: "8px" }}>
+        {event.location && (
+          <div>
+            📍 <strong>Location:</strong> {event.location}
+          </div>
         )}
-        <div>⏱ <strong>Time:</strong> {moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}</div>
+        {event.notes && (
+          <div>
+            📝 <strong>Notes:</strong> {event.notes}
+          </div>
+        )}
+        {event.room && (
+          <div>
+            📝 <strong>Room:</strong> {event.room}
+          </div>
+        )}
+        {committee && (
+          <div>
+            🏛 <strong>Committee:</strong> {committee.name}
+          </div>
+        )}
+        {committee?.grading_component?.name && (
+          <div>
+            📊 <strong>Grading Component:</strong>{" "}
+            {committee.grading_component.name}
+          </div>
+        )}
+        <div>
+          ⏱ <strong>Time:</strong> {moment(event.start).format("HH:mm")} -{" "}
+          {moment(event.end).format("HH:mm")}
+
+   
+       
+          
+        </div>
       </div>
     );
-  
+
     return (
-      <Popover 
-        content={popoverContent} 
+      <Popover
+        content={popoverContent}
         title={event.title}
         trigger="hover"
         placement="rightTop"
       >
-        <div style={{ padding: '2px', cursor: 'pointer' }}>
-          <div style={{ fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {committee?.name}
-          </div>
-          <div style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {moment(event.start).format('HH:mm')}-{moment(event.end).format('HH:mm')}
-          </div>
+        <div style={{ padding: "2px", cursor: "pointer" }}>
+       
+
+          <div style={{ fontSize: "12px" }}>
+          {committee && <div> {committee.name}</div>}
+            {committee?.grading_component?.name && (
+              <div> {committee.grading_component.name}</div>
+            )}
+            {event.location && <div> {event.location} байр {event.room} тоот </div>}
+            {event.notes && <div>📝 {event.notes}</div>}
+           
+    
+        </div>
         </div>
       </Popover>
     );
@@ -270,7 +305,14 @@ const CustomEvent = ({ event }) => {
     });
     setModalVisible(true);
   };
-  
+  const groupedCommittees = committees.reduce((acc, committee) => {
+    const key = committee.grading_component.name;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(committee);
+    return acc;
+  }, {});
 
   return (
     <div className="container mt-4">
@@ -278,77 +320,87 @@ const CustomEvent = ({ event }) => {
         <Row gutter={24}>
           <Col xs={24} md={6}>
             <Card>
-              <Typography.Title level={4}>Committees</Typography.Title>
-              <List
-                bordered
-                dataSource={committees}
-                renderItem={(committee) => {
-                  const latestSchedule =
-                    committee.schedules?.[committee.schedules.length - 1]; // 🆕 хамгийн сүүлийн хуваарь
+              <Typography.Title level={4}>Комисс</Typography.Title>
+              <Collapse accordion>
+                {Object.entries(groupedCommittees).map(
+                  ([componentName, group]) => (
+                    <Collapse.Panel header={componentName} key={componentName}>
+                      <List
+                        bordered
+                        dataSource={group}
+                        renderItem={(committee) => {
+                          const latestSchedule =
+                            committee.schedules?.[
+                              committee.schedules.length - 1
+                            ];
 
-                  return (
-                    <List.Item
-                      style={{
-                        borderLeft: `5px solid ${committee.color || "#1677ff"}`,
-                        padding: "12px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <Typography.Text strong>
-                          {committee.name}
-                        </Typography.Text>
-                        <br />
-                        <Typography.Text>
-                          {committee.grading_component.name}
-                        </Typography.Text>
-                        <br />
-                        <Typography.Text>
-                          {committee.schedules.length} meetings
-                        </Typography.Text>
-                        {latestSchedule && (
-                          <>
-                            <br />
-                            <Typography.Text
-                              type="secondary"
-                              style={{ cursor: "pointer", color: "#1890ff" }}
-                              onClick={() => {
-                                // Find event object from the calendar
-                                const calendarEvent = events.find(
-                                  (e) => e.id === latestSchedule.id
-                                );
-                                if (calendarEvent) {
-                                  setCalendarDate(
-                                    new Date(calendarEvent.start)
-                                  );
-                                  setSelectedEvent(calendarEvent);
-                                }
+                          return (
+                            <List.Item
+                              style={{
+                                borderLeft: `5px solid ${
+                                  committee.color || "#1677ff"
+                                }`,
+                                padding: "12px",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
                               }}
                             >
-                              🗓{" "}
-                              {moment(latestSchedule.start_datetime).format(
-                                "YYYY-MM-DD HH:mm"
-                              )}
-                            </Typography.Text>
-                            <br />
-                            <Typography.Text italic>
-                              {latestSchedule.notes}
-                            </Typography.Text>
-                          </>
-                        )}
-                      </div>
-                      <Button
-                        size="small"
-                        onClick={() => handleAddMeeting(committee)}
-                      >
-                        Add
-                      </Button>
-                    </List.Item>
-                  );
-                }}
-              />
+                              <div>
+                                <Typography.Text strong>
+                                  {committee.name}
+                                </Typography.Text>
+                                <br />
+                                <Typography.Text>
+                                  {committee.schedules.length} meetings
+                                </Typography.Text>
+                                {latestSchedule && (
+                                  <>
+                                    <br />
+                                    <Typography.Text
+                                      type="secondary"
+                                      style={{
+                                        cursor: "pointer",
+                                        color: "#1890ff",
+                                      }}
+                                      onClick={() => {
+                                        const calendarEvent = events.find(
+                                          (e) => e.id === latestSchedule.id
+                                        );
+                                        if (calendarEvent) {
+                                          setCalendarDate(
+                                            new Date(calendarEvent.start)
+                                          );
+                                          setSelectedEvent(calendarEvent);
+                                        }
+                                      }}
+                                    >
+                                      🗓{" "}
+                                      {moment(
+                                        latestSchedule.start_datetime
+                                      ).format("YYYY-MM-DD HH:mm")}
+                                    </Typography.Text>
+                                    <br />
+                                    <Typography.Text italic>
+                                      {latestSchedule.notes}
+                                    </Typography.Text>
+                                  </>
+                                )}
+                              </div>
+                              <Button
+                                size="small"
+                                onClick={() => handleAddMeeting(committee)}
+                              >
+                                Add
+                              </Button>
+                            </List.Item>
+                          );
+                        }}
+                      />
+                    </Collapse.Panel>
+                  )
+                )}
+              </Collapse>
             </Card>
           </Col>
           <Col xs={24} md={18}>
@@ -407,17 +459,16 @@ const CustomEvent = ({ event }) => {
           onCancel={() => setModalVisible(false)}
         > */}
         <Modal
-  title={isEditMode ? "Хуваарь засах" : "Шинэ уулзалт үүсгэх"}
-  open={modalVisible}
-  onOk={handleSaveMeeting}
-  onCancel={() => {
-    setModalVisible(false);
-    setSelectedEvent(null);
-    setIsEditMode(false);
-    form.resetFields();
-  }}
->
-
+          title={isEditMode ? "Хуваарь засах" : "Шинэ уулзалт үүсгэх"}
+          open={modalVisible}
+          onOk={handleSaveMeeting}
+          onCancel={() => {
+            setModalVisible(false);
+            setSelectedEvent(null);
+            setIsEditMode(false);
+            form.resetFields();
+          }}
+        >
           <Form layout="vertical" form={form}>
             <Form.Item
               name="notes"
@@ -450,15 +501,14 @@ const CustomEvent = ({ event }) => {
         </Modal>
 
         <DeleteConfirmModal
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
-        onConfirm={confirmDelete}
-        title="Хуваарь устгах уу?"
-        message="Та энэ хуваарийг устгахдаа итгэлтэй байна уу?"
-        confirmText="Тийм, устгах"
-        cancelText="Үгүй"
-      />
-      
+          show={showDeleteModal}
+          onHide={() => setShowDeleteModal(false)}
+          onConfirm={confirmDelete}
+          title="Хуваарь устгах уу?"
+          message="Та энэ хуваарийг устгахдаа итгэлтэй байна уу?"
+          confirmText="Тийм, устгах"
+          cancelText="Үгүй"
+        />
       </DndProvider>
     </div>
   );

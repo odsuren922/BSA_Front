@@ -41,7 +41,7 @@ const StudentCommittee = ({ cycleId, componentId }) => {
       try {
         const [thesesResponse, committeesRes] = await Promise.all([
           //   api.get("/students"),
-          api.get(`/cycles/${cycleId}/active-theses`), //TODO:: ONLY ACTIVE
+          api.get(`/cycles/${cycleId}/active-theses`), 
           api.get(
             `/thesis-cycles/${cycleId}/grading-components/${componentId}/committees`
           ),

@@ -45,7 +45,7 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
   const [selectedCommittee, setSelectedCommittee] = useState(null);
   const [scoreForm] = Form.useForm();
 
-  // Mock data initialization
+
   useEffect(() => {
     fetchData();
   }, [cycleId, user.dep_id]);
@@ -68,35 +68,21 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
         ),
         api.get(`/grading-components/${componentId}`),
       ]);
-
+  
       setTheses(ThesisDate.data);
       setGradingComponent(gradingComponent.data);
-
-      console.log("gradingComponent", gradingComponent.data);
-      // First set the committees without student data
-
+  
       const committeesData = committeesRes.data.data;
-
       const roleOrder = {
         leader: 1,
         secretary: 2,
         member: 3,
       };
-
-      const sortedCommitteesData = committeesData.map((committee) => ({
-        ...committee,
-        members: [...(committee.members || [])].sort(
-          (a, b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99)
-        ),
-      }));
-
-      setCommittees(sortedCommitteesData);
-
+  
       const committeesWithScores = await Promise.all(
         committeesData.map(async (committee) => {
           try {
             const scores = await fetchScores(committee.id);
-
             return {
               ...committee,
               members: [...(committee.members || [])].sort(
@@ -114,13 +100,15 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
               members: [...(committee.members || [])].sort(
                 (a, b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99)
               ),
+              students: [], // fallback хоосон оюутан
             };
           }
         })
       );
+  
 
       setCommittees(committeesWithScores);
-
+  
       setCustomTeacherCount(TeacherData.data.count);
       setCustomStudentCount(
         studentRes.data.reduce((sum, item) => sum + item.student_count, 0)
@@ -132,8 +120,10 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
       setLoading(false);
     }
   };
+  
   const fetchScores = async (committeeId) => {
     const res = await api.get(`/committees/${committeeId}/scores`);
+  console.log(res.data);
     return res.data;
   };
 
@@ -230,18 +220,19 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
 
   const getInitialFormValues = (committee) => {
     if (!committee) return {};
-
+  
     const initialValues = {};
-
+  
     committee.students?.forEach((student) => {
       initialValues[student.id] = {};
-      student.scores?.forEach((grade) => {
+      (student.scores || []).forEach((grade) => {
         initialValues[student.id][grade.teacher_id] = grade.score;
       });
     });
-
+  
     return initialValues;
   };
+  
 
   const renderCommitteeMemberItem = (member) => {
     const firstName = member.teacher?.firstname || "";
@@ -356,7 +347,7 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
       dataIndex: "scores",
       key: `score-${grader.id}`,
       render: (scores, record) => {
-        const score = scores?.find((s) => s.teacher_id === grader.teacher?.id);
+        const score = (scores || []).find((s) => s.teacher_id === grader.teacher?.id);
         return (
           <div style={{ textAlign: "center" }}>
             {score?.score !== undefined ? (
@@ -385,30 +376,41 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
     }));
 
     const scoreColumns = [
-      {
-        title: "Нийт",
-        dataIndex: "totalScore",
-        key: "totalScore",
-        render: (score) => (
-          <Text strong style={{ fontSize: 14 }}>
-            {score !== undefined ? score : "-"}
-          </Text>
-        ),
-        width: 80,
-        align: "center",
-      },
-      {
-        title: "Эцсийн дүн",
-        dataIndex: "finalScore",
-        key: "finalScore",
-        render: (score) => (
-          <Text strong style={{ fontSize: 14, color: "#1890ff" }}>
-            {score !== undefined ? score : "-"}
-          </Text>
-        ),
-        width: 100,
-        align: "center",
-      },
+        {
+            title: "Нийт",
+            key: "totalScore",
+            render: (_, record) => {
+                const scores = record.scores
+                  ?.map((s) => Number(s.score))  // тоо руу хөрвүүлж авна
+                  .filter((s) => !isNaN(s));    // зөвхөн тоонууд
+              
+                const avg = scores.length
+                  ? (scores.reduce((sum, s) => sum + s, 0) / scores.length).toFixed(2)
+                  : "-";
+              
+                return (
+                  <Text strong style={{ fontSize: 14 }}>
+                    {avg}
+                  </Text>
+                );
+              },
+              
+            width: 80,
+            align: "center",
+          },
+          
+    //   {
+    //     title: "Эцсийн дүн",
+    //     dataIndex: "finalScore",
+    //     key: "finalScore",
+    //     render: (score) => (
+    //       <Text strong style={{ fontSize: 14, color: "#1890ff" }}>
+    //         {score !== undefined ? score : "-"}
+    //       </Text>
+    //     ),
+    //     width: 100,
+    //     align: "center",
+    //   },
     ];
 
     return [...baseColumns, ...teacherScoreColumns, ...scoreColumns];

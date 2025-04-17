@@ -15,8 +15,7 @@ const CommitteePanel = () => {
     const navigate = useNavigate();
 
 const handleBack = () => {
-  navigate(-1); // Go back to previous page
-  // OR use navigate('/some-path') to go to a specific route
+  navigate(-1); 
 };
 
   return (
