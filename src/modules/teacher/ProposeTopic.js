@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Layout, Tabs, Typography } from "antd";
 import SendTopic from "./SendTopic";
 import DraftList from "./DraftList";
@@ -7,6 +7,8 @@ const { Content } = Layout;
 const { Title } = Typography;
 
 function ProposeTopic() {
+  const [activeKey, setActiveKey] = useState("1");
+
   const items = [
     {
       key: "1",
@@ -28,7 +30,11 @@ function ProposeTopic() {
 
       <Layout className="bg-white rounded-lg p-4">
         <Content className="p-4">
-          <Tabs items={items} />
+          <Tabs
+            items={items}
+            activeKey={activeKey}
+            onChange={(key) => setActiveKey(key)}
+          />
         </Content>
       </Layout>
     </div>

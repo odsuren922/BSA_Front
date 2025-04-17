@@ -1,45 +1,48 @@
 import { useState } from "react";
 import { Layout, Tabs, Typography } from "antd";
-import RequestedTopicsList from "./RequestedTopicList";
 import ConfirmedTopic from "./ConfirmedTopic";
+import RequestedTopicsList from "./RequestedTopicList";
 
 const { Content } = Layout;
 const { Title } = Typography;
 
-function ConfirmedTopics() {
-  const [activeKey, setActiveKey] = useState("1");
+const ConfirmedTopics = () => {
+  const [activeKey, setActiveKey] = useState("confirmed");
 
   const handleTabChange = (key) => {
     setActiveKey(key);
-    console.log(`Tab: ${key}`);
   };
 
-  const items = [
+  const tabItems = [
     {
-      key: "1",
-      label: "Сонгосон сэдэв",
-      children: activeKey === "1" && <ConfirmedTopic />,
+      key: "confirmed",
+      label: "Сонгосон сэдвүүд",
+      children: <ConfirmedTopic />,
     },
     {
-      key: "2",
-      label: "Хүсэлт ирсэн сэдвийн жагсаалт",
-      children: activeKey === "2" && <RequestedTopicsList />,
+      key: "requested",
+      label: "Ирсэн хүсэлтүүд",
+      children: <RequestedTopicsList />,
     },
   ];
 
   return (
     <div className="p-4 bg-transparent">
       <header className="text-left mb-4">
-        <Title level={3}>Сонгосон сэдэв</Title>
+        <Title level={3}>Сэдвийн Сонголтын Мэдээлэл</Title>
       </header>
 
       <Layout className="bg-white rounded-lg p-4">
         <Content className="p-4">
-          <Tabs items={items} onChange={handleTabChange} />
+          <Tabs
+            activeKey={activeKey}
+            onChange={handleTabChange}
+            items={tabItems}
+          />
         </Content>
       </Layout>
     </div>
   );
-}
+};
 
 export default ConfirmedTopics;

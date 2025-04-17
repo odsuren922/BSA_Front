@@ -11,7 +11,7 @@ const ConfirmedTopicList = () => {
   const fetchTopics = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetchData("topics_confirmed");
+      const response = await fetchData("topics/confirmed-by-teacher");
 
       const rawData = Array.isArray(response?.data)
         ? response.data
@@ -128,7 +128,7 @@ const ConfirmedTopicList = () => {
           description: "Сэдвийг амжилттай цуцаллаа!",
         });
 
-        fetchTopics(); // refresh data
+        fetchTopics(); // refresh
       } catch (error) {
         console.error("Error cancelling topic:", error);
         message.error("Алдаа гарлаа!");

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Modal, Row, Col, Button, message, notification } from "antd";
+import { Modal, Row, Col, Button, message, notification, Popconfirm } from "antd";
 import { postData } from "../utils";
 
 const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
@@ -10,7 +10,7 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
   const renderFields = () => {
     if (!data?.fields) return null;
 
-  let fieldsArray = [];
+    let fieldsArray = [];
 
     try {
       fieldsArray =
@@ -31,12 +31,7 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
           <Col key={colIndex} span={8}>
             <div>
               <strong>{field.field2}</strong>
-              <div
-                style={{
-                  color: "#595959",
-                  fontWeight: "500",
-                }}
-              >
+              <div style={{ color: "#595959", fontWeight: "500" }}>
                 {field.value}
               </div>
             </div>
@@ -46,48 +41,56 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
     ));
   };
 
-  const handleAction = async (action) => {
+  const handleAction = async (actionType) => {
     try {
       const payload = {
         topic_id: data.topic_id,
         req_id: data.req_id,
         student_id: data.created_by_id,
         res_date: new Date().toISOString().replace("T", " ").slice(0, 19),
+        action: actionType, // e.g., 'approve' or 'refuse'
       };
 
       await postData("topic_confirm", payload);
 
       notification.success({
         message: "Амжилттай",
-        description: "Сэдвийг амжилттай зөвшөөрлөө!",
+        description:
+          actionType === "approve"
+            ? "Сэдвийг амжилттай зөвшөөрлөө!"
+            : "Сэдвийг татгалзлаа!",
       });
 
       if (onActionComplete) onActionComplete();
       onClose();
     } catch (error) {
-      console.error(`Error handling topic:`, error);
+      console.error("Action error:", error);
       message.error("Алдаа гарлаа!");
     }
   };
 
-  const renderFooter = () => {
-    return [
-      <Button key="cancel" onClick={onClose}>
-        Болих
-      </Button>,
-      <Button
-        key="confirm"
-        type="primary"
-        onClick={() => handleAction("submitted")}
+  const renderFooter = () => (
+    <>
+      <Button onClick={onClose}>Хаах</Button>
+
+      <Popconfirm
+        title="Сэдвийг татгалзах уу?"
+        onConfirm={() => handleAction("refuse")}
+        okText="Тийм"
+        cancelText="Үгүй"
       >
+        <Button danger>Татгалзах</Button>
+      </Popconfirm>
+
+      <Button type="primary" onClick={() => handleAction("approve")}>
         Зөвшөөрөх
-      </Button>,
-    ];
-  };
+      </Button>
+    </>
+  );
 
   return (
     <Modal
-      title="Дэлгэрэнгүй"
+      title="Сэдвийн дэлгэрэнгүй"
       open={isModalOpen}
       onCancel={onClose}
       width={800}

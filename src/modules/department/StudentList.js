@@ -8,14 +8,14 @@ import {
   Button,
 } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
-import { fetchData } from "../../utils";
-import CustomTable from "../../components/CustomTable";
+import { fetchData } from "../../utils"; 
+import CustomTable from "../../components/CustomTable"; 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { registerMongolFont } from "../../fonts/noto-mongolian-font";
+import { registerMongolFont } from "../../fonts/noto-mongolian-fonts"; 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { Content } from "antd/lib/layout/layout";
+import { Content } from "antd/es/layout/layout"; // эсвэл "antd/lib/layout/layout"
 
 const { Title } = Typography;
 
@@ -38,39 +38,41 @@ const StudentList = () => {
       ],
       onFilter: (value, record) => record.is_choosed === value,
       render: (is_choosed) => (
-        <Tag color={is_choosed ? "green" : "yellow"}>
+        <Tag color={is_choosed ? "green" : "volcano"}>
           {is_choosed ? "Тийм" : "Үгүй"}
         </Tag>
       ),
     },
     {
-      title: "Сонгосон сэдэв",
+      title: "Сэдвийн нэр",
       dataIndex: "topic_title",
       key: "topic_title",
-      render: (text, record) => record.is_choosed ? text || "-" : "-",
+      render: (_, record) =>
+        record.is_choosed ? record.topic_title || "-" : "-",
     },
     {
       title: "Удирдагч багш",
       dataIndex: "teacher_name",
       key: "teacher_name",
-      render: (text, record) => record.is_choosed ? text || "-" : "-",
+      render: (_, record) =>
+        record.is_choosed ? record.teacher_name || "-" : "-",
     },
     { title: "Цахим хаяг", dataIndex: "mail", key: "mail" },
-    { title: "Утасны дугаар", dataIndex: "phone", key: "phone" },
+    { title: "Утас", dataIndex: "phone", key: "phone" },
   ];
 
   const fetchStudents = async () => {
     try {
-      const rawData = await fetchData("students/all"); // or "students-with-topics"
-      if (!rawData.length) throw new Error("No data returned");
+      const rawData = await fetchData("students/all");
+      if (!rawData.length) throw new Error("No student data found");
       setDataSource(rawData);
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching students:", error);
       notification.error({
         message: "Алдаа",
-        description: "Оюутнуудын мэдээллийг татахад алдаа гарлаа.",
+        description: "Оюутнуудын мэдээлэл татахад алдаа гарлаа.",
       });
+    } finally {
       setLoading(false);
     }
   };
@@ -79,43 +81,43 @@ const StudentList = () => {
     fetchStudents();
   }, []);
 
+  const filteredForExport = () =>
+    dataSource
+      .filter((s) => s.is_choosed)
+      .map((s) => ({
+        SISI_ID: s.sisi_id,
+        Нэр: s.firstname,
+        Овог: s.lastname,
+        Хөтөлбөр: s.program,
+        Сэдэв: s.topic_title || "-",
+        УдирдагчБагш: s.teacher_name || "-",
+        Имэйл: s.mail,
+        Утас: s.phone,
+      }));
+
   const handleDownloadPDF = () => {
     registerMongolFont();
     const doc = new jsPDF();
     doc.setFont("NotoSansMongolian");
     doc.setFontSize(18);
 
-    const filteredData = dataSource.filter((student) => student.is_choosed === true);
+    const rows = filteredForExport();
     const tableColumn = [
       "SISI ID", "Нэр", "Овог", "Хөтөлбөр",
-      "Сэдэв", "Удирдагч багш", "Цахим хаяг", "Утас"
+      "Сэдэв", "Удирдагч Багш", "Имэйл", "Утас"
     ];
+    const tableRows = rows.map((r) => Object.values(r));
 
-    const tableRows = filteredData.map((student) => [
-      student.sisi_id,
-      student.firstname,
-      student.lastname,
-      student.program,
-      student.topic_title || "-",
-      student.teacher_name || "-",
-      student.mail,
-      student.phone,
-    ]);
-
-    const rowsPerPage = 20;
     let currentPage = 1;
+    const rowsPerPage = 20;
 
     for (let i = 0; i < tableRows.length; i += rowsPerPage) {
-      const pageRows = tableRows.slice(i, i + rowsPerPage);
       if (currentPage > 1) doc.addPage();
-      doc.setFont("NotoSansMongolian");
-      doc.setFontSize(18);
       doc.text("Сэдэв сонгосон оюутны жагсаалт", 14, 22);
-      doc.setFontSize(12);
       doc.text(`Хуудас ${currentPage}`, 180, 15);
       autoTable(doc, {
         head: [tableColumn],
-        body: pageRows,
+        body: tableRows.slice(i, i + rowsPerPage),
         startY: 30,
       });
       currentPage++;
@@ -125,15 +127,7 @@ const StudentList = () => {
   };
 
   const handleDownloadExcel = () => {
-    const filteredData = dataSource
-      .filter((s) => s.is_choosed === true)
-      .map((s) => ({
-        ...s,
-        topic_title: s.topic_title || "-",
-        teacher_name: s.teacher_name || "-",
-      }));
-
-    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+    const worksheet = XLSX.utils.json_to_sheet(filteredForExport());
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Оюутнууд");
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
@@ -142,15 +136,7 @@ const StudentList = () => {
   };
 
   const handleDownloadCSV = () => {
-    const filteredData = dataSource
-      .filter((s) => s.is_choosed === true)
-      .map((s) => ({
-        ...s,
-        topic_title: s.topic_title || "-",
-        teacher_name: s.teacher_name || "-",
-      }));
-
-    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+    const worksheet = XLSX.utils.json_to_sheet(filteredForExport());
     const csv = XLSX.utils.sheet_to_csv(worksheet);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, "oyutnuud.csv");
@@ -162,9 +148,7 @@ const StudentList = () => {
         <Title level={3}>Оюутны Жагсаалт</Title>
       </header>
 
-      <Layout
-        style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}
-      >
+      <Layout style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}>
         <Content style={{ padding: "0 16px" }}>
           <div className="p-4">
             <Spin spinning={loading}>

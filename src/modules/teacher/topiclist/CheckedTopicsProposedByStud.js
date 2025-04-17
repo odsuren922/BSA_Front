@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Spin, Button, notification } from "antd";
+import { Spin, Button, notification, Tag } from "antd";
 import CustomTable from "../../../components/CustomTable";
 import TopicDetail from "../../TopicDetail";
 import { fetchData } from "../../../utils";
@@ -17,53 +17,78 @@ const CheckedTopicsProposedByStud = ({ active }) => {
     setLoading(true);
     try {
       const rawData = await fetchData("topics/checkedtopicsbystud");
-      const transformedData = rawData.map((item) => {
-        const fieldsArray = JSON.parse(item.fields);
-        const fieldsObject = fieldsArray.reduce(
-          (acc, field) => ({
-            ...acc,
-            [field.field]: field.value,
-            [`${field.field}_name`]: field.field2,
-          }),
-          {}
-        );
-        return { ...item, ...fieldsObject, key: item.id };
+
+      const transformed = rawData.map((item) => {
+        let fieldsArray = [];
+        try {
+          fieldsArray = JSON.parse(item.fields || "[]");
+        } catch (e) {
+          console.error("Invalid JSON in fields:", item.fields);
+        }
+
+        const fieldsObject = fieldsArray.reduce((acc, field) => ({
+          ...acc,
+          [field.field]: field.value,
+          [`${field.field}_name`]: field.field2,
+        }), {});
+
+        return {
+          ...item,
+          ...fieldsObject,
+          fieldsArray,
+          key: item.id,
+        };
       });
 
-      setDataSource(transformedData);
+      setDataSource(transformed);
 
-      if (transformedData.length > 0) {
-        const dynamicColumns = JSON.parse(transformedData[0].fields)
-          .filter((field) =>
-            ["name_english", "name_mongolian", "description"].includes(
-              field.field
-            )
-          )
-          .map((field) => ({
-            title: field.field2,
-            dataIndex: field.field,
-            key: field.field,
-          }));
-
-        dynamicColumns.push({
-          title: "Үйлдэл",
-          key: "actions",
-          fixed: "right",
-          width: 150,
-          render: (_, record) => (
-            <Button type="default" onClick={() => handleDetails(record)}>
-              Дэлгэрэнгүй
-            </Button>
-          ),
-        });
+      if (transformed.length > 0) {
+        const dynamicColumns = [
+          {
+            title: "Сэдвийн нэр (Монгол)",
+            dataIndex: "name_mongolian",
+            key: "name_mongolian",
+          },
+          {
+            title: "Сэдвийн нэр (Англи)",
+            dataIndex: "name_english",
+            key: "name_english",
+          },
+          {
+            title: "Товч агуулга",
+            dataIndex: "description",
+            key: "description",
+          },
+          {
+            title: "Төлөв",
+            dataIndex: "is_selected",
+            key: "is_selected",
+            render: (isSelected) => (
+              <Tag color={isSelected ? "green" : "red"}>
+                {isSelected ? "Баталсан" : "Татгалзсан"}
+              </Tag>
+            ),
+          },
+          {
+            title: "Үйлдэл",
+            key: "actions",
+            fixed: "right",
+            width: 150,
+            render: (_, record) => (
+              <Button type="default" onClick={() => handleDetails(record)}>
+                Дэлгэрэнгүй
+              </Button>
+            ),
+          },
+        ];
 
         setColumns(dynamicColumns);
       }
     } catch (error) {
       console.error("Error fetching topics:", error);
       notification.error({
-        message: "Error",
-        description: "Failed to fetch topics. Please try again later.",
+        message: "Алдаа",
+        description: "Сэдвүүдийг татахад алдаа гарлаа. Дахин оролдоно уу.",
       });
     } finally {
       setLoading(false);
@@ -84,10 +109,6 @@ const CheckedTopicsProposedByStud = ({ active }) => {
     setIsModalOpen(true);
   };
 
-  const closeDetailModal = () => {
-    setIsModalOpen(false);
-  };
-
   return (
     <div className="p-4">
       <Spin spinning={loading}>
@@ -104,7 +125,7 @@ const CheckedTopicsProposedByStud = ({ active }) => {
         <TopicDetail
           isModalOpen={isModalOpen}
           data={selectedRowData}
-          onClose={closeDetailModal}
+          onClose={() => setIsModalOpen(false)}
         />
       )}
     </div>

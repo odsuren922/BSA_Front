@@ -3,6 +3,7 @@ import { Spin, notification, Button } from "antd";
 import { fetchData } from "../../utils";
 import ApproveDetail from "../ApproveDetail";
 import CustomTable from "../../components/CustomTable";
+import { useUser } from "../../context/UserContext"; // teacher id авах
 
 const RequestedTopicList = () => {
   const [loading, setLoading] = useState(true);
@@ -10,19 +11,30 @@ const RequestedTopicList = () => {
   const [columns, setColumns] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState(null);
+  const { user } = useUser(); // Багшийн мэдээлэл авах
+  const teacherId = user?.id;
 
   const fetchTopics = useCallback(async () => {
     try {
       const response = await fetchData("topic_requests");
       const rawData = response.data;
 
-      if (!rawData || !Array.isArray(rawData)) {
+      if (!Array.isArray(rawData)) {
         throw new Error("Invalid data format received from API");
       }
 
-      const transformedData = rawData.map((item) => {
+      // Зөвхөн тухайн багштай холбоотой хүсэлтийг шүүх
+      const filteredData = rawData.filter(
+        (item) =>
+          item.created_by_type === "student" &&
+          item.topic?.status === "approved" &&
+          item.topic?.created_by_type === "student" &&
+          item.is_selected === false
+      );
+
+      const transformedData = filteredData.map((item) => {
         try {
-          const fieldsArray = JSON.parse(item.fields);
+          const fieldsArray = JSON.parse(item.fields || "[]");
           const fieldsObject = fieldsArray.reduce(
             (acc, field) => ({
               ...acc,
@@ -31,7 +43,11 @@ const RequestedTopicList = () => {
             }),
             {}
           );
-          return { ...item, ...fieldsObject, key: item.id };
+          return {
+            ...item,
+            ...fieldsObject,
+            key: item.id,
+          };
         } catch (error) {
           console.error("Error parsing fields:", item.fields, error);
           return { ...item, key: item.id };
@@ -40,22 +56,23 @@ const RequestedTopicList = () => {
 
       setDataSource(transformedData);
 
-      if (rawData[0]?.fields) {
-        const fieldsArray = JSON.parse(rawData[0].fields);
-        const dynamicColumns = fieldsArray
-          .filter((field) => ["name_mongolian"].includes(field.field))
-          .map((field) => ({
-            title: field.field2,
-            dataIndex: field.field,
-            key: field.field,
-          }));
-
-        setColumns([
-          ...dynamicColumns,
+      if (transformedData.length > 0) {
+        const dynamicColumns = [
           {
-            title: "Хүсэлт илгээсэн",
-            dataIndex: "firstname",
-            key: "firstname",
+            title: "Сэдвийн нэр (Монгол)",
+            dataIndex: "name_mongolian",
+            key: "name_mongolian",
+          },
+          {
+            title: "Хүсэлт илгээсэн оюутан",
+            render: (record) =>
+              `${record.lastname?.charAt(0)}.${record.firstname}` || "-",
+            key: "student",
+          },
+          {
+            title: "SISI ID",
+            dataIndex: "sisi_id",
+            key: "sisi_id",
           },
           {
             title: "Хүсэлтийн тэмдэглэл",
@@ -68,21 +85,22 @@ const RequestedTopicList = () => {
             fixed: "right",
             width: 150,
             render: (_, record) => (
-              <div style={{ display: "flex", gap: "8px" }}>
-                <Button type="default" onClick={() => handleDetails(record)}>
-                  Дэлгэрэнгүй
-                </Button>
-              </div>
+              <Button type="default" onClick={() => handleDetails(record)}>
+                Дэлгэрэнгүй
+              </Button>
             ),
           },
-        ]);
+        ];
+
+        setColumns(dynamicColumns);
       }
+
       setLoading(false);
     } catch (error) {
-      console.log("Error fetching topics:", error);
+      console.error("Error fetching topics:", error);
       notification.error({
         message: "Error",
-        description: "Failed to fetch topics. Check console for details.",
+        description: "Хүсэлтүүдийг татахад алдаа гарлаа.",
       });
       setLoading(false);
     }
@@ -90,7 +108,6 @@ const RequestedTopicList = () => {
 
   useEffect(() => {
     fetchTopics();
-
     const intervalId = setInterval(fetchTopics, 5000);
     return () => clearInterval(intervalId);
   }, [fetchTopics]);
@@ -121,6 +138,7 @@ const RequestedTopicList = () => {
           isModalOpen={isModalOpen}
           data={selectedRowData}
           onClose={() => setIsModalOpen(false)}
+          onActionComplete={fetchTopics} // баталсны дараа refresh
         />
       )}
     </div>

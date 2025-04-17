@@ -13,20 +13,17 @@ function TopicListStud() {
   const handleTabChange = (key) => {
     setActiveKey(key);
   };
+
   const items = [
     {
       key: "1",
       label: "Сэдвийн жагсаалт",
-      children: activeKey === "1" && (
-        <CheckedTopicList active={activeKey === "1"} />
-      ),
+      children: <CheckedTopicList active={activeKey === "1"} />,
     },
     {
       key: "2",
-      label: "Дэвшүүлсэн сэдвийн жагсаалт",
-      children: activeKey === "2" && (
-        <TopicListProposedByUser active={activeKey === "1"} />
-      ),
+      label: "Миний дэвшүүлсэн сэдвүүд",
+      children: <TopicListProposedByUser active={activeKey === "2"} />,
     },
   ];
 
@@ -38,7 +35,12 @@ function TopicListStud() {
 
       <Layout className="bg-white rounded-lg p-4">
         <Content className="p-4">
-          <Tabs items={items} onChange={handleTabChange} />
+          <Tabs
+            items={items}
+            activeKey={activeKey}
+            onChange={handleTabChange}
+            type="line"
+          />
         </Content>
       </Layout>
     </div>

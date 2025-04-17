@@ -17,150 +17,101 @@ function SendTopic() {
   const [defData, setDefData] = useState([]);
   const [formId, setFormId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [form] = Form.useForm();
   const [options, setOptions] = useState([]);
+  const [form] = Form.useForm();
 
   const openNotification = (type, message, description) => {
-    notification[type]({
-      message,
-      description,
-    });
-  };
-
-  const fetchProgramData = async () => {
-    try {
-      const data = await fetchData("api/department");
-      if (data && data.length > 0) {
-        const departmentPrograms = JSON.parse(data[0].programs || "[]");
-
-        const formattedOptions = departmentPrograms.map((program) => ({
-          value: program.program_id,
-          label: program.program_name,
-        }));
-
-        setOptions(formattedOptions);
-      }
-    } catch (error) {
-      console.error("Error fetching department data:", error);
-    } finally {
-      setLoading(false);
-    }
+    notification[type]({ message, description });
   };
 
   useEffect(() => {
-    const fetchProposalData = async () => {
+    const fetchAllData = async () => {
       try {
-        const data = await fetchData("api/proposalform");
-        if (data && data[0]) {
-          setFormId(data[0].id);
-          setFormData(data[0].fields);
-          setDefData(data[0].default_fields);
+        const [formRes, deptRes] = await Promise.all([
+          fetchData("api/proposalform"),
+          fetchData("api/department"),
+        ]);
+
+        if (formRes?.[0]) {
+          setFormId(formRes[0].id);
+          setFormData(formRes[0].fields || []);
+          setDefData(formRes[0].default_fields || []);
+        }
+
+        if (deptRes?.[0]) {
+          const programs = JSON.parse(deptRes[0].programs || "[]");
+          const formatted = programs.map((p) => ({
+            value: p.program_id,
+            label: p.program_name,
+          }));
+          setOptions(formatted);
         }
       } catch (error) {
-        console.error("Error fetching proposal data:", error);
+        console.error("Error fetching init data:", error);
+        openNotification("error", "Алдаа", "Өгөгдөл татахад алдаа гарлаа.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProposalData();
-    fetchProgramData();
+    fetchAllData();
   }, []);
 
-  const transformToDraftFormat = (values) => {
-    const transformedData = [];
+  const transformFields = (values) => {
+    const transformed = [];
 
-    const processDataArray = (dataArray) => {
-      dataArray
-        .filter((fieldObject) => {
-          const targetUser = fieldObject.targetUser;
-          return targetUser === "All" || targetUser === "Teacher";
-        })
-        .forEach((fieldObject) => {
-          const firstKey = Object.keys(fieldObject)[0];
-          const field2 = Object.values(fieldObject)[0];
-          const targetUser = fieldObject.targetUser;
+    const process = (arr) => {
+      arr.forEach((obj) => {
+        const key = Object.keys(obj)[0];
+        const label = Object.values(obj)[0];
+        const target = obj.targetUser;
 
-          if (values[firstKey] && firstKey !== "target_program") {
-            transformedData.push({
-              field: firstKey,
-              field2,
-              value: values[firstKey],
-              targetUser,
-            });
-          }
-        });
+        if ((target === "All" || target === "Teacher") && values[key] && key !== "target_program") {
+          transformed.push({
+            field: key,
+            field2: label,
+            value: values[key],
+            targetUser: target,
+          });
+        }
+      });
     };
 
-    processDataArray(defData);
-    processDataArray(formData);
+    process(defData);
+    process(formData);
 
-    return transformedData;
+    return transformed;
   };
 
-  const saveToDraft = async () => {
+  const handleSaveOrSubmit = async (type) => {
     try {
       const values = form.getFieldsValue();
-      const draftData = transformToDraftFormat(values);
-      const targetProgram = draftData.find(
-        (field) => field.field === "target_program"
-      );
+      const fieldData = transformFields(values);
+      const programField = values["target_program"] || [];
+
       await postData("topic/storeteacher", {
         form_id: formId,
-        status: "draft",
-        fields: draftData,
-        program: targetProgram ? targetProgram.value : [],
+        status: type,
+        fields: fieldData,
+        program: programField,
       });
+
       openNotification(
         "success",
-        "Draft Saved",
-        "Ноорогт амжилттай хадгаллаа."
+        type === "submitted" ? "Амжилттай илгээгдлээ" : "Ноорог хадгаллаа",
+        "Сэдэв амжилттай хадгалагдлаа."
       );
       form.resetFields();
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      openNotification(
-        "error",
-        "Save Failed",
-        "Ноорог хадгалах явцад алдаа гарлаа."
-      );
+    } catch (err) {
+      console.error("Submit error:", err);
+      openNotification("error", "Алдаа", "Сэдэв илгээхэд алдаа гарлаа.");
     }
   };
 
-  const onFinish = async (values) => {
-    try {
-      const submitData = transformToDraftFormat(values);
-      const targetProgram = submitData.find(
-        (field) => field.field === "target_program"
-      );
-      await postData("topic/storeteacher", {
-        form_id: formId,
-        status: "submitted",
-        fields: submitData,
-        program: targetProgram ? targetProgram.value : [],
-      });
-      console.log(submitData);
-      openNotification(
-        "success",
-        "Submission Successful",
-        "Амжилттай сэдэв дэвшүүллээ."
-      );
-      form.resetFields();
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      openNotification(
-        "error",
-        "Submission Failed",
-        "Сэдэв дэвшүүлэх явцад алдаа гарлаа."
-      );
-    }
-  };
-
-  const handleSelectChange = (value, option) => {
+  const handleSelectChange = (value) => {
     if (value.includes("all")) {
-      // Select all options when "Бүгд" is selected
-      const allOptionValues = options.map((opt) => opt.value);
-      form.setFieldsValue({ target_program: allOptionValues });
+      const allValues = options.map((opt) => opt.value);
+      form.setFieldsValue({ target_program: allValues });
     } else {
       form.setFieldsValue({ target_program: value });
     }
@@ -169,101 +120,47 @@ function SendTopic() {
   return (
     <div style={{ maxWidth: "100%", margin: "0 auto" }}>
       <Spin spinning={loading} tip="Loading...">
-        <Form
-          form={form}
-          name="proposeTopicForm"
-          onFinish={onFinish}
-          layout="vertical"
-        >
-          <Row
-            justify="end"
-            gutter={16}
-            style={{ marginBottom: "16px", marginTop: "16px" }}
-          >
+        <Form form={form} layout="vertical" onFinish={() => handleSaveOrSubmit("submitted")}>
+          <Row justify="end" gutter={16} style={{ marginBottom: 16 }}>
             <Col>
-              <Button onClick={saveToDraft}>Ноорогт хадгалах</Button>
+              <Button onClick={() => handleSaveOrSubmit("draft")}>Ноорогт хадгалах</Button>
             </Col>
             <Col>
-              <Button type="primary" htmlType="submit">
-                Илгээх
-              </Button>
+              <Button type="primary" htmlType="submit">Илгээх</Button>
             </Col>
           </Row>
 
-          <Row gutter={[24, 24]} style={{ marginTop: "16px" }}>
-            {defData
-              .filter((fieldObject) => {
-                const targetUser = fieldObject.targetUser;
-                return targetUser === "All" || targetUser === "Teacher";
-              })
-              .map((fieldObject, index) => {
-                const firstKey = Object.keys(fieldObject)[0];
-                const firstValue = Object.values(fieldObject)[0];
+          <Row gutter={[24, 24]}>
+            {[...defData, ...formData]
+              .filter(({ targetUser }) => targetUser === "All" || targetUser === "Teacher")
+              .map((fieldObj, i) => {
+                const key = Object.keys(fieldObj)[0];
+                const label = Object.values(fieldObj)[0];
 
                 return (
-                  <Col xs={24} sm={12} md={8} lg={8} xl={8} key={index}>
-                    {firstKey === "target_program" ? (
-                      <Form.Item
-                        label={firstValue}
-                        name={firstKey}
-                        // rules={[
-                        //   {
-                        //     required: true,
-                        //     message: "Нэмэлт талбарыг бөглөнө үү!",
-                        //   },
-                        // ]}
-                      >
+                  <Col xs={24} sm={12} md={8} key={`field-${key}-${i}`}>
+                    {key === "target_program" ? (
+                      <Form.Item label={label} name={key}>
                         <Select
                           mode="multiple"
-                          placeholder="Зорилтот хөтөлбөр сонгоно уу"
-                          // style={{
-                          //   width: "100%",
-                          // }}
+                          placeholder="Зорилтот хөтөлбөрүүд"
                           onChange={handleSelectChange}
-                          options={[
-                            { value: "all", label: "Бүгд" },
-                            ...options,
-                          ]}
+                          options={[{ value: "all", label: "Бүгд" }, ...options]}
                         />
                       </Form.Item>
                     ) : (
                       <Form.Item
-                        label={firstValue}
-                        name={firstKey}
-                        rules={[
-                          {
-                            required: true,
-                            message: `${firstValue} бөглөнө үү!`,
-                          },
-                        ]}
+                        label={label}
+                        name={key}
+                        rules={[{ required: true, message: `${label} бөглөнө үү!` }]}
                       >
-                        <Input placeholder={`${firstValue} бөглөнө үү!`} />
+                        {label.length > 40 ? (
+                          <TextArea rows={4} placeholder={`${label} бичнэ үү`} />
+                        ) : (
+                          <Input placeholder={`${label} бичнэ үү`} />
+                        )}
                       </Form.Item>
                     )}
-                  </Col>
-                );
-              })}
-
-            {formData
-              .filter((fieldObject) => {
-                const targetUser = fieldObject.targetUser;
-                return targetUser === "All" || targetUser === "Teacher";
-              })
-              .map((fieldObject, index) => {
-                const firstKey = Object.keys(fieldObject)[0];
-                const firstValue = Object.values(fieldObject)[0];
-                return (
-                  <Col
-                    xs={24}
-                    sm={12}
-                    md={8}
-                    lg={8}
-                    xl={8}
-                    key={`form-${index}`}
-                  >
-                    <Form.Item label={firstValue} name={firstKey}>
-                      <TextArea placeholder={`${firstValue} бөглөнө үү!`} />
-                    </Form.Item>
                   </Col>
                 );
               })}

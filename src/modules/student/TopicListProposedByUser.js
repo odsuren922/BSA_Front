@@ -1,54 +1,52 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Spin, Tag, notification } from "antd";
+import { Spin, Tag, notification, Button } from "antd";
 import { fetchData } from "../../utils";
 import CustomTable from "../../components/CustomTable";
 import { useUser } from "../../context/UserContext";
 
 const TopicListProposedByUser = () => {
-  const [loading, setLoading] = useState(true); // Loading state
-  const [dataSource, setDataSource] = useState([]); // Data source for the table
-  const [columns, setColumns] = useState([]); // Dynamic columns for the table
-  const { user } = useUser(); // Get user context
+  const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState([]);
+  const [columns, setColumns] = useState([]);
+  const { user } = useUser();
 
-  // Determine user type based on email
   const userType = user?.email === "teacher@gmail.com" ? "teacher" : "student";
 
-  // Fetch topics based on the user's type
   const fetchTopics = useCallback(async () => {
     setLoading(true);
-
     try {
-      // Send user type in the fetch request
       const endpoint = `topics/topiclistproposedbyuser?user_type=${userType}`;
       const rawData = await fetchData(endpoint);
 
-      // Transform the data for the table
       const transformedData = rawData.map((item) => {
-        const fieldsArray = JSON.parse(item.fields);
-        const fieldsObject = fieldsArray.reduce(
-          (acc, field) => ({
-            ...acc,
-            [field.field]: field.value,
-            [`${field.field}_name`]: field.field2,
-          }),
-          {}
-        );
+        let fieldsObject = {};
+        try {
+          const fieldsArray = JSON.parse(item.fields || "[]");
+          fieldsObject = fieldsArray.reduce(
+            (acc, field) => ({
+              ...acc,
+              [field.field]: field.value,
+              [`${field.field}_name`]: field.field2,
+            }),
+            {}
+          );
+        } catch (e) {
+          console.warn("Invalid JSON in fields:", item.fields);
+        }
+
         return { ...item, ...fieldsObject, key: item.id };
       });
 
       setDataSource(transformedData);
 
       if (transformedData.length > 0) {
-        // Dynamically generate columns based on the first item's fields
-        const dynamicColumns = JSON.parse(transformedData[0].fields).map(
-          (field) => ({
-            title: field.field2,
-            dataIndex: field.field,
-            key: field.field,
-          })
-        );
+        const firstRowFields = JSON.parse(transformedData[0].fields || "[]");
+        const dynamicColumns = firstRowFields.map((field) => ({
+          title: field.field2,
+          dataIndex: field.field,
+          key: field.field,
+        }));
 
-        // Add a status column
         dynamicColumns.push({
           title: "Төлөв",
           dataIndex: "status",
@@ -61,17 +59,15 @@ const TopicListProposedByUser = () => {
           ],
           onFilter: (value, record) => record.status === value,
           render: (status) => {
-            const statusTranslations = {
+            const statusMap = {
               approved: { text: "Баталсан", color: "blue" },
               refused: { text: "Татгалзсан", color: "red" },
               submitted: { text: "Дэвшүүлсэн", color: "green" },
             };
-
-            const { text, color } = statusTranslations[status] || {
+            const { text, color } = statusMap[status] || {
               text: "Тодорхойгүй",
               color: "gray",
             };
-
             return <Tag color={color}>{text}</Tag>;
           },
         });
@@ -81,8 +77,8 @@ const TopicListProposedByUser = () => {
     } catch (error) {
       console.error("Error fetching topics:", error);
       notification.error({
-        message: "Error",
-        description: "Failed to fetch topics. Please try again later.",
+        message: "Алдаа",
+        description: "Сэдвүүдийг татахад алдаа гарлаа.",
       });
     } finally {
       setLoading(false);

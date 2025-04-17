@@ -13,55 +13,46 @@ const RequestedTopicList = () => {
 
   const parseFields = (rawFields) => {
     try {
-      // Хэт давхар escape хийсэн JSON string болхоор хоёр удаа parse хийнэ
-      const onceParsed = typeof rawFields === "string" ? JSON.parse(rawFields) : rawFields;
-      return typeof onceParsed === "string" ? JSON.parse(onceParsed) : onceParsed;
-    } catch (error) {
-      console.error("⚠️ Fields parse error:", rawFields, error);
+      const parsed = typeof rawFields === "string" ? JSON.parse(rawFields) : rawFields;
+      return typeof parsed === "string" ? JSON.parse(parsed) : parsed;
+    } catch (e) {
+      console.error("Fields parse error:", rawFields);
       return [];
     }
   };
 
   const fetchTopics = useCallback(async () => {
+    setLoading(true);
     try {
       const response = await fetchData("topic_requests");
-      const rawData = response.data;
+      const rawData = Array.isArray(response?.data) ? response.data : [];
 
-      if (!rawData || !Array.isArray(rawData)) {
-        throw new Error("Invalid data format received from API");
-      }
-
-      const transformedData = rawData.map((item) => {
+      const transformed = rawData.map((item) => {
         const fieldsArray = parseFields(item.fields);
-
-        const fieldsObject = fieldsArray.reduce(
-          (acc, field) => ({
-            ...acc,
-            [field.field]: field.value,
-            [`${field.field}_name`]: field.field2,
-          }),
-          {}
-        );
+        const fieldData = fieldsArray.reduce((acc, field) => {
+          acc[field.field] = field.value;
+          acc[`${field.field}_name`] = field.field2;
+          return acc;
+        }, {});
 
         return {
           ...item,
-          ...fieldsObject,
-          key: item.req_id || item.id || item.topic_id,
+          ...fieldData,
+          fieldsArray,
+          key: item.req_id || item.id || `${item.topic_id}-${item.created_by_id}`,
         };
       });
 
-      setDataSource(transformedData);
+      setDataSource(transformed);
 
-      if (transformedData.length > 0) {
-        const sampleFields = parseFields(transformedData[0].fields);
-
-        const dynamicColumns = sampleFields
-          .filter((field) => ["name_mongolian"].includes(field.field))
-          .map((field) => ({
-            title: field.field2,
-            dataIndex: field.field,
-            key: field.field,
-          }));
+      if (transformed.length > 0) {
+        const dynamicColumns = transformed[0].fieldsArray
+          ?.filter((f) => f.field === "name_mongolian")
+          .map((f) => ({
+            title: f.field2,
+            dataIndex: f.field,
+            key: f.field,
+          })) || [];
 
         setColumns([
           ...dynamicColumns,
@@ -86,31 +77,28 @@ const RequestedTopicList = () => {
             fixed: "right",
             width: 150,
             render: (_, record) => (
-              <div style={{ display: "flex", gap: "8px" }}>
-                <Button type="default" onClick={() => handleDetails(record)}>
-                  Дэлгэрэнгүй
-                </Button>
-              </div>
+              <Button type="default" onClick={() => handleDetails(record)}>
+                Дэлгэрэнгүй
+              </Button>
             ),
           },
         ]);
       }
-
-      setLoading(false);
-    } catch (error) {
-      console.log("Error fetching topics:", error);
+    } catch (err) {
+      console.error("Fetch error:", err);
       notification.error({
-        message: "Error",
-        description: "Сэдвийн хүсэлт татахад алдаа гарлаа.",
+        message: "Алдаа",
+        description: "Сэдвийн хүсэлтүүдийг татаж чадсангүй.",
       });
+    } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchTopics();
-    const intervalId = setInterval(fetchTopics, 5000);
-    return () => clearInterval(intervalId);
+    const interval = setInterval(fetchTopics, 5000);
+    return () => clearInterval(interval);
   }, [fetchTopics]);
 
   const handleDetails = (record) => {

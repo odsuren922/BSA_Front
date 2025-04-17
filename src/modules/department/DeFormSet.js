@@ -17,10 +17,8 @@ import { fetchData, postData } from "../../utils";
 const { Content } = Layout;
 const { Title } = Typography;
 
-// EditableContext нь мөр болон нүдний өгөгдлийг удирдах зориулалттай
 const EditableContext = React.createContext(null);
 
-// Мөрийн өгөгдлийг засварлах боломжтой EditableRow компонент
 const EditableRow = ({ index, ...props }) => {
   const [form] = Form.useForm();
   return (
@@ -32,290 +30,237 @@ const EditableRow = ({ index, ...props }) => {
   );
 };
 
-// Нүдний өгөгдлийг засварлах боломжтой EditableCell компонент
 const EditableCell = ({
   title,
-  editable, // Засварлах боломжтой эсэхийг тодорхойлох
-  children, // Эх өгөгдөл
+  editable,
+  children,
   dataIndex,
   record,
-  handleSave, // Засварласны дараа хадгалах функц
+  handleSave,
   ...restProps
 }) => {
-  const [editing, setEditing] = useState(false); // Засварлаж байгаа эсэхийг заана
+  const [editing, setEditing] = useState(false);
   const inputRef = useRef(null);
   const form = useContext(EditableContext);
 
   useEffect(() => {
     if (editing) {
-      inputRef.current?.focus(); // Засварлаж эхлэх үед анхаарал төвлөрүүлэх
+      inputRef.current?.focus();
     }
   }, [editing]);
 
   const toggleEdit = () => {
-    setEditing(!editing); // Засварлах горимыг өөрчлөх
+    setEditing(!editing);
     form.setFieldsValue({ [dataIndex]: record[dataIndex] });
   };
 
   const save = async () => {
     try {
-      const values = await form.validateFields(); // Нүдний утгыг шалгах
-      toggleEdit(); // Засварлах горимыг хаах
-      handleSave({ ...record, ...values }); // Засварласан утгыг хадгалах
+      const values = await form.validateFields();
+      toggleEdit();
+      handleSave({ ...record, ...values });
     } catch (errInfo) {
-      console.log("Save failed:", errInfo); // Алдаа гарсан үед хэвлэх
+      console.log("Save failed:", errInfo);
     }
   };
 
-  let childNode = children;
-
-  if (editable) {
-    childNode = editing ? (
+  const childNode = editable ? (
+    editing ? (
       <Form.Item
         style={{ margin: 0 }}
         name={dataIndex}
-        rules={[{ required: true, message: `${title} is required.` }]}
+        rules={[{ required: true, message: `${title} шаардлагатай.` }]}
       >
-        <Input
-          ref={inputRef}
-          onPressEnter={save} // Enter дарсан үед хадгалах
-          onBlur={save} // Фокус алдагдсан үед хадгалах
-          className="focus:outline-none"
-        />
+        <Input ref={inputRef} onPressEnter={save} onBlur={save} />
       </Form.Item>
     ) : (
-      <div
-        className="editable-cell-value-wrap px-3 py-1 cursor-pointer"
-        onClick={toggleEdit}
-      >
+      <div className="editable-cell-value-wrap" onClick={toggleEdit}>
         {children}
       </div>
-    );
-  }
-
-  return (
-    <td className="editable-cell relative" {...restProps}>
-      {childNode}
-    </td>
+    )
+  ) : (
+    children
   );
+
+  return <td {...restProps}>{childNode}</td>;
 };
 
-// EditableTable компонент - Хүснэгтийн өгөгдлийг засварлах боломжтой болгох
 const EditableTable = () => {
-  const [dataSource, setDataSource] = useState([]); // Хүснэгтийн өгөгдөл хадгалах
-  const [, setCount] = useState(0); // Мөр нэмэхэд ашиглах тооллын утга
-  const [originalData, setOriginalData] = useState(null); // Эх өгөгдөл хадгалах
-  const [loading, setLoading] = useState(true); // Ачаалж байгаа төлөв
-  const [defaultFields, setDefaultFields] = useState({}); // Тогтмол талбаруудын өгөгдөл
+  const [dataSource, setDataSource] = useState([]);
+  const [originalData, setOriginalData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [defaultFields, setDefaultFields] = useState([]);
 
-  // Серверээс өгөгдөл татах функц
   const fetchPosts = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await fetchData("proposalform"); // Серверээс өгөгдөл татах
+      const res = await fetchData("proposalform");
       if (res.length > 0) {
-        const fieldsData = res[0].fields.map((item, index) => {
+        const form = res[0];
+
+        const mappedFields = form.fields.map((item, index) => {
           const englishField = Object.keys(item)[0];
           const mongolianField = item[englishField];
           return {
-            key: `row-${index}`,
-            mongolianField,
+            key: `field-${index}`,
             englishField,
+            mongolianField,
             targetUser: item.targetUser || "All",
           };
         });
 
-        setDataSource(fieldsData); // Хүснэгтийн өгөгдлийг тохируулах
-        setOriginalData(res[0]); // Эх өгөгдлийг хадгалах
-        setDefaultFields(res[0].default_fields); // Тогтмол талбаруудыг тохируулах
+        setDataSource(mappedFields);
+        setOriginalData(form);
+        setDefaultFields(form.default_fields || []);
       }
-    } catch (error) {
-      console.error("Error loading data:", error);
+    } catch (err) {
+      notification.error({ message: "Алдаа", description: "Маягтын өгөгдөл татагдсангүй" });
     } finally {
-      setLoading(false); // Ачаалал дууссан
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPosts(); // Анхны ачааллын үед өгөгдөл татах
+    fetchPosts();
   }, []);
 
-  // Мөр устгах функц
   const handleDelete = (key) => {
-    const newData = dataSource.filter((item) => item.key !== key); // Устгах мөрийг хасах
-    setDataSource(newData);
+    setDataSource(dataSource.filter((item) => item.key !== key));
   };
 
-  // Мөр нэмэх функц
   const handleAdd = () => {
-    setCount((prevCount) => {
-      const newRow = {
-        key: `new-${Date.now()}`,
-        mongolianField: "Шинэ талбар",
-        englishField: "new_field",
-        targetUser: "Бүгд",
-      };
-      setDataSource((prevDataSource) => [...prevDataSource, newRow]); // Шинэ мөр нэмэх
-      return prevCount + 1;
-    });
+    const newRow = {
+      key: `new-${Date.now()}`,
+      englishField: "new_field",
+      mongolianField: "Шинэ талбар",
+      targetUser: "All",
+    };
+    setDataSource([...dataSource, newRow]);
   };
 
-  // Засварласан мөрийг хадгалах функц
   const handleSave = (row) => {
-    setDataSource((prevDataSource) =>
-      prevDataSource.map((item) =>
-        item.key === row.key ? { ...item, ...row } : item
-      )
-    );
+    const updated = dataSource.map((item) => (item.key === row.key ? { ...item, ...row } : item));
+    setDataSource(updated);
   };
 
-  // Серверт өгөгдлийг хадгалах функц
   const handleSaveToDatabase = async () => {
     if (!originalData) return;
 
-    const updatedFields = dataSource.map(
-      ({ mongolianField, englishField, targetUser }) => ({
-        [englishField]: mongolianField,
-        targetUser,
-      })
-    );
-
-    const updatedData = {
-      ...originalData,
-      fields: updatedFields,
-    };
+    const updatedFields = dataSource.map((item) => ({
+      [item.englishField]: item.mongolianField,
+      targetUser: item.targetUser || "All",
+    }));
 
     try {
-      await postData("proposalform", updatedData, "post"); // Сервер рүү өгөгдөл илгээх
+      await postData("proposalform", {
+        ...originalData,
+        fields: updatedFields,
+      });
+
       notification.success({
         message: "Амжилттай",
-        description: "Талбаруудыг амжилттай хадгаллаа.",
-        placement: "topRight",
-        duration: 3,
+        description: "Маягт хадгалагдлаа.",
       });
-      fetchPosts(); // Шинэчилсэн өгөгдлийг татах
+
+      fetchPosts();
     } catch (error) {
       notification.error({
-        message: "Error",
-        description: "Талбар хадгалахад алдаа гарлаа.",
-        placement: "topRight",
-        duration: 3,
+        message: "Хадгалах алдаа",
+        description: "Өгөгдөл хадгалахад алдаа гарлаа.",
       });
     }
   };
 
   const components = {
     body: {
-      row: EditableRow, // Засварлах боломжтой мөр
-      cell: EditableCell, // Засварлах боломжтой нүд
+      row: EditableRow,
+      cell: EditableCell,
     },
   };
 
-  // Хүснэгтийн багануудын тохиргоо
   const columns = [
     {
       title: "Монгол талбар",
       dataIndex: "mongolianField",
-      key: "mongolianField",
-      editable: true, // Засварлах боломжтой
+      editable: true,
     },
     {
       title: "English Field",
       dataIndex: "englishField",
-      key: "englishField",
       editable: true,
     },
     {
       title: "Зорилтот хэрэглэгч",
       dataIndex: "targetUser",
-      render: (_, record) => {
-        return (
-          <Select
-            defaultValue={record.targetUser}
-            style={{ width: 150 }}
-            options={[
-              { value: "All", label: "Бүгд" },
-              { value: "Student", label: "Оюутан" },
-              { value: "Teacher", label: "Багш" },
-            ]}
-            onChange={(value) => {
-              handleSave({ ...record, targetUser: value });
-            }}
-          />
-        );
-      },
+      render: (_, record) => (
+        <Select
+          value={record.targetUser}
+          style={{ width: 150 }}
+          options={[
+            { value: "All", label: "Бүгд" },
+            { value: "Student", label: "Оюутан" },
+            { value: "Teacher", label: "Багш" },
+          ]}
+          onChange={(value) => handleSave({ ...record, targetUser: value })}
+        />
+      ),
     },
     {
       title: "Үйлдэл",
       dataIndex: "operation",
-      render: (_, record) =>
-        dataSource.length >= 1 ? (
-          <Popconfirm
-            title="Устгах уу?"
-            onConfirm={() => handleDelete(record.key)}
-          >
-            <Button danger>Устгах</Button>
-          </Popconfirm>
-        ) : null,
+      render: (_, record) => (
+        <Popconfirm title="Та устгах уу?" onConfirm={() => handleDelete(record.key)}>
+          <Button danger>Устгах</Button>
+        </Popconfirm>
+      ),
     },
-  ].map((col) => ({
-    ...col,
-    onCell: (record) => ({
-      record,
-      editable: col.editable,
-      dataIndex: col.dataIndex,
-      title: col.title,
-      handleSave,
-    }),
-  }));
+  ];
+
+  const mappedColumns = columns.map((col) =>
+    col.editable
+      ? {
+          ...col,
+          onCell: (record) => ({
+            record,
+            editable: col.editable,
+            dataIndex: col.dataIndex,
+            title: col.title,
+            handleSave,
+          }),
+        }
+      : col
+  );
 
   return (
-    <div className="p-4">
+    <div>
       <Spin spinning={loading}>
-        {/* Тогтмол талбаруудыг харуулах хэсэг */}
         <div style={{ marginBottom: "24px" }}>
-          <Card
-            title={
-              <span style={{ fontWeight: "normal" }}>Тогтмол талбарууд</span>
-            }
-          >
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          <Card title="Тогтмол талбарууд">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
               {Array.isArray(defaultFields) &&
-                defaultFields.map((fieldObject, index) => {
-                  const firstValue = Object.values(fieldObject)[0];
-                  return (
-                    <div
-                      key={index}
-                      style={{
-                        width: "24%",
-                        textAlign: "center",
-                      }}
-                    >
-                      {firstValue}
-                    </div>
-                  );
-                })}
+                defaultFields.map((item, i) => (
+                  <div key={i} style={{ padding: "6px 12px", background: "#f5f5f5", borderRadius: 4 }}>
+                    {Object.values(item)[0]}
+                  </div>
+                ))}
             </div>
           </Card>
         </div>
 
-        {/* Хүснэгтийн товчнууд */}
         <div className="flex justify-between mb-4">
-          <Button onClick={handleAdd} type="default">
-            Талбар нэмэх
-          </Button>
-          <Button onClick={handleSaveToDatabase} type="primary">
+          <Button onClick={handleAdd}>Талбар нэмэх</Button>
+          <Button type="primary" onClick={handleSaveToDatabase}>
             Хадгалах
           </Button>
         </div>
 
-        {/* Хүснэгтийг харуулах */}
         <Table
           components={components}
           rowClassName={() => "editable-row"}
           bordered
           dataSource={dataSource}
-          columns={columns}
+          columns={mappedColumns}
+          pagination={false}
         />
       </Spin>
     </div>
@@ -326,12 +271,10 @@ const DeFormSet = () => {
   return (
     <div style={{ padding: "0 16px", background: "transparent" }}>
       <header style={{ textAlign: "left" }}>
-        <Title level={3}>Сэдэв дэвшүүлэх хэлбэр</Title>
+        <Title level={3}>Сэдэв дэвшүүлэх маягт тохиргоо</Title>
       </header>
 
-      <Layout
-        style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}
-      >
+      <Layout style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}>
         <Content style={{ padding: "0 16px" }}>
           <EditableTable />
         </Content>
