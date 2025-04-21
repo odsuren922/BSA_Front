@@ -25,7 +25,7 @@ import {
 import CommitteeCalculator from "../../../components/committee/CommitteeCalculator";
 import api from "../../../context/api_helper";
 // import { useAuth } from "../../../context/AuthContext";
-import { UserProvider, useUser } from "../../context/UserContext";
+import { UserProvider, useUser } from "../../../context/UserContext";
 
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";

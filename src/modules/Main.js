@@ -166,11 +166,11 @@ function Main({ setUser, logoutFunction }) {
             <Route path="/proposetopics" element={<ProposeTopic />} />
             <Route path="/confirmedtopics" element={<ConfirmedTopics />} />
   {/* Teacher->suprvisor */}
-
             <Route path="/teacher/dashboard" element={ <DashBoardSupervisor />} />
             <Route path="/thesisList" element={<SupervisodTheses />} />
             <Route path="/teacher/committees" element={<Committee />} />
-
+            <Route path="/aboutthesis/:id" element={<AboutThesis />} />
+            <Route path="/studentPlan/:id" element={<Plan />} />
 
           </>
         );
