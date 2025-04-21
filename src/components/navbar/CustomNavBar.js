@@ -1,12 +1,13 @@
 import React from "react";
 import { Layout, Menu, Avatar, Dropdown, Space, Badge } from "antd";
 import { BellOutlined, DownOutlined, MenuOutlined } from "@ant-design/icons";
-import { signOut } from "firebase/auth";
-import { auth } from "../../firebase";
+
+import NotificationBell from "../notifications/NotificationBell";
+
 
 const { Header } = Layout;
 
-const CustomNavBar = ({ user, setAuthState, setUser, onClick }) => {
+const CustomNavBar = ({ user, setUser, logoutFunction, onClick }) => {
   const menuItems = [
     { key: "teachers", label: "Багш, ажилтан" },
     { key: "program", label: "Хөтөлбөр" },
@@ -14,18 +15,13 @@ const CustomNavBar = ({ user, setAuthState, setUser, onClick }) => {
     { key: "schedule", label: "Хичээлийн хуваарь" },
   ];
 
-  const signOutHandler = () => {
-    if (!auth) {
-      console.error("Auth object is undefined");
-      return;
+  const signOutHandler = async () => {
+    const success = await logoutFunction();
+    if (success) {
+      setUser(null);
+    } else {
+      console.error("Logout failed");
     }
-
-    signOut(auth)
-      .then(() => {
-        setUser(null);
-        setAuthState("login");
-      })
-      .catch((err) => console.error("Sign-out error:", err));
   };
 
   const userMenu = (
@@ -40,7 +36,7 @@ const CustomNavBar = ({ user, setAuthState, setUser, onClick }) => {
     />
   );
 
-  const username = user?.email?.split("@")[0] || "Guest";
+  const username = user?.fnamem;
 
   return (
     <Header
@@ -104,10 +100,9 @@ const CustomNavBar = ({ user, setAuthState, setUser, onClick }) => {
           ))}
         </div>
 
-        {/* <Badge offset={[10, 0]}>
-          <BellOutlined style={{ fontSize: "20px", cursor: "pointer" }} />
-        </Badge> */}
-        <div
+
+        {/* <NotificationBell /> -aar tur soliv */}
+        {/* <div
           style={{
             backgroundColor: "white",
             borderRadius: "50%",
@@ -123,7 +118,9 @@ const CustomNavBar = ({ user, setAuthState, setUser, onClick }) => {
               style={{ fontSize: "20px", cursor: "pointer", color: "gray" }}
             />
           </Badge>
-        </div>
+        </div> */}
+
+        <NotificationBell />
 
         <div
           style={{
