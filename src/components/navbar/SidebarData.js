@@ -38,6 +38,12 @@ export const SidebarData = {
   ],
   student: [
     {
+        title: "Нүүр хуудас",
+        path: "/student/dashboard",
+        icon: <IoIcons.IoIosPaper />,
+        cName: "nav-text",
+      },
+    {
       title: "Сэдвийн жагсаалт",
       path: "/topicliststud",
       icon: <IoIcons.IoIosPaper />,

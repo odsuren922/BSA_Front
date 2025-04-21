@@ -20,6 +20,11 @@ import SideBar from "../components/navbar/SideBar";
 import CustomNavBar from "../components/navbar/CustomNavBar";
 import NotificationDashboard from "./department/notifications/NotificationDashboard";
 
+// Student Pages
+import Plan from "../pages/Plan/Plan"; 
+import StudentDashboard from "../pages/Student/StudentDashboard";
+
+
 function Main({ setUser, logoutFunction }) {
   const { user } = useUser();
   const [menuCollapsed, setMenuCollapsed] = useState(false);
@@ -106,6 +111,7 @@ function Main({ setUser, logoutFunction }) {
         return (
           <>
             <Route index element={<Navigate to="/studentlist" replace />} />
+
             <Route path="/studentlist" element={<StudentList />} />
             <Route path="/deformset" element={<DeFormSet />} />
             <Route path="/notifications" element={<NotificationDashboard />} />
@@ -126,6 +132,9 @@ function Main({ setUser, logoutFunction }) {
             <Route path="/topicliststud" element={<TopicListStud />} />
             <Route path="/proposetopicstud" element={<ProposeTopicStud />} />
             <Route path="/confirmedtopic" element={<ConfirmedTopicStud />} />
+            <Route  path="/student/dashboard" element={<StudentDashboard />} />
+
+            <Route path="/plan" element={<Plan />} />
           </>
         );
       case "teacher":
