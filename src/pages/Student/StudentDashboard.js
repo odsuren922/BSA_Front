@@ -28,6 +28,7 @@ import { Container } from "reactstrap";
 import { UserProvider, useUser } from "../../context/UserContext";
 const { Title, Text, Paragraph } = Typography;
 const StudentDashboard = () => {
+
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
   // const [thesis, setThesis] = useState(student?.thesis ?? {});
@@ -42,6 +43,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+        console.log("fucking user info ",user);
       setLoading(true);
       try {
         console.log("user", user);
@@ -102,10 +104,14 @@ const StudentDashboard = () => {
           <Col span={8}>
             <Card title="Оюутны мэдээлэл" bordered={false}>
               <p>
-                <b>Нэр:</b> {student.lastname} овогтой {student.firstname}
+              <b>Нэр:</b> {(student.firstname || student.fnamem)} {(student.lastname || student.lnamem)}
+
               </p>
               <p>
-                <b>Хөтөлбөр:</b> {student.program}
+                <b>Хөтөлбөр:</b> {(student.program || student.pname) }
+              </p>
+              <p>
+                <b>Sisi id :</b> {(student.num_id || student.cardnr) }
               </p>
               <p>
                 <p>
