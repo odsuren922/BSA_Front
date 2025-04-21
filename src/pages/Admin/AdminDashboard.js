@@ -15,10 +15,12 @@ import { Empty } from "antd";
 import { Link } from "react-router-dom";
 import { CalendarPlus, PeopleFill } from "react-bootstrap-icons";
 import api from "../../context/api_helper";
-import { useAuth } from "../../context/AuthContext";
+//import { useAuth } from "../../context/AuthContext";
+import { UserProvider, useUser } from "../../context/UserContext";
+
 import GradingSchemaTable from "../../components/grading/GradingSchemaTable";
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [thesisCycle, setThesisCycle] = useState([]);
 
   const [loading, setLoading] = useState(true);

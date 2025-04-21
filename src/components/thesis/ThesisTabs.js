@@ -5,7 +5,8 @@ import { FilePdfOutlined } from "@ant-design/icons";
 import generatePDF from "../../components/plan/pdfGenerator";
 import GradingSchemaTable from "../../components/grading/GradingTable";
 import ThesisScores from "../../pages/Thesis/ThesisScore.js";
-import { useAuth } from "../../context/AuthContext.js";
+//import { useAuth } from "../../context/AuthContext.js";
+import { UserProvider, useUser } from "../../context/UserContext";
 import ThesisFileUpload from "./UploadFile.js";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -27,7 +28,7 @@ const AboutThesisTabs = ({
 
   const [editingKey, setEditingKey] = useState("");
 
-  const { user } = useAuth();
+  const { user } = useUser();
   useEffect(() => {
     if (gradingSchema && gradingSchema.grading_components) {
       const preparedData = [
@@ -292,7 +293,7 @@ const AboutThesisTabs = ({
 };
 const GiveScoreForm = ({ gradingSchema, thesisId, score, supervisor }) => {
   const [form] = Form.useForm();
-  const { user } = useAuth();
+  const { user } = useUser();
 
   const handleSubmit = async (values) => {
     await api.post("/thesis-scores", {

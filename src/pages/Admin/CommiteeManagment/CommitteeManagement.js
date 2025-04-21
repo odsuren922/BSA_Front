@@ -24,13 +24,15 @@ import {
 } from "@ant-design/icons";
 import CommitteeCalculator from "../../../components/committee/CommitteeCalculator";
 import api from "../../../context/api_helper";
-import { useAuth } from "../../../context/AuthContext";
+// import { useAuth } from "../../../context/AuthContext";
+import { UserProvider, useUser } from "../../context/UserContext";
+
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const { Title, Text } = Typography;
 
 const CommitteeManagement = ({ cycleId, componentId }) => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [committees, setCommittees] = useState([]);
 
   const [theses, setTheses] = useState([]);

@@ -9,7 +9,9 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ConfirmModal from "../../components/Common/ConfirmModal";
 import api from "../../context/api_helper";
-import { useAuth } from "../../context/AuthContext";
+// import { useAuth } from "../../context/AuthContext";
+import { UserProvider, useUser } from "../../context/UserContext";
+
 import "./Plan.css";
 import generatePDF from "../../components/plan/pdfGenerator";
 const TableComponent = () => {
@@ -18,7 +20,7 @@ const TableComponent = () => {
   const [thesis, setThesis] = useState(null);
   const [thesisCycle, setThesisCycle] = useState(null);
 
-  const { user } = useAuth();
+  const { user } = useUser();
   const { id } = useParams();
 
   const thesisId = id;

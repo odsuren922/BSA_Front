@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../context/api_helper";
-import { useAuth } from "../../context/AuthContext";
+//import { useAuth } from "../../context/AuthContext";
+import { UserProvider, useUser } from "../../context/UserContext";
+
 import ThesisScores from "./ThesisScore";
 import {
   Container,
@@ -20,7 +22,7 @@ import { Divider } from "antd";
 import AboutThesisTabs from "../../components/thesis/ThesisTabs";
 const { Title, Text, Paragraph } = Typography;
 const AboutThesis = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const { id } = useParams();
   const [student, setStudent] = useState([]);
   const [supervisor, setSupervisor] = useState([]);

@@ -24,10 +24,11 @@ import {
 import api from "../../context/api_helper";
 
 import { Container } from "reactstrap";
-import { useAuth } from "../../context/AuthContext";
+// import { useAuth } from "../../context/AuthContext";
+import { UserProvider, useUser } from "../../context/UserContext";
 const { Title, Text, Paragraph } = Typography;
 const StudentDashboard = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [loading, setLoading] = useState(true);
   // const [thesis, setThesis] = useState(student?.thesis ?? {});
   const [thesis, setThesis] = useState([]);

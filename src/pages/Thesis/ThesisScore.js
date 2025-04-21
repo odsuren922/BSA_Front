@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Table, Card, Spin, message, Form, InputNumber, Button } from "antd";
 import api from "../../context/api_helper";
-import { useAuth } from "../../context/AuthContext";
+// import { useAuth } from "../../context/AuthContext";
+import { UserProvider, useUser } from "../../context/UserContext";
+
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -15,7 +17,7 @@ const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { user } = useAuth();
+  const { user } = useUser();
   const [form] = Form.useForm();
 
   useEffect(() => {

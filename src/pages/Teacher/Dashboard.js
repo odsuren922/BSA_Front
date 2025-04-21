@@ -3,6 +3,8 @@ import { Row, Container } from "reactstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import api from "../../context/api_helper.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { UserProvider, useUser } from "../../context/UserContext";
+
 import Breadcrumbs from "../../components/Common/Breadcrumb.js";
 
 import {
@@ -18,7 +20,7 @@ import {
 
 const App = () => {
   const [data, setData] = useState([]);
-  const { user } = useAuth();
+  const { user } = useUser();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

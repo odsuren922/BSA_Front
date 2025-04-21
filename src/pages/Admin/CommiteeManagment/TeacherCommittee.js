@@ -13,7 +13,8 @@ import {
   Affix,
   Radio,
 } from "antd";
-import { useAuth } from "../../../context/AuthContext";
+//import { useAuth } from "../../../context/AuthContext";
+import { UserProvider, useUser } from "../../context/UserContext";
 import { DownOutlined } from "@ant-design/icons";
 import api from "../../../context/api_helper";
 import TeacherList from "./Lists/TeacherList";
@@ -26,7 +27,7 @@ const TeacherCommittee = ({ cycleId, componentId }) => {
   //   console.log("Cycle ID:", cycleId);
   //   console.log("Component ID:", componentId);
 
-  const { user } = useAuth();
+  const { user } = useUser();
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [committees, setCommittees] = useState([]);
   const [newCommitteeName, setNewCommitteeName] = useState("");
