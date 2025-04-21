@@ -43,7 +43,6 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-        console.log("fucking user info ",user);
       setLoading(true);
       try {
         console.log("user", user);

@@ -353,7 +353,7 @@ const TableComponent = () => {
   };
   const isEditable =
     (user.role === "student" && planStatus?.teacher_status !== "approved") ||
-    user.role === "supervisor";
+    user.role === "teacher";
 
   const renderPlanStatus = () => {
     if (!planStatus) return <div>Төлөв: Статусын мэдээлэл алга байна</div>;
@@ -600,7 +600,7 @@ const TableComponent = () => {
           </Button>
         )}
 
-        {user.role === "supervisor" && (
+        {user.role === "teacher" && (
           <>
             <Button
               type="primary"
