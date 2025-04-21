@@ -113,7 +113,7 @@ const CommitteeListPage = () => {
         dataSource={data}
         pagination={false}
         onRow={(record) => ({
-          onClick: () => navigate(`/committees/${record.key}`),
+          onClick: () => navigate(`/teacher/committees/detail/${record.key}`),
         })}
         rowClassName="hoverable-row"
       />
