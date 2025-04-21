@@ -18,13 +18,14 @@ function AppContent() {
       try {
         const userData = await checkOAuthStatus();
         if (userData) {
-          console.log("User authenticated:", userData);
+        //  console.log("User authenticated:", userData);
           setUser(userData);
           setAuthError(null);
         } else {
           console.log("No authenticated user found");
           setUser(null);
         }
+        console.log("saved user info", user)
       } catch (error) {
         console.error("Authentication check failed:", error);
         setAuthError(error.message);

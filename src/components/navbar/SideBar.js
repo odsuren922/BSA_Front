@@ -7,15 +7,15 @@ import { BookOutlined } from "@ant-design/icons";
 function SideBar({ user }) {
   const [openKeys, setOpenKeys] = useState(["main-menu"]);
   const rootSubMenuKeys = ["main-menu"];
-
+//Based on role sidebar changed 
   let sidebarItems = [];
-  if (user?.email === "department@gmail.com") {
+  if (user?.role === "department") {
     sidebarItems = SidebarData.department;
-  } else if (user?.email === "supervisor@gmail.com") {
+  } else if (user?.role === "supervisor") {
     sidebarItems = SidebarData.supervisor;
-  } else if (user?.email === "teacher@gmail.com") {
+  } else if (user?.role === "teachr") {
     sidebarItems = SidebarData.teacher;
-  } else if (user?.email === "student@gmail.com") {
+  } else if (user?.role === "student") {
     sidebarItems = SidebarData.student;
   }
 
