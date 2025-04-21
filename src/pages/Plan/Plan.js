@@ -59,7 +59,7 @@ const TableComponent = () => {
     } catch (error) {
       if (error.response?.status === 403) {
         toast.error("Та энэ төлөвлөгөөг үзэх эрхгүй байна.");
-        navigate("/student/dashboard");
+       // navigate("/student/dashboard");
       } else {
         console.error("Error fetching tasks:", error);
         toast.error("Төлөвлөгөө ачаалахад алдаа гарлаа.");

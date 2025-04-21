@@ -24,6 +24,27 @@ import NotificationDashboard from "./department/notifications/NotificationDashbo
 import Plan from "../pages/Plan/Plan"; 
 import StudentDashboard from "../pages/Student/StudentDashboard";
 
+//Teacher Pages
+import AboutThesis from "../pages/Thesis/AboutThesis";
+import SupervisodTheses from "../pages/Teacher/supervisodAllThesis";
+import DashBoardSupervisor from "../pages/Teacher/Dashboard";
+import Committee from "../pages/Teacher/Committee/Committee";
+import CommitteeListPage from "../pages/Teacher/Committee/CommitteeList";
+import CommitteeDetailPage from "../pages/Teacher/Committee/CommitteeDetailPage";
+import CommitteeCalendarPage from "../pages/Teacher/Committee/CommitteeCalendarPage";
+
+
+// Admin Pages
+import AdminDashboard from "../pages/Admin/AdminDashboard";
+import ThesisCycle from "../pages/Admin/ThesisCyclePage";
+import ThesisCycleBetter from "../pages/Admin/ThesisCycleManagement";
+import GradingSchemaManagement from "../pages/Admin/GradingSchemaManegment";
+import SupervisorGradingPage from "../pages/Admin/Grading/SupervisorsScore";
+import CommitteePanel from "../pages/Admin/CommitteePanel";
+import Calculator from "../pages/Admin/CommiteeManagment/CommitteeManagement";
+import CommitteeScheduler from "../pages/Admin/CommiteeManagment/Scheduler";
+import Calendar from "../pages/Admin/NotUseful/Calendar";
+
 
 function Main({ setUser, logoutFunction }) {
   const { user } = useUser();
@@ -132,8 +153,8 @@ function Main({ setUser, logoutFunction }) {
             <Route path="/topicliststud" element={<TopicListStud />} />
             <Route path="/proposetopicstud" element={<ProposeTopicStud />} />
             <Route path="/confirmedtopic" element={<ConfirmedTopicStud />} />
+            {/* student */}
             <Route  path="/student/dashboard" element={<StudentDashboard />} />
-
             <Route path="/plan" element={<Plan />} />
           </>
         );
@@ -144,6 +165,13 @@ function Main({ setUser, logoutFunction }) {
             <Route path="/topiclist" element={<TopicList />} />
             <Route path="/proposetopics" element={<ProposeTopic />} />
             <Route path="/confirmedtopics" element={<ConfirmedTopics />} />
+  {/* Teacher->suprvisor */}
+
+            <Route path="/teacher/dashboard" element={ <DashBoardSupervisor />} />
+            <Route path="/thesisList" element={<SupervisodTheses />} />
+            <Route path="/teacher/committees" element={<Committee />} />
+
+
           </>
         );
       default:

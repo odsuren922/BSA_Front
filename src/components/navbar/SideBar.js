@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { Menu } from "antd";
 import { SidebarData } from "./SidebarData";
+import { SidebarData2 } from "./SidebarData2";
 import { Link } from "react-router-dom";
 import { BookOutlined } from "@ant-design/icons";
 
 function SideBar({ user }) {
   const [openKeys, setOpenKeys] = useState(["main-menu"]);
-  const rootSubMenuKeys = ["main-menu"];
+//   const rootSubMenuKeys = ["main-menu"];
+  const rootSubMenuKeys = ["main-menu-1", "main-menu-2"];
+
 //Based on role sidebar changed 
   let sidebarItems = [];
   if (user?.role === "department") {
@@ -19,6 +22,18 @@ function SideBar({ user }) {
     sidebarItems = SidebarData.student;
   }
 
+  let sidebarItems2 = [];
+  if (user?.role === "department") {
+    sidebarItems2 = SidebarData2.department;
+  } else if (user?.role === "supervisor") {
+    sidebarItems2 = SidebarData2.supervisor;
+  } else if (user?.role === "teacher") {
+    sidebarItems2 = SidebarData2.teacher;
+  } else if (user?.role === "student") {
+    sidebarItems2 = SidebarData2.student;
+  }
+
+
 
   const handleOpenChange = (keys) => {
     const latestOpenKey = keys.find((key) => !openKeys.includes(key));
@@ -29,7 +44,14 @@ function SideBar({ user }) {
     }
   };
 
+  
+
   const menuItems = sidebarItems.map((item, index) => ({
+    key: item.path,
+    label: <Link to={item.path}>{item.title}</Link>,
+  }));
+
+  const menuItems2 =sidebarItems2.map((item, index) => ({
     key: item.path,
     label: <Link to={item.path}>{item.title}</Link>,
   }));
@@ -48,13 +70,21 @@ function SideBar({ user }) {
         fontSize: "16px",
       }}
       items={[
+        
         {
-          key: "main-menu",
+          key: "main-menu-1",
           icon: <BookOutlined />,
           label: "Бакалаврын судалгаа",
           children: menuItems,
         },
+        {
+          key: "main-menu-2",
+          icon: <BookOutlined />,
+          label: "Бакалаврын ажил",
+          children: menuItems2,
+        },
       ]}
+      
     />
   );
 }
