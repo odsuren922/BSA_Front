@@ -21,7 +21,7 @@ function SendPropTopic() {
     const fetchProposalData = async () => {
       try {
         setLoading(true);
-        const data = await fetchData("api/proposalform");
+        const data = await fetchData("proposalform");
         if (data && data[0]) {
           setFormId(data[0].id);
           setFormData(data[0].fields);
@@ -73,7 +73,7 @@ function SendPropTopic() {
       const values = form.getFieldsValue();
       const draftData = transformToDraftFormat(values);
       console.log("Draft Data to be Sent:", draftData);
-      await postData("topic/store", {
+      await postData("topic/storestudent", {
         form_id: formId,
         status: "draft",
         fields: draftData,
@@ -98,7 +98,7 @@ function SendPropTopic() {
     try {
       const submitData = transformToDraftFormat(values);
       console.log("Submitted Data to be Sent:", submitData);
-      await postData("topic/store", {
+      await postData("topic/storestudent", {
         form_id: formId,
         status: "submitted",
         fields: submitData,

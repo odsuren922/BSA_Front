@@ -39,11 +39,10 @@ export const fetchUserRole = async () => {
  */
 export const mapGidToRole = (gid) => {
   const roleMap = {
-    // '5': 'department',
-    // '90': 'supervisor',
-    // '50': 'student',
-    // '70': 'teacher'
-    '5': 'student',
+    '50': 'department',
+    '70': 'supervisor',
+    '90': 'student',
+    '5': 'teacher'
   };
   
   return roleMap[gid] || 'unknown';
