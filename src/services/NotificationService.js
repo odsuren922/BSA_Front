@@ -1,4 +1,3 @@
-// src/services/NotificationService.js
 import { fetchData, postData } from "../utils";
 
 /**

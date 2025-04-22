@@ -17,13 +17,13 @@ function Login() {
       let displayMessage;
       switch (errorMessage) {
         case 'session_expired':
-          displayMessage = 'Your session has expired. Please log in again.';
+          displayMessage = 'Session-ий хугацаа дууссан. Дахин нэвтэрнэ үү.';
           break;
         case 'token_failure':
-          displayMessage = 'Authentication failed. Please try again.';
+          displayMessage = 'Баталгаажуулалт амжилтгүй боллоо. Дахин оролдоно уу.';
           break;
         case 'unauthorized':
-          displayMessage = 'You do not have permission to access this resource.';
+          displayMessage = 'Танд энэ нөөцөд хандах эрх байхгүй.';
           break;
         default:
           displayMessage = errorMessage;
@@ -41,10 +41,10 @@ function Login() {
     <div className="flex w-full h-screen">
       <div className="w-full flex items-center justify-center lg:w-1/2">
         <div className='w-11/12 max-w-[700px] px-10 py-20 rounded-3xl bg-white border-2 border-gray-100'>
-          <h1 className='text-5xl font-semibold'>Welcome Back</h1>
-          <p className='text-base mt-4 text-gray-600'>
+          <h1 className='text-5xl font-semibold'>Тавтай морил</h1>
+          {/* <p className='text-base mt-4 text-gray-600'>
             Sign in to access the thesis management system
-          </p>
+          </p> */}
           
           {error && (
             <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -57,7 +57,7 @@ function Login() {
               onClick={handleLogin}
               className='active:scale-[.98] active:duration-75 transition-all hover:scale-[1.01] 
               ease-in-out transform py-4 bg-violet-500 rounded-xl text-white font-bold text-lg'>
-              Sign in with NUM
+              МУИС-ийн хаягаар нэвтрэх
             </button>
           </div>
         </div>

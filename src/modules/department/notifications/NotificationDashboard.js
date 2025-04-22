@@ -106,14 +106,14 @@ function NotificationDashboard() {
 
       <Layout className="bg-white rounded-lg p-4">
         <div className="flex justify-end mb-2">
-          <Space>
+          {/* <Space>
             <Text>Debug Mode:</Text>
             <Switch 
               checked={showDebugger}
               onChange={setShowDebugger}
               size="small"
             />
-          </Space>
+          </Space> */}
         </div>
         <Content className="p-4">
           <Tabs items={items} onChange={handleTabChange} activeKey={activeKey} />

@@ -5,7 +5,6 @@ import { Spin, notification } from "antd";
 import { fetchUserRole, mapGidToRole } from "../services/RoleService";
 import "./Main.css";
 
-// Import components
 import DeFormSet from "./department/DeFormSet";
 import StudentList from "./department/StudentList";
 import ConfirmedTopicStud from "./student/ConfirmedTopiclist";

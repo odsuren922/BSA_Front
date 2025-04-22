@@ -22,14 +22,14 @@ const OAuthCallback = () => {
         console.log('Authorization callback received with code:', code ? 'present' : 'missing');
         
         if (!code) {
-          setError('No authorization code found in URL');
-          setStatus('Authorization failed. Redirecting to login...');
+          setError('URL дээр зөвшөөрлийн код олдсонгүй');
+          setStatus('Зөвшөөрөл амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
           setTimeout(() => navigate('/login'), 3000);
           return;
         }
         
         // Exchange authorization code for tokens
-        setStatus('Exchanging code for tokens...');
+        setStatus('Токеноор код солилцож байна...');
         const tokenData = await exchangeCodeForToken(code, state);
         
         if (!tokenData || !tokenData.access_token) {
@@ -37,19 +37,19 @@ const OAuthCallback = () => {
         }
         
         // Fetch user data with the new token
-        setStatus('Fetching user information...');
+        setStatus('Хэрэглэгчийн мэдээллийг татаж байна...');
         const userData = await fetchUserData();
         
         // Update global user state
         setUser(userData);
         
         // Success, redirect to home
-        setStatus('Authentication successful! Redirecting...');
+        setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
         setTimeout(() => navigate('/'), 1000);
       } catch (error) {
         console.error('Error in OAuth callback:', error);
-        setError(`Authentication error: ${error.message}`);
-        setStatus('Authentication failed. Redirecting to login...');
+        setError(`Баталгаажуулалтын алдаа: ${error.message}`);
+        setStatus('Баталгаажуулалт амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
         setTimeout(() => navigate('/login'), 3000);
       }
     };
@@ -60,7 +60,7 @@ const OAuthCallback = () => {
   return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-4">Authentication</h2>
+        <h2 className="text-2xl font-bold mb-4">Баталгаажуулалт</h2>
         
         <div className="mb-4">
           <p className="text-gray-700">{status}</p>
