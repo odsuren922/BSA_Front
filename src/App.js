@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./auth/Login";
@@ -6,6 +5,7 @@ import Main from "./modules/Main";
 import OAuthCallback from "./auth/OAuthCallback";
 import { checkOAuthStatus, logoutOAuth } from "./oauth";
 import { UserProvider, useUser } from "./context/UserContext";
+import { fetchUserRole, mapGidToRole } from "./services/RoleService";
 
 function AppContent() {
   const { user, setUser } = useUser();
@@ -16,16 +16,25 @@ function AppContent() {
     const checkAuth = async () => {
       setLoading(true);
       try {
+        // 1. OAuth-р нэвтэрсэн хэрэглэгчийн мэдээллийг авна
         const userData = await checkOAuthStatus();
+
         if (userData) {
-        //  console.log("User authenticated:", userData);
-          setUser(userData);
+          // 2. Тухайн хэрэглэгчийн role (gid) авах
+          const roleRes = await fetchUserRole(); // { gid: "5" }
+          const role = mapGidToRole(roleRes.gid); // "supervisor", "student", ...
+
+          // 3. Context-д хадгалах (email, name, role)
+          setUser({
+            ...userData,
+            role: role,
+          });
+
           setAuthError(null);
         } else {
           console.log("No authenticated user found");
           setUser(null);
         }
-        console.log("saved user info", user)
       } catch (error) {
         console.error("Authentication check failed:", error);
         setAuthError(error.message);
@@ -36,12 +45,10 @@ function AppContent() {
     };
 
     checkAuth();
-    
-    // Set up a timer to periodically check authentication status
-    const authCheckInterval = setInterval(checkAuth, 10 * 60 * 1000); // Check every 10 minutes
-    
+
+    const authCheckInterval = setInterval(checkAuth, 10 * 60 * 1000);
     return () => {
-      clearInterval(authCheckInterval); // Clean up on unmount
+      clearInterval(authCheckInterval);
     };
   }, [setUser]);
 
@@ -67,10 +74,10 @@ function AppContent() {
             <Navigate to="/" replace />
           )
         } />
-        
+
         {/* OAuth callback route */}
         <Route path="/auth" element={<OAuthCallback />} />
-        
+
         {/* Protected routes */}
         <Route path="/*" element={
           user ? (

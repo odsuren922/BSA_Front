@@ -6,16 +6,13 @@ const api = axios.create({
     'Accept': 'application/json',
     'Content-Type': 'application/json'
   },
-  withCredentials: true // Important for cookie-based authentication and CSRF
+  withCredentials: true // 🔥 CSRF cookie дамжуулахад шаардлагатай
 });
 
-// Get CSRF token first if needed
+// ✅ Зөв: CSRF cookie-г өөрийн api instance-р дамжуулан авна
 const getCSRFToken = async () => {
   try {
-    // Laravel provides a route to get the CSRF token cookie
-    await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', {
-      withCredentials: true
-    });
+    await api.get('/sanctum/csrf-cookie'); // baseURL + withCredentials ашиглана
     return true;
   } catch (error) {
     console.error('Error getting CSRF token:', error);
@@ -23,20 +20,18 @@ const getCSRFToken = async () => {
   }
 };
 
-// Add a request interceptor to include the token
+// 🔐 Request interceptor
 api.interceptors.request.use(
   async config => {
-    // Get OAuth token for Authorization header
     const token = localStorage.getItem('oauth_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    
-    // For non-GET requests, make sure we have a CSRF token (cookie)
+
     if (['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
       await getCSRFToken();
     }
-    
+
     return config;
   },
   error => {
@@ -45,94 +40,73 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor to handle token expiration
+// 🔄 Token refresh + response interceptor
 api.interceptors.response.use(
-  response => {
-    return response;
-  },
+  response => response,
   async error => {
     const originalRequest = error.config;
-    
-    // Don't retry if we've already tried to refresh
+
     if (originalRequest._retry) {
       return Promise.reject(error);
     }
 
-    // If error is 401 (Unauthorized)
     if (error.response && error.response.status === 401) {
       originalRequest._retry = true;
-      
+
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        
-        if (!refreshToken) {
-          // No refresh token available, cannot refresh
-          throw new Error('No refresh token available');
-        }
-        
-        // Try to refresh the token
+        if (!refreshToken) throw new Error('No refresh token available');
+
         const response = await axios.post('http://127.0.0.1:8000/api/oauth/refresh-token', {
           refresh_token: refreshToken
         }, {
-          withCredentials: true // Important for CSRF
+          withCredentials: true
         });
-        
-        if (response.data && response.data.access_token) {
-          // Store the new tokens
+
+        if (response.data?.access_token) {
           localStorage.setItem('oauth_token', response.data.access_token);
-          
           if (response.data.refresh_token) {
             localStorage.setItem('refresh_token', response.data.refresh_token);
           }
-          
           localStorage.setItem('expires_in', response.data.expires_in.toString());
           localStorage.setItem('token_time', response.data.token_time.toString());
-          
-          // Update the Authorization header
+
           api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
           originalRequest.headers['Authorization'] = `Bearer ${response.data.access_token}`;
-          
-          // Retry the original request
+
           return api(originalRequest);
         } else {
           throw new Error('Failed to refresh token: invalid response');
         }
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
-        
-        // Clear tokens on refresh failure
         localStorage.removeItem('oauth_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('expires_in');
         localStorage.removeItem('token_time');
-        
-        // Dispatch event so app can handle auth failure
+
         window.dispatchEvent(new CustomEvent('auth:failed'));
-        
-        // Redirect to login page if token refresh fails
-        // Use a callback to allow the app to handle this
+
         if (typeof api.onAuthFailure === 'function') {
           api.onAuthFailure();
         } else {
-          // Default behavior
           window.location.href = '/login?error=session_expired';
         }
-        
+
         return Promise.reject(refreshError);
       }
     }
-    
-    // For other errors, just reject
+
     return Promise.reject(error);
   }
 );
 
-// Set a callback for auth failures
+// 🔧 Auth failure event setter
 api.setAuthFailureHandler = (callback) => {
   api.onAuthFailure = callback;
 };
 
-// Helper for detailed logging
+// 🧪 Logging utility
 const logError = (method, url, error) => {
   console.error(`API ${method} request to ${url} failed:`, 
     error.response ? {
@@ -142,7 +116,7 @@ const logError = (method, url, error) => {
     } : error.message);
 };
 
-// Enhance api with better error handling
+// 📦 Expose CRUD API methods
 const enhancedApi = {
   get: async (url, config = {}) => {
     try {
@@ -179,8 +153,7 @@ const enhancedApi = {
       throw error;
     }
   },
-  
-  // Add original axios instance and helper methods
+
   instance: api,
   setAuthFailureHandler: api.setAuthFailureHandler
 };
