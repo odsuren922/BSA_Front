@@ -25,7 +25,6 @@ function AppContent() {
           console.log("No authenticated user found");
           setUser(null);
         }
-        console.log("saved user info", user)
       } catch (error) {
         console.error("Authentication check failed:", error);
         setAuthError(error.message);

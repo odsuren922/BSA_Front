@@ -21,7 +21,7 @@ function SendPropTopic() {
     const fetchProposalData = async () => {
       try {
         setLoading(true);
-        const data = await fetchData("api/proposalform");
+        const data = await fetchData("proposalform");
         if (data && data[0]) {
           setFormId(data[0].id);
           setFormData(data[0].fields);
