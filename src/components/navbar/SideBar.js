@@ -13,7 +13,7 @@ function SideBar({ user }) {
     sidebarItems = SidebarData.department;
   } else if (user?.role === "supervisor") {
     sidebarItems = SidebarData.supervisor;
-  } else if (user?.role === "teachr") {
+  } else if (user?.role === "teacher") {
     sidebarItems = SidebarData.teacher;
   } else if (user?.role === "student") {
     sidebarItems = SidebarData.student;
