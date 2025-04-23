@@ -20,10 +20,10 @@ import "react-toastify/dist/ReactToastify.css";
 const { Search } = Input;
 const { Option } = Select;
 //Комиссын сурагчдын жагсаалт
-const StudentCommittee = ({ cycleId, componentId }) => {
+const StudentCommittee = ({ cycleId, componentId,committees,setCommittees }) => {
   const [filterAssigned, setFilterAssigned] = useState("all");
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
-  const [committees, setCommittees] = useState([]);
+//   const [committees, setCommittees] = useState([]);
   const [selectedCommitteeId, setSelectedCommitteeId] = useState(null);
   const [theses, setTheses] = useState([]);
   const [pageSize, setPageSize] = useState(10);
@@ -39,18 +39,14 @@ const StudentCommittee = ({ cycleId, componentId }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [thesesResponse, committeesRes] = await Promise.all([
-          //   api.get("/students"),
+        const [thesesResponse,] = await Promise.all([
           api.get(`/cycles/${cycleId}/active-theses`), 
-          api.get(
-            `/thesis-cycles/${cycleId}/grading-components/${componentId}/committees`
-          ),
+       
         ]);
-        console.log("committeesRes.data", committeesRes.data.data);
         setFilteredTheses(thesesResponse.data);
         setTheses(thesesResponse.data);
         console.log("thesesResponse.data)", thesesResponse.data);
-        setCommittees(committeesRes.data.data);
+        // setCommittees(committeesRes.data.data);
         toast.success(" амжилттай үүсгэсэн!");
       } catch (e) {
         //toast.error("Мэдээлэл ачаалахад алдаа гарлаа");
@@ -126,10 +122,6 @@ const StudentCommittee = ({ cycleId, componentId }) => {
 
       setSelectedStudentIds([]);
 
-      //   const updatedTheses = await api.get(`/cycles/${cycleId}/theses`);
-      //   console.log("updatedTheses.data", updatedTheses.data)
-      //   setTheses(updatedTheses.data);
-      // setFilteredTheses(updatedTheses.data);
     } catch {
       toast.error("Оюутан нэмэхэд алдаа гарлаа");
     }

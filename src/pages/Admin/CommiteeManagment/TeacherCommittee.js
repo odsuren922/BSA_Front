@@ -23,13 +23,13 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DeleteConfirmModal from "../../../components/Common/DeleteConfirmModal";
 
-const TeacherCommittee = ({ cycleId, componentId }) => {
+const TeacherCommittee = ({ cycleId, componentId ,committees, setCommittees}) => {
   //   console.log("Cycle ID:", cycleId);
   //   console.log("Component ID:", componentId);
 
   const { user } = useUser();
   const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
-  const [committees, setCommittees] = useState([]);
+//   const [committees, setCommittees] = useState([]);
   const [newCommitteeName, setNewCommitteeName] = useState("");
   const [selectedCommitteeId, setSelectedCommitteeId] = useState(null);
   const [teachers, setTeachers] = useState([]);
@@ -49,16 +49,14 @@ const TeacherCommittee = ({ cycleId, componentId }) => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [teachersRes, committeesRes] = await Promise.all([
+        const [teachersRes,] = await Promise.all([
           api.get(`/teachers/${user.dep_id}`),
-          api.get(
-            `/thesis-cycles/${cycleId}/grading-components/${componentId}/committees`
-          ),
+    
         ]);
 
         console.log(teachersRes);
         setTeachers(teachersRes.data);
-        setCommittees(committeesRes.data.data);
+
       } catch (error) {
         message.error("Failed to load data");
       } finally {

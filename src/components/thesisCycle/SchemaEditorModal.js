@@ -1,244 +1,193 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button, Form, Row, Col, Alert } from "react-bootstrap";
-import { Calculator } from "react-bootstrap-icons";
+import { Modal, Button, Form, Input, Select, Alert, Row, Col } from "antd";
+import { CalculatorOutlined } from "@ant-design/icons";
 import api from "../../context/api_helper";
 import { toast } from "react-toastify";
 import { Trash } from "lucide-react";
 import "react-toastify/dist/ReactToastify.css";
 
-//TODO:: step_num nemeh->component number aas oldog bolgoh
+const { Option } = Select;
+const { TextArea } = Input;
 
-const SchemaEditorModal = ({ show, onHide, onSubmit, schema }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    year: new Date().getFullYear(),
-    grading_components: [],
-  });
+const SchemaEditorModal = ({ open, onCancel, onSuccess, schema ,user}) => {
+  const [form] = Form.useForm();
+  const [components, setComponents] = useState([]);
 
   useEffect(() => {
     if (schema) {
-      setFormData({
+      form.setFieldsValue({
         name: schema.name,
         description: schema.description || "",
         year: schema.year,
-        grading_components: schema.grading_components,
       });
+      setComponents(schema.grading_components || []);
     } else {
-      setFormData({
-        name: "",
-        description: "",
-        year: new Date().getFullYear(),
-        grading_components: [],
-      });
+      form.resetFields();
+      setComponents([]);
     }
-  }, [schema]);
+  }, [schema, form]);
 
   const handleAddComponent = () => {
-    setFormData((prev) => ({
-      ...prev,
-      grading_components: [
-        ...prev.grading_components,
-        { name: "", score: "", by_who: "Удирдагч багш", scheduled_week: "" },
-      ],
-    }));
+    setComponents([
+      ...components,
+      { name: "", score: "", by_who: "supervisor", scheduled_week: "" },
+    ]);
   };
 
   const calculateTotal = () => {
-    return formData.grading_components.reduce(
-      (sum, comp) => sum + Number(comp.score || 0),
-      0
-    );
+    return components.reduce((sum, comp) => sum + Number(comp.score || 0), 0);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!formData.name || !formData.year) {
-      alert("Бүх шаардлагатай талбаруудыг бөглөнө үү");
-      return;
-    }
-
+  const handleSubmit = async () => {
     try {
+        console.log("user", user.dep_id)
+      const values = await form.validateFields();
+      const formData = {
+        ...values,
+        grading_components: components,
+        dep_id: user.dep_id // 👈 Add department ID here
+      };
+      console.log("form", formData);
+  
       if (schema) {
-        console.log("wtf", formData);
-        console.log("schema_id", schema.id);
-        const res = await api.put(`/grading-schemas/${schema.id}`, formData);
-        console.log("res", res);
+        await api.put(`/grading-schemas/${schema.id}`, formData);
       } else {
-        console.log("formData", formData);
-        await api.post("/grading-schemas", formData);
+        await api.post("/grading-schemas", formData); // user.dep_id is now included
       }
-      onSubmit();
-      onHide();
+  
+      onSuccess();
       toast.success("Схемийг амжилттай хадгаллаа!");
     } catch (error) {
       toast.error("Схемийг хадгалахад алдаа гарлаа. Дахин оролдоно уу.");
       console.error(error);
     }
   };
+  
 
   return (
-    <Modal show={show} onHide={onHide} size="xl">
-      <Modal.Header closeButton>
-        <Modal.Title>
-          <Calculator className="me-2" />
+    <Modal
+      title={
+        <>
+          <CalculatorOutlined className="me-2" />
           {schema ? "Шалгалтын схемийг засах" : "Шинэ схем үүсгэх"}
-        </Modal.Title>
-      </Modal.Header>
-      <Form onSubmit={handleSubmit}>
-        <Modal.Body>
-          <Row className="g-3 mb-4">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Схемийн нэр</Form.Label>
-                <Form.Control
-                  required
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Он</Form.Label>
-                <Form.Control
-                  type="number"
-                  required
-                  value={formData.year}
-                  onChange={(e) =>
-                    setFormData({ ...formData, year: e.target.value })
-                  }
-                />
-              </Form.Group>
-            </Col>
-            <Col md={12}>
-              <Form.Group>
-                <Form.Label>Тайлбар</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-
-          <div className="border-top pt-4">
-            <h5>Үнэлгээний задаргаа</h5>
-            {formData.grading_components.map((component, compIndex) => (
-              <div key={compIndex} className="border p-3 mb-3">
-                <Row className="g-3 mb-3">
-                  <Col md={4}>
-                    <Form.Control
-                      placeholder="Нэр"
-                      value={component.name}
-                      onChange={(e) => {
-                        const updated = [...formData.grading_components];
-                        updated[compIndex].name = e.target.value;
-                        setFormData({
-                          ...formData,
-                          grading_components: updated,
-                        });
-                      }}
-                    />
-                  </Col>
-                  <Col md={2}>
-                    <Form.Control
-                      type="number"
-                      placeholder="Оноо %"
-                      value={component.score}
-                      onChange={(e) => {
-                        const updated = [...formData.grading_components];
-                        updated[compIndex].score = e.target.value;
-                        setFormData({
-                          ...formData,
-                          grading_components: updated,
-                        });
-                      }}
-                    />
-                  </Col>
-                  <Col md={2}>
-                    <Form.Select
-                      value={component.by_who}
-                      onChange={(e) => {
-                        const updated = [...formData.grading_components];
-                        updated[compIndex].by_who = e.target.value;
-                        setFormData({
-                          ...formData,
-                          grading_components: updated,
-                        });
-                      }}
-                    >
-                      <option value="supervisor">Удирдагч багш</option>
-                      <option value="committee">Комисс</option>
-                      <option value="examiner">Шүүмж багш</option>
-                    </Form.Select>
-                  </Col>
-
-                  <Col md={2}>
-                    <Form.Control
-                      //  type="datepicker"
-                      placeholder="Долоо хоног"
-                      value={component.scheduled_week}
-                      onChange={(e) => {
-                        const updated = [...formData.grading_components];
-                        updated[compIndex].scheduled_week = e.target.value;
-                        setFormData({
-                          ...formData,
-                          grading_components: updated,
-                        });
-                      }}
-                    />
-                  </Col>
-
-                  <Col md={1} className="d-flex align-items-center">
-                    <Button
-                      variant="danger"
-                      onClick={() => {
-                        const updated = formData.grading_components.filter(
-                          (_, index) => index !== compIndex
-                        );
-                        setFormData({
-                          ...formData,
-                          grading_components: updated,
-                        });
-                      }}
-                    >
-                      <Trash size={16} />
-                    </Button>
-                  </Col>
-                </Row>
-              </div>
-            ))}
-
-            <Button onClick={handleAddComponent} className="mt-3 ">
-              Задаргаа нэмэх
-            </Button>
-            {/* <Button variant="danger" onClick={handleAddComponent} className="mt-3 ms-3">
-              Компонент нэмэх
-            </Button> */}
-            <Alert
-              variant={calculateTotal() === 100 ? "success" : "danger"}
-              className="mt-3"
+        </>
+      }
+      open={open}
+      onCancel={onCancel}
+      footer={[
+        <Button key="back" onClick={onCancel}>
+          Цуцлах
+        </Button>,
+        <Button key="submit" type="primary" onClick={handleSubmit}>
+          {schema ? "Өөрчлөлт хадгалах" : "Схем үүсгэх"}
+        </Button>,
+      ]}
+      width={1000}
+    >
+      <Form form={form} layout="vertical">
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="name"
+              label="Схемийн нэр"
+              rules={[{ required: true, message: "Схемийн нэрийг оруулна уу" }]}
             >
-              Нийт жин: {calculateTotal()}%
-            </Alert>
+              <Input />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="year"
+              label="Он"
+              rules={[{ required: true, message: "Оныг оруулна уу" }]}
+            >
+              <Input type="number" />
+            </Form.Item>
+          </Col>
+        </Row>
+        
+        <Form.Item name="description" label="Тайлбар">
+          <TextArea rows={3} />
+        </Form.Item>
+
+        <div className="ant-divider" />
+        <h4>Үнэлгээний задаргаа</h4>
+        
+        {components.map((component, compIndex) => (
+          <div key={compIndex} className="ant-card ant-card-bordered" style={{ marginBottom: 16 }}>
+            <Row gutter={16} align="middle">
+              <Col span={8}>
+                <Input
+                  placeholder="Нэр"
+                  value={component.name}
+                  onChange={(e) => {
+                    const updated = [...components];
+                    updated[compIndex].name = e.target.value;
+                    setComponents(updated);
+                  }}
+                />
+              </Col>
+              <Col span={4}>
+                <Input
+                  type="number"
+                  placeholder="Оноо %"
+                  value={component.score}
+                  onChange={(e) => {
+                    const updated = [...components];
+                    updated[compIndex].score = e.target.value;
+                    setComponents(updated);
+                  }}
+                />
+              </Col>
+              <Col span={6}>
+                <Select
+                  style={{ width: '100%' }}
+                  value={component.by_who}
+                  onChange={(value) => {
+                    const updated = [...components];
+                    updated[compIndex].by_who = value;
+                    setComponents(updated);
+                  }}
+                >
+                  <Option value="supervisor">Удирдагч багш</Option>
+                  <Option value="committee">Комисс</Option>
+                  <Option value="examiner">Шүүмж багш</Option>
+                </Select>
+              </Col>
+              <Col span={4}>
+                <Input
+                  placeholder="Долоо хоног"
+                  value={component.scheduled_week}
+                  onChange={(e) => {
+                    const updated = [...components];
+                    updated[compIndex].scheduled_week = e.target.value;
+                    setComponents(updated);
+                  }}
+                />
+              </Col>
+              <Col span={2}>
+                <Button
+                  danger
+                  icon={<Trash size={16} />}
+                  onClick={() => {
+                    const updated = components.filter((_, index) => index !== compIndex);
+                    setComponents(updated);
+                  }}
+                />
+              </Col>
+            </Row>
           </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>
-            Цуцлах
-          </Button>
-          <Button variant="primary" type="submit">
-            {schema ? "Өөрчлөлт хадгалах" : "Схем үүсгэх"}
-          </Button>
-        </Modal.Footer>
+        ))}
+
+        <Button onClick={handleAddComponent} type="primary" style={{ width: '20%', marginBottom: 16 }}>
+          Задаргаа нэмэх
+        </Button>
+
+        <Alert
+          message={`Нийт жин: ${calculateTotal()}%`}
+          type={calculateTotal() === 100 ? "success" : "error"}
+          showIcon
+        />
       </Form>
     </Modal>
   );

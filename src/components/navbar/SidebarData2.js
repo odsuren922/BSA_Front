@@ -4,7 +4,21 @@ import * as IoIcons from "react-icons/io";
 
 export const SidebarData2 = {
   department: [
-   
+    {
+        title: "Нүүр хуудас", 
+        path: "/admin/dashboard",
+        icon: <IoIcons.IoIosPaper />,
+        cName: "nav-text",
+      },
+  
+        {
+          title: "Баклаварын ажил",
+          path: "/thesis-cycles",
+        },
+        {
+          title: "Комис хувиарлах",
+          path: "/CommitteeScheduler",
+        },
   ],
   supervisor: [
   

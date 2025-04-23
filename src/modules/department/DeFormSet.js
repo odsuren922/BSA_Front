@@ -113,6 +113,7 @@ const EditableTable = () => {
     try {
       setLoading(true);
       const res = await fetchData("proposalform"); // Серверээс өгөгдөл татах
+
       if (res.length > 0) {
         const fieldsData = res[0].fields.map((item, index) => {
           const englishField = Object.keys(item)[0];
@@ -171,6 +172,7 @@ const EditableTable = () => {
 
   // Серверт өгөгдлийг хадгалах функц
   const handleSaveToDatabase = async () => {
+
     if (!originalData) return;
 
     const updatedFields = dataSource.map(

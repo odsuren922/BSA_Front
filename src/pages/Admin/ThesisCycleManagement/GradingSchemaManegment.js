@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Button,
   Modal,
@@ -18,36 +18,18 @@ import {
   EditOutlined,
   ExclamationCircleOutlined
 } from "@ant-design/icons";
-import api from "../../context/api_helper";
-import SchemaEditorModal from "../../components/thesisCycle/SchemaEditorModal";
+import api from "../../../context/api_helper";
+import SchemaEditorModal from "../../../components/thesisCycle/SchemaEditorModal";
 
 const { Panel } = Collapse;
 const { confirm } = Modal;
 
-const GradingSchemaManagement = () => {
-  const [schemas, setSchemas] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false); 
+const GradingSchemaManagement = ({ refreshTrigger, user, schemas, setSchemas, fetchGradingSchemas,loading }) => {
+  const [modalVisible, setModalVisible] = useState(false);
   const [editSchema, setEditSchema] = useState(null);
-  const [loading, setLoading] = useState(false);
+//   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [activePanels, setActivePanels] = useState([]);
-
-  useEffect(() => {
-    fetchGradingSchemas();
-  }, []);
-
-  const fetchGradingSchemas = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get("/grading-schemas");
-      setSchemas(response.data);
-    } catch (error) {
-      console.error("Error fetching schemas:", error);
-      message.error("Мэдээлэл авахад алдаа гарлаа!");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = (schemaId) => {
     confirm({
@@ -117,28 +99,24 @@ const GradingSchemaManagement = () => {
   ];
 
   return (
-    <div >
-     <Row gutter={[16, 16]} justify="space-between" align="middle">        <Col>
+    <div>
+      <Row gutter={[16, 16]} justify="space-between" align="middle">
+        <Col>
           <h2>Дүгнэх үе шатын тохиргоо</h2>
         </Col>
         <Col>
-        
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-     onClick={() => setModalVisible(true)} 
-        // onClick={() => {
-        //     console.log("Button clicked"); // Debugging
-        //     setModalVisible(true);
-        //   }}
-      >
-        Шинээр нэмэх
-      </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setModalVisible(true)}
+          >
+            Шинээр нэмэх
+          </Button>
         </Col>
       </Row>
 
-   <div style={{ marginTop: 20, marginBottom: 20 }}>
-   <Spin spinning={loading}>
+      <div style={{ marginTop: 20, marginBottom: 20 }}>
+        <Spin spinning={loading}>
           <Table
             columns={columns}
             dataSource={schemas}
@@ -147,15 +125,11 @@ const GradingSchemaManagement = () => {
             bordered
             className="mb-4"
           />
-
-        
         </Spin>
-    </div>
-      
+      </div>
 
       <Card>
         <Spin spinning={loading}>
-      
           <Collapse
             activeKey={activePanels}
             onChange={(keys) => setActivePanels(keys)}
@@ -184,11 +158,10 @@ const GradingSchemaManagement = () => {
                       <strong>Хугацаа:</strong> {component.scheduled_week} -р долоо хоногт
                     </p>
                     <p>
-           
-                      <strong>Дүгнэгч: </strong> 
-                      {component.by_who === "supervisor" &&'Удирдагч багш ' }
-                      {component.by_who ==="committee" &&'Комисс'  }
-                      {component.by_who === "examiner" &&'Шүүмж багш'}
+                      <strong>Дүгнэгч: </strong>
+                      {component.by_who === "supervisor" && 'Удирдагч багш'}
+                      {component.by_who === "committee" && 'Комисс'}
+                      {component.by_who === "examiner" && 'Шүүмж багш'}
                     </p>
                     {component.grading_criteria?.length > 0 && (
                       <>
@@ -211,7 +184,7 @@ const GradingSchemaManagement = () => {
       </Card>
 
       <SchemaEditorModal
-        open={modalVisible} // Changed from 'visible' to 'open'
+        open={modalVisible}
         onCancel={() => {
           setModalVisible(false);
           setEditSchema(null);
@@ -222,6 +195,7 @@ const GradingSchemaManagement = () => {
           setEditSchema(null);
         }}
         schema={editSchema}
+        user={user}
       />
     </div>
   );

@@ -15,6 +15,7 @@ import {
   Avatar,
   Table,
   Collapse,
+  Spin
 } from "antd";
 import {
   CalculatorOutlined,
@@ -24,15 +25,11 @@ import {
 } from "@ant-design/icons";
 import CommitteeCalculator from "../../../components/committee/CommitteeCalculator";
 import api from "../../../context/api_helper";
-// import { useAuth } from "../../../context/AuthContext";
-import { UserProvider, useUser } from "../../../context/UserContext";
-
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const { Title, Text } = Typography;
 
-const CommitteeManagement = ({ cycleId, componentId }) => {
-  const { user } = useUser();
+const CommitteeManagement = ({ cycleId, componentId, user }) => {
   const [committees, setCommittees] = useState([]);
 
   const [theses, setTheses] = useState([]);
@@ -462,8 +459,17 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
           </Button>
         </Col>
       </Row>
-
-      {committees.length === 0 ? (
+      {loading ? (
+  <Spin tip="Ачааллаж байна..." />
+) : committees.length === 0 ? (
+  <Alert
+    message="Мэдээлэл байхгүй"
+    description="Одоогоор бүртгэлтэй комисс байхгүй байна."
+    type="info"
+    showIcon
+  />
+) : (
+    (committees.length === 0 ? (
         <Alert
           message="Мэдээлэл байхгүй"
           description="Одоогоор бүртгэлтэй комисс байхгүй байна."
@@ -530,7 +536,10 @@ const CommitteeManagement = ({ cycleId, componentId }) => {
             </Collapse.Panel>
           ))}
         </Collapse>
-      )}
+      ))
+)}
+
+      
 
       <Modal
         title="Багш, оюутны тоог шалгах"

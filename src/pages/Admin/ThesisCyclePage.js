@@ -70,11 +70,17 @@ const ThesisCyclePage = () => {
         setLoadingStudentCounts(true);
         setTableLoading(true);
 
-      const cycleResponse = await api.get(`/thesis-cycles/${id}`);
-      const thesesResponse = await api.get(`/cycles/${id}/theses`);
-      const studentCountByProgram = await api.get(
-        `/cycles/${id}/student-counts`
-      );
+    //   const cycleResponse = await api.get(`/thesis-cycles/${id}`);
+    //   const thesesResponse = await api.get(`/cycles/${id}/theses`);
+    //   const studentCountByProgram = await api.get(
+    //     `/cycles/${id}/student-counts`
+    //   );
+    const [cycleResponse, thesesResponse, studentCountByProgram] = await Promise.all([
+        api.get(`/thesis-cycles/${id}`),
+        api.get(`/cycles/${id}/theses`),
+        api.get(`/cycles/${id}/student-counts`)
+      ]);
+      
 
       setCycle(cycleResponse.data);
       setTheses(thesesResponse.data);
@@ -82,7 +88,7 @@ const ThesisCyclePage = () => {
       setStudentCounts(studentCountByProgram.data);
       setFilteredTheses(thesesResponse.data);
     } catch (error) {
-      console.error("API Error:", error);
+      console.error(" Error:", error);
       
     } finally {
         setLoadingCycle(false);
@@ -155,7 +161,7 @@ const ThesisCyclePage = () => {
       key: "name_mongolian",
     },
     {
-      title: "Хэрэгжүүлэгч",
+      title: "Суралцагч",
       key: "student_info",
       render: (_, record) => (
         <div>
@@ -167,7 +173,7 @@ const ThesisCyclePage = () => {
       ),
     },
     {
-      title: "Удирдагч",
+      title: "Удирдагч багш",
       key: "supervisor_info",
       render: (_, record) => (
         <div>
@@ -181,7 +187,7 @@ const ThesisCyclePage = () => {
       key: "department",
     },
     {
-      title: "Status",
+      title: "Төлөв",
       dataIndex: "status",
       key: "status",
       render: (status) => (
@@ -332,7 +338,7 @@ const ThesisCyclePage = () => {
             </Row>
           </Card>
         ) : (
-          <Card title="Loading Thesis Cycle..." className="mb-4">
+          <Card title="Уншиж байна..." className="mb-4">
             <Skeleton active />
           </Card>
         )}

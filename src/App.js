@@ -6,6 +6,8 @@ import Main from "./modules/Main";
 import OAuthCallback from "./auth/OAuthCallback";
 import { checkOAuthStatus, logoutOAuth } from "./oauth";
 import { UserProvider, useUser } from "./context/UserContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function AppContent() {
   const { user, setUser } = useUser();
@@ -20,12 +22,13 @@ function AppContent() {
         if (userData) {
         //  console.log("User authenticated:", userData);
           setUser(userData);
+          console.log("User authenticated:", userData);
           setAuthError(null);
         } else {
           console.log("No authenticated user found");
           setUser(null);
         }
-        console.log("saved user info", user)
+
       } catch (error) {
         console.error("Authentication check failed:", error);
         setAuthError(error.message);
@@ -44,6 +47,7 @@ function AppContent() {
       clearInterval(authCheckInterval); // Clean up on unmount
     };
   }, [setUser]);
+  
 
   if (loading) {
     return (

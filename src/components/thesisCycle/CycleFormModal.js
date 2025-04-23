@@ -3,7 +3,7 @@ import { Button, Form, Modal, Row, Col, Alert } from "react-bootstrap";
 //TODO:: can create thesis Schema
 
 import api from "../../context/api_helper";
-const CycleFormModal = ({ show, onHide, onSubmit, cycle }) => {
+const CycleFormModal = ({ show, onHide, onSubmit, cycle,user,gradingSchemas }) => {
   const [formData, setFormData] = useState({
     name: "",
     year: new Date().getFullYear(),
@@ -13,40 +13,30 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle }) => {
     end_date: "",
     grading_schema_id: "",
     status: "Идэвхитэй",
-  });
-  const [gradingSchemas, setGradingSchemas] = useState([]); // Тусгай төлөв
+    dep_id: user.dep_id,
+});
   const [dateError, setDateError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // State for delete confirmation modal
 
   useEffect(() => {
     if (cycle) {
-      console.log("cycledate", cycle);
+    
       setFormData(cycle);
     } else {
       setFormData({
         name: "",
         year: new Date().getFullYear(),
-        end_year:  new Date().getFullYear(),
+        end_year:  new Date().getFullYear()+1,
         semester: "Намар",
         start_date: "",
         end_date: "",
         grading_schema_id: "",
         status: "Идэвхитэй",
+        dep_id: user.dep_id,
       });
     }
   }, [cycle]);
-  useEffect(() => {
-    const fetchGradingSchemas = async () => {
-      try {
-        const response = await api.get("/grading-schemas");
-        setGradingSchemas(response.data); // API хариуг хадгалах
-      } catch (error) {
-        console.error("Grading схем татаж чадсангүй:", error);
-      }
-    };
 
-    fetchGradingSchemas();
-  }, []);
 
   const handleDateChange = (e) => {
     const { name, value } = e.target;

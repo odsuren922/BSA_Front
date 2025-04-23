@@ -8,7 +8,9 @@ import {
   Button,
   Spinner,
   Modal,
+  
 } from "react-bootstrap";
+import { Spin, Skeleton } from "antd";
 import Breadcrumbs from "../../components/Common/Breadcrumb";
 
 import { Empty } from "antd";
@@ -21,39 +23,56 @@ import { UserProvider, useUser } from "../../context/UserContext";
 import GradingSchemaTable from "../../components/grading/GradingSchemaTable";
 const AdminDashboard = () => {
   const { user } = useUser();
-  const [thesisCycle, setThesisCycle] = useState([]);
+  const [thesisCycle, setThesisCycle] = useState(null);
+
 
   const [loading, setLoading] = useState(true);
+  const [gradingLoading, setGradingLoading] = useState(false);
+
   const [showOptions, setShowOptions] = useState(false);
   const [gradingSchema, setGradingSchema] = useState([]);
   const [showGradingModal, setShowGradingModal] = useState(false);
 
-  // Mock data
+
   useEffect(() => {
     fetchtasks();
   }, []);
   const fetchtasks = async () => {
     try {
-      const response = await api.get(`/active-cycles`);
-      console.log(response.data);
-      setThesisCycle(response.data);
+    //   const response = await api.get(`/active-cycles`);
+    console.log(user.dep_id)
+    const response = await api.get('/active-cycles', {
+        params: { dep_id: user.dep_id }
+      });
+      console.log(response)
+      
+      if (response.data && response.data.id) {
+        setThesisCycle(response.data);
+      } else {
+        setThesisCycle(null); // эсвэл false гэж тохируулж болно
+      }
     } catch (error) {
       console.error("Error fetching tasks:", error);
+      setThesisCycle(null);
     } finally {
       setLoading(false);
     }
   };
+  
   const fetchGradingSchema = async () => {
+    if (!thesisCycle?.id) return;
+    setGradingLoading(true); // эхлэх үед
     try {
-      const response = await api.get(
-        `/thesis-cycles/${thesisCycle.id}/grading-schema`
-      );
-      console.log("grading schema", response.data);
-      setGradingSchema(response.data); // Set the grading schema response
+      const response = await api.get(`/thesis-cycles/${thesisCycle.id}/grading-schema`);
+      setGradingSchema(response.data);
     } catch (error) {
       console.error("Error fetching grading schema:", error);
+    } finally {
+      setGradingLoading(false); // дуусах үед
     }
   };
+  
+  
 
   const quickActions = [
     {
@@ -112,35 +131,6 @@ const AdminDashboard = () => {
               Үнэлгээний схем харах
             </button>
 
-            {/* <button 
-                  className="btn btn-sm" 
-                  style={{ backgroundColor: '#e8f5e9', color: '#388e3c' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
-                  Grades
-                </button> */}
-            {/* <button 
-                  className="btn btn-sm" 
-                  style={{ backgroundColor: '#f3e5f5', color: '#8e24aa' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle reports action
-                  }}
-                >
-                  Reports
-                </button>
-                <button 
-                  className="btn btn-sm" 
-                  style={{ backgroundColor: '#fff3e0', color: '#fb8c00' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle deadlines action
-                  }}
-                >
-                  Deadlines
-                </button> */}
             <a
               className="btn btn-sm"
               href={`/allthesis/${thesisCycle.id}`}
@@ -161,25 +151,37 @@ const AdminDashboard = () => {
   <Breadcrumbs breadcrumbItem="Бакалаврын судалгааны ажлын удирдах систем" />
       {/* Stats Row */}
       <Row className="mb-4 mt-2">
-        <Col xs={12} md={8} className="mb-3">
-          {loading ? (
-            <div className="d-flex justify-content-center align-items-center p-4">
-              <Spinner animation="border" variant="primary" />
-            </div>
-          ) : thesisCycle ? (
-            <ThesisCycleCard />
-          ) : (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Идэвхтэй семестр олдсонгүй"
-            >
-              <Link to="/thesis-cycles">
-                <Button type="primary">Шинэ цикл үүсгэх</Button>
-              </Link>
-            </Empty>
-          )}
-        </Col>
+    
 
+      <Col xs={12} md={8} className="mb-3">
+  <Card
+    title={loading ? "Уншиж байна..." : thesisCycle ? null : ""}
+    className="mb-4 shadow-sm border-0 rounded-3"
+  >
+  
+      {loading ? (
+        <Card.Body className="mt-2 ms-3">
+                   <Skeleton active />
+                   
+        </Card.Body>
+ 
+      ) : thesisCycle ? (
+        <ThesisCycleCard />
+      ) : (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="Идэвхтэй семестр олдсонгүй"
+        >
+          <Link to="/thesis-cycles">
+            <Button type="primary">Шинэ цикл үүсгэх</Button>
+          </Link>
+        </Empty>
+      )}
+   
+  </Card>
+</Col>
+
+  
         <Col xs={24} md={4}>
           <Card className="shadow-sm border-0 rounded-3">
             <Card.Body className="d-flex align-items-center py-3">
@@ -262,16 +264,19 @@ const AdminDashboard = () => {
           <Modal.Title>Үнэлгээний схем</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {thesisCycle ? (
-            <GradingSchemaTable
-              gradingSchema={gradingSchema}
-              thesisCycle={thesisCycle}
-              cycleId={thesisCycle.id}
-            />
-          ) : (
-            <p>Loading...</p>
-          )}
-        </Modal.Body>
+  {gradingLoading ? (
+    <Skeleton active paragraph={{ rows: 6 }} />
+  ) : thesisCycle ? (
+    <GradingSchemaTable
+      gradingSchema={gradingSchema}
+      thesisCycle={thesisCycle}
+      cycleId={thesisCycle.id}
+    />
+  ) : (
+    <p>Loading...</p>
+  )}
+</Modal.Body>
+
       </Modal>
     </Container>
   );

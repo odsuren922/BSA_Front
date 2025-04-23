@@ -11,10 +11,12 @@ const api = axios.create({
 // Request Interceptor - Automatically add token to headers
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+
+    const token = localStorage.getItem("oauth_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+   
     return config;
   },
   (error) => {
@@ -25,12 +27,15 @@ api.interceptors.request.use(
 
 // Response Interceptor - Handle Unauthorized & Errors
 api.interceptors.response.use(
+
+
   (response) => response,
+
   (error) => {
     if (error.response) {
       if (error.response.status === 401) {
         toast.warning("Unauthorized! Redirecting to login...");
-        localStorage.removeItem("token");
+        localStorage.removeItem("oauth_token");
         window.location.href = "/login";
       } else {
         toast.error(`Error: ${error.response.data.message || "Өгөгдөл татахад алдаа гарлаа!"}`);

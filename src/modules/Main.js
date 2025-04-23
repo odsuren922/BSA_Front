@@ -4,7 +4,7 @@ import { useUser } from "../context/UserContext";
 import { Spin, notification } from "antd";
 import { fetchUserRole, mapGidToRole } from "../services/RoleService";
 import "./Main.css";
-
+import { ToastContainer } from "react-toastify";
 // Import components
 import DeFormSet from "./department/DeFormSet";
 import StudentList from "./department/StudentList";
@@ -36,7 +36,7 @@ import CommitteeCalendarPage from "../pages/Teacher/Committee/CommitteeCalendarP
 // Admin Pages
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import ThesisCycle from "../pages/Admin/ThesisCyclePage";
-import ThesisCycleBetter from "../pages/Admin/ThesisCycleManagement";
+import ThesisCycleBetter from "../pages/Admin/ThesisCycleManagement/ThesisCyclePanel";
 import SupervisorGradingPage from "../pages/Admin/Grading/SupervisorsScore";
 import CommitteePanel from "../pages/Admin/CommitteePanel";
 import CommitteeScheduler from "../pages/Admin/CommiteeManagment/Scheduler";
@@ -66,14 +66,17 @@ function Main({ setUser, logoutFunction }) {
           setUserRole(roleName);
 
           // Update user with role information
+          //TODO:: NEED DEP_ID WHEN LOG IN 
           setUser((prev) => ({
             ...prev,
             role: roleName,
+            dep_id:1,
           }));
 
           setRoleLoading(false);
           return;
         }
+        console.log("user", user)
 
         // If no role in user object, fetch from API
         const roleData = await fetchUserRole();
@@ -120,6 +123,7 @@ function Main({ setUser, logoutFunction }) {
       }
     };
 
+
     detectUserRole();
   }, [user, setUser]);
 
@@ -139,7 +143,7 @@ function Main({ setUser, logoutFunction }) {
             {/* bsa delgerengui medeelel */}
             <Route path="/aboutthesis/:id" element={<AboutThesis />} />{" "}
             {/* gants bsa medeelel */}
-            {/* <Route path="/studentPlan/:id" element={<Plan />} /> */}
+            <Route path="/studentPlan/:id" element={<Plan />} />
             <Route path="/thesis-cycles" element={<ThesisCycleBetter />} />
             <Route
               path="/CommitteeScheduler"
@@ -238,6 +242,7 @@ function Main({ setUser, logoutFunction }) {
 
   return (
     <div className="app-layout">
+            <ToastContainer />
       <CustomNavBar
         user={user}
         setUser={setUser}
