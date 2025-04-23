@@ -17,10 +17,8 @@ import { fetchData, postData } from "../../utils";
 const { Content } = Layout;
 const { Title } = Typography;
 
-// EditableContext нь мөр болон нүдний өгөгдлийг удирдах зориулалттай
 const EditableContext = React.createContext(null);
 
-// Мөрийн өгөгдлийг засварлах боломжтой EditableRow компонент
 const EditableRow = ({ index, ...props }) => {
   const [form] = Form.useForm();
   return (
@@ -32,38 +30,37 @@ const EditableRow = ({ index, ...props }) => {
   );
 };
 
-// Нүдний өгөгдлийг засварлах боломжтой EditableCell компонент
 const EditableCell = ({
   title,
-  editable, // Засварлах боломжтой эсэхийг тодорхойлох
-  children, // Эх өгөгдөл
+  editable,
+  children,
   dataIndex,
   record,
-  handleSave, // Засварласны дараа хадгалах функц
+  handleSave,
   ...restProps
 }) => {
-  const [editing, setEditing] = useState(false); // Засварлаж байгаа эсэхийг заана
+  const [editing, setEditing] = useState(false);
   const inputRef = useRef(null);
   const form = useContext(EditableContext);
 
   useEffect(() => {
     if (editing) {
-      inputRef.current?.focus(); // Засварлаж эхлэх үед анхаарал төвлөрүүлэх
+      inputRef.current?.focus();
     }
   }, [editing]);
 
   const toggleEdit = () => {
-    setEditing(!editing); // Засварлах горимыг өөрчлөх
+    setEditing(!editing);
     form.setFieldsValue({ [dataIndex]: record[dataIndex] });
   };
 
   const save = async () => {
     try {
-      const values = await form.validateFields(); // Нүдний утгыг шалгах
-      toggleEdit(); // Засварлах горимыг хаах
-      handleSave({ ...record, ...values }); // Засварласан утгыг хадгалах
+      const values = await form.validateFields();
+      toggleEdit();
+      handleSave({ ...record, ...values });
     } catch (errInfo) {
-      console.log("Save failed:", errInfo); // Алдаа гарсан үед хэвлэх
+      console.log("Save failed:", errInfo);
     }
   };
 
@@ -78,8 +75,8 @@ const EditableCell = ({
       >
         <Input
           ref={inputRef}
-          onPressEnter={save} // Enter дарсан үед хадгалах
-          onBlur={save} // Фокус алдагдсан үед хадгалах
+          onPressEnter={save}
+          onBlur={save}
           className="focus:outline-none"
         />
       </Form.Item>
@@ -100,22 +97,20 @@ const EditableCell = ({
   );
 };
 
-// EditableTable компонент - Хүснэгтийн өгөгдлийг засварлах боломжтой болгох
 const EditableTable = () => {
-  const [dataSource, setDataSource] = useState([]); // Хүснэгтийн өгөгдөл хадгалах
-  const [, setCount] = useState(0); // Мөр нэмэхэд ашиглах тооллын утга
-  const [originalData, setOriginalData] = useState(null); // Эх өгөгдөл хадгалах
-  const [loading, setLoading] = useState(true); // Ачаалж байгаа төлөв
-  const [defaultFields, setDefaultFields] = useState({}); // Тогтмол талбаруудын өгөгдөл
+  const [dataSource, setDataSource] = useState([]);
+  const [, setCount] = useState(0);
+  const [originalData, setOriginalData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [defaultFields, setDefaultFields] = useState([]);
 
-  // Серверээс өгөгдөл татах функц
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const res = await fetchData("proposalform"); // Серверээс өгөгдөл татах
+      const res = await fetchData("proposalform");
       if (res.length > 0) {
         const fieldsData = res[0].fields.map((item, index) => {
-          const englishField = Object.keys(item)[0];
+          const englishField = Object.keys(item).find((key) => key !== "targetUser");
           const mongolianField = item[englishField];
           return {
             key: `row-${index}`,
@@ -125,28 +120,26 @@ const EditableTable = () => {
           };
         });
 
-        setDataSource(fieldsData); // Хүснэгтийн өгөгдлийг тохируулах
-        setOriginalData(res[0]); // Эх өгөгдлийг хадгалах
-        setDefaultFields(res[0].default_fields); // Тогтмол талбаруудыг тохируулах
+        setDataSource(fieldsData);
+        setOriginalData(res[0]);
+        setDefaultFields(res[0].default_fields || []);
       }
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
-      setLoading(false); // Ачаалал дууссан
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPosts(); // Анхны ачааллын үед өгөгдөл татах
+    fetchPosts();
   }, []);
 
-  // Мөр устгах функц
   const handleDelete = (key) => {
-    const newData = dataSource.filter((item) => item.key !== key); // Устгах мөрийг хасах
+    const newData = dataSource.filter((item) => item.key !== key);
     setDataSource(newData);
   };
 
-  // Мөр нэмэх функц
   const handleAdd = () => {
     setCount((prevCount) => {
       const newRow = {
@@ -155,12 +148,11 @@ const EditableTable = () => {
         englishField: "new_field",
         targetUser: "Бүгд",
       };
-      setDataSource((prevDataSource) => [...prevDataSource, newRow]); // Шинэ мөр нэмэх
+      setDataSource((prevDataSource) => [...prevDataSource, newRow]);
       return prevCount + 1;
     });
   };
 
-  // Засварласан мөрийг хадгалах функц
   const handleSave = (row) => {
     setDataSource((prevDataSource) =>
       prevDataSource.map((item) =>
@@ -169,7 +161,6 @@ const EditableTable = () => {
     );
   };
 
-  // Серверт өгөгдлийг хадгалах функц
   const handleSaveToDatabase = async () => {
     if (!originalData) return;
 
@@ -186,14 +177,14 @@ const EditableTable = () => {
     };
 
     try {
-      await postData("proposalform", updatedData, "post"); // Сервер рүү өгөгдөл илгээх
+      await postData("proposalform", updatedData, "post");
       notification.success({
         message: "Амжилттай",
         description: "Талбаруудыг амжилттай хадгаллаа.",
         placement: "topRight",
         duration: 3,
       });
-      fetchPosts(); // Шинэчилсэн өгөгдлийг татах
+      fetchPosts();
     } catch (error) {
       notification.error({
         message: "Error",
@@ -206,18 +197,17 @@ const EditableTable = () => {
 
   const components = {
     body: {
-      row: EditableRow, // Засварлах боломжтой мөр
-      cell: EditableCell, // Засварлах боломжтой нүд
+      row: EditableRow,
+      cell: EditableCell,
     },
   };
 
-  // Хүснэгтийн багануудын тохиргоо
   const columns = [
     {
       title: "Монгол талбар",
       dataIndex: "mongolianField",
       key: "mongolianField",
-      editable: true, // Засварлах боломжтой
+      editable: true,
     },
     {
       title: "English Field",
@@ -228,22 +218,20 @@ const EditableTable = () => {
     {
       title: "Зорилтот хэрэглэгч",
       dataIndex: "targetUser",
-      render: (_, record) => {
-        return (
-          <Select
-            defaultValue={record.targetUser}
-            style={{ width: 150 }}
-            options={[
-              { value: "All", label: "Бүгд" },
-              { value: "Student", label: "Оюутан" },
-              { value: "Teacher", label: "Багш" },
-            ]}
-            onChange={(value) => {
-              handleSave({ ...record, targetUser: value });
-            }}
-          />
-        );
-      },
+      render: (_, record) => (
+        <Select
+          defaultValue={record.targetUser}
+          style={{ width: 150 }}
+          options={[
+            { value: "All", label: "Бүгд" },
+            { value: "Student", label: "Оюутан" },
+            { value: "Teacher", label: "Багш" },
+          ]}
+          onChange={(value) => {
+            handleSave({ ...record, targetUser: value });
+          }}
+        />
+      ),
     },
     {
       title: "Үйлдэл",
@@ -275,23 +263,27 @@ const EditableTable = () => {
         {/* Тогтмол талбаруудыг харуулах хэсэг */}
         <div style={{ marginBottom: "24px" }}>
           <Card
-            title={
-              <span style={{ fontWeight: "normal" }}>Тогтмол талбарууд</span>
-            }
+            title={<span style={{ fontWeight: "normal" }}>Тогтмол талбарууд</span>}
           >
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {Array.isArray(defaultFields) &&
                 defaultFields.map((fieldObject, index) => {
-                  const firstValue = Object.values(fieldObject)[0];
+                  const displayField = Object.entries(fieldObject).find(
+                    ([key]) => key !== "targetUser"
+                  );
+                  const label = displayField ? displayField[1] : "Тодорхойгүй";
                   return (
                     <div
                       key={index}
                       style={{
                         width: "24%",
                         textAlign: "center",
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                        padding: "8px",
                       }}
                     >
-                      {firstValue}
+                      {label}
                     </div>
                   );
                 })}
@@ -299,7 +291,7 @@ const EditableTable = () => {
           </Card>
         </div>
 
-        {/* Хүснэгтийн товчнууд */}
+        {/* Хүснэгтийн товчлуурууд */}
         <div className="flex justify-between mb-4">
           <Button onClick={handleAdd} type="default">
             Талбар нэмэх
@@ -309,7 +301,7 @@ const EditableTable = () => {
           </Button>
         </div>
 
-        {/* Хүснэгтийг харуулах */}
+        {/* Хүснэгт */}
         <Table
           components={components}
           rowClassName={() => "editable-row"}
@@ -328,7 +320,6 @@ const DeFormSet = () => {
       <header style={{ textAlign: "left" }}>
         <Title level={3}>Сэдэв дэвшүүлэх хэлбэр</Title>
       </header>
-
       <Layout
         style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}
       >

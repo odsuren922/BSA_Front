@@ -21,10 +21,7 @@ function SendTopic() {
   const [options, setOptions] = useState([]);
 
   const openNotification = (type, message, description) => {
-    notification[type]({
-      message,
-      description,
-    });
+    notification[type]({ message, description });
   };
 
   const fetchProgramData = async () => {
@@ -32,18 +29,14 @@ function SendTopic() {
       const data = await fetchData("api/department");
       if (data && data.length > 0) {
         const departmentPrograms = JSON.parse(data[0].programs || "[]");
-
         const formattedOptions = departmentPrograms.map((program) => ({
           value: program.program_id,
           label: program.program_name,
         }));
-
         setOptions(formattedOptions);
       }
     } catch (error) {
       console.error("Error fetching department data:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -67,26 +60,37 @@ function SendTopic() {
     fetchProgramData();
   }, []);
 
+  const getFieldKeyAndLabel = (fieldObject, index, prefix) => {
+    const displayField = Object.entries(fieldObject).find(
+      ([key]) => key !== "targetUser"
+    );
+    const fieldKey = displayField?.[0] || `${prefix}_field_${index}`;
+    const fieldLabel = displayField?.[1] || "Талбар";
+    return { fieldKey, fieldLabel };
+  };
+
   const transformToDraftFormat = (values) => {
     const transformedData = [];
 
     const processDataArray = (dataArray) => {
       dataArray
-        .filter((fieldObject) => {
-          const targetUser = fieldObject.targetUser;
-          return targetUser === "All" || targetUser === "Teacher";
-        })
-        .forEach((fieldObject) => {
-          const firstKey = Object.keys(fieldObject)[0];
-          const field2 = Object.values(fieldObject)[0];
-          const targetUser = fieldObject.targetUser;
-
-          if (values[firstKey] && firstKey !== "target_program") {
+        .filter(
+          (fieldObject) =>
+            fieldObject.targetUser === "All" ||
+            fieldObject.targetUser === "Teacher"
+        )
+        .forEach((fieldObject, index) => {
+          const { fieldKey, fieldLabel } = getFieldKeyAndLabel(
+            fieldObject,
+            index,
+            "draft"
+          );
+          if (values[fieldKey] && fieldKey !== "target_program") {
             transformedData.push({
-              field: firstKey,
-              field2,
-              value: values[firstKey],
-              targetUser,
+              field: fieldKey,
+              field2: fieldLabel,
+              value: values[fieldKey],
+              targetUser: fieldObject.targetUser,
             });
           }
         });
@@ -102,65 +106,51 @@ function SendTopic() {
     try {
       const values = form.getFieldsValue();
       const draftData = transformToDraftFormat(values);
-      const targetProgram = draftData.find(
-        (field) => field.field === "target_program"
-      );
+      const targetProgram = values["target_program"] || [];
       await postData("topic/storeteacher", {
         form_id: formId,
         status: "draft",
         fields: draftData,
-        program: targetProgram ? targetProgram.value : [],
+        program: targetProgram,
       });
       openNotification(
         "success",
-        "Draft Saved",
-        "Ноорогт амжилттай хадгаллаа."
+        "Ноорог хадгалсан",
+        "Ноорог амжилттай хадгалагдлаа."
       );
       form.resetFields();
     } catch (error) {
       console.error("Error saving draft:", error);
-      openNotification(
-        "error",
-        "Save Failed",
-        "Ноорог хадгалах явцад алдаа гарлаа."
-      );
+      openNotification("error", "Алдаа", "Ноорог хадгалах явцад алдаа гарлаа.");
     }
   };
 
   const onFinish = async (values) => {
     try {
       const submitData = transformToDraftFormat(values);
-      const targetProgram = submitData.find(
-        (field) => field.field === "target_program"
-      );
+      const targetProgram = values["target_program"] || [];
       await postData("topic/storeteacher", {
         form_id: formId,
         status: "submitted",
         fields: submitData,
-        program: targetProgram ? targetProgram.value : [],
+        program: targetProgram,
       });
-      console.log(submitData);
       openNotification(
         "success",
-        "Submission Successful",
-        "Амжилттай сэдэв дэвшүүллээ."
+        "Амжилттай",
+        "Сэдэв амжилттай илгээгдлээ."
       );
       form.resetFields();
     } catch (error) {
       console.error("Error submitting form:", error);
-      openNotification(
-        "error",
-        "Submission Failed",
-        "Сэдэв дэвшүүлэх явцад алдаа гарлаа."
-      );
+      openNotification("error", "Алдаа", "Сэдэв илгээхэд алдаа гарлаа.");
     }
   };
 
-  const handleSelectChange = (value, option) => {
+  const handleSelectChange = (value) => {
     if (value.includes("all")) {
-      // Select all options when "Бүгд" is selected
-      const allOptionValues = options.map((opt) => opt.value);
-      form.setFieldsValue({ target_program: allOptionValues });
+      const allValues = options.map((opt) => opt.value);
+      form.setFieldsValue({ target_program: allValues });
     } else {
       form.setFieldsValue({ target_program: value });
     }
@@ -175,11 +165,7 @@ function SendTopic() {
           onFinish={onFinish}
           layout="vertical"
         >
-          <Row
-            justify="end"
-            gutter={16}
-            style={{ marginBottom: "16px", marginTop: "16px" }}
-          >
+          <Row justify="end" gutter={16} style={{ margin: "16px 0" }}>
             <Col>
               <Button onClick={saveToDraft}>Ноорогт хадгалах</Button>
             </Col>
@@ -190,68 +176,69 @@ function SendTopic() {
             </Col>
           </Row>
 
-          <Row gutter={[24, 24]} style={{ marginTop: "16px" }}>
+          <Row gutter={[24, 24]}>
+            {/* Тогтмол талбарууд */}
             {defData
-              .filter((fieldObject) => {
-                const targetUser = fieldObject.targetUser;
-                return targetUser === "All" || targetUser === "Teacher";
-              })
+              .filter(
+                (field) =>
+                  field.targetUser === "All" || field.targetUser === "Teacher"
+              )
               .map((fieldObject, index) => {
-                const firstKey = Object.keys(fieldObject)[0];
-                const firstValue = Object.values(fieldObject)[0];
+                const { fieldKey, fieldLabel } = getFieldKeyAndLabel(
+                  fieldObject,
+                  index,
+                  "def"
+                );
 
                 return (
-                  <Col xs={24} sm={12} md={8} lg={8} xl={8} key={index}>
-                    {firstKey === "target_program" ? (
-                      <Form.Item
-                        label={firstValue}
-                        name={firstKey}
-                        // rules={[
-                        //   {
-                        //     required: true,
-                        //     message: "Нэмэлт талбарыг бөглөнө үү!",
-                        //   },
-                        // ]}
-                      >
+                  <Col
+                    xs={24}
+                    sm={12}
+                    md={8}
+                    lg={8}
+                    xl={8}
+                    key={`def-${index}`}
+                  >
+                    {fieldKey === "target_program" ? (
+                      <Form.Item label={fieldLabel} name={fieldKey}>
                         <Select
                           mode="multiple"
                           placeholder="Зорилтот хөтөлбөр сонгоно уу"
-                          // style={{
-                          //   width: "100%",
-                          // }}
                           onChange={handleSelectChange}
-                          options={[
-                            { value: "all", label: "Бүгд" },
-                            ...options,
-                          ]}
+                          options={[{ value: "all", label: "Бүгд" }, ...options]}
                         />
                       </Form.Item>
                     ) : (
                       <Form.Item
-                        label={firstValue}
-                        name={firstKey}
+                        label={fieldLabel}
+                        name={fieldKey}
                         rules={[
                           {
                             required: true,
-                            message: `${firstValue} бөглөнө үү!`,
+                            message: `${fieldLabel} бөглөнө үү!`,
                           },
                         ]}
                       >
-                        <Input placeholder={`${firstValue} бөглөнө үү!`} />
+                        <Input placeholder={`${fieldLabel} бөглөнө үү!`} />
                       </Form.Item>
                     )}
                   </Col>
                 );
               })}
 
+            {/* Захиалгат талбарууд */}
             {formData
-              .filter((fieldObject) => {
-                const targetUser = fieldObject.targetUser;
-                return targetUser === "All" || targetUser === "Teacher";
-              })
+              .filter(
+                (field) =>
+                  field.targetUser === "All" || field.targetUser === "Teacher"
+              )
               .map((fieldObject, index) => {
-                const firstKey = Object.keys(fieldObject)[0];
-                const firstValue = Object.values(fieldObject)[0];
+                const { fieldKey, fieldLabel } = getFieldKeyAndLabel(
+                  fieldObject,
+                  index,
+                  "form"
+                );
+
                 return (
                   <Col
                     xs={24}
@@ -261,8 +248,8 @@ function SendTopic() {
                     xl={8}
                     key={`form-${index}`}
                   >
-                    <Form.Item label={firstValue} name={firstKey}>
-                      <TextArea placeholder={`${firstValue} бөглөнө үү!`} />
+                    <Form.Item label={fieldLabel} name={fieldKey}>
+                      <TextArea placeholder={`${fieldLabel} бөглөнө үү!`} />
                     </Form.Item>
                   </Col>
                 );

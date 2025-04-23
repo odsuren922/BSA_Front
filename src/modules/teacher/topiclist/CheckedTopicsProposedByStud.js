@@ -16,7 +16,7 @@ const CheckedTopicsProposedByStud = ({ active }) => {
 
     setLoading(true);
     try {
-      const rawData = await fetchData("topics/checkedtopicsbystud");
+      const rawData = await fetchData("topics/topiclistproposedbyuser?user_type=student");
       const transformedData = rawData.map((item) => {
         const fieldsArray = JSON.parse(item.fields);
         const fieldsObject = fieldsArray.reduce(
