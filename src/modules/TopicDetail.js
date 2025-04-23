@@ -151,7 +151,7 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
   };
 
   const renderFooter = () => {
-    if (user?.email === "supervisor@gmail.com") {
+    if (user?.role === "supervisor") {
       return [
         <Button key="cancel" onClick={onClose}>
           Болих
