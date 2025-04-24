@@ -43,8 +43,8 @@ export const mapGidToRole = (gid) => {
   {
     '70': 'department',
     '60': 'supervisor',
-    '80': 'student',
-    '5': 'teacher'
+    '5': 'student',
+    '80': 'teacher'
   }
         // student
   // {

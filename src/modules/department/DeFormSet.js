@@ -162,6 +162,7 @@ const EditableTable = () => {
   };
 
   const handleSaveToDatabase = async () => {
+
     if (!originalData) return;
 
     const updatedFields = dataSource.map(

@@ -37,6 +37,7 @@ export const SidebarData = {
     },
   ],
   student: [
+
     {
       title: "Сэдвийн жагсаалт",
       path: "/topicliststud",
@@ -75,5 +76,6 @@ export const SidebarData = {
       icon: <IoIcons.IoIosPaper />,
       cName: "nav-text",
     },
+
   ],
 };

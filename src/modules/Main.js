@@ -4,7 +4,7 @@ import { useUser } from "../context/UserContext";
 import { Spin, notification } from "antd";
 import { fetchUserRole, mapGidToRole } from "../services/RoleService";
 import "./Main.css";
-
+import { ToastContainer } from "react-toastify";
 // Import components
 import DeFormSet from "./department/DeFormSet";
 import StudentList from "./department/StudentList";
@@ -19,6 +19,28 @@ import TopicList from "./teacher/TopicList";
 import SideBar from "../components/navbar/SideBar";
 import CustomNavBar from "../components/navbar/CustomNavBar";
 import NotificationDashboard from "./department/notifications/NotificationDashboard";
+
+// Student Pages
+import Plan from "../pages/Plan/Plan";
+import StudentDashboard from "../pages/Student/StudentDashboard";
+
+//Teacher Pages
+import AboutThesis from "../pages/Thesis/AboutThesis";
+import SupervisodTheses from "../pages/Teacher/supervisodAllThesis";
+import DashBoardSupervisor from "../pages/Teacher/Dashboard";
+import Committee from "../pages/Teacher/Committee/Committee"; //do not use
+import CommitteeListPage from "../pages/Teacher/Committee/CommitteeList";
+import CommitteeDetailPage from "../pages/Teacher/Committee/CommitteeDetailPage";
+import CommitteeCalendarPage from "../pages/Teacher/Committee/CommitteeCalendarPage"; //for show teacher their committe calendar
+
+// Admin Pages
+import AdminDashboard from "../pages/Admin/AdminDashboard";
+import ThesisCycle from "../pages/Admin/ThesisCyclePage";
+import ThesisCycleBetter from "../pages/Admin/ThesisCycleManagement/ThesisCyclePanel";
+import SupervisorGradingPage from "../pages/Admin/Grading/SupervisorsScore";
+import CommitteePanel from "../pages/Admin/CommitteePanel";
+import CommitteeScheduler from "../pages/Admin/CommiteeManagment/Scheduler";
+import Calendar from "../pages/Admin/NotUseful/Calendar";
 
 function Main({ setUser, logoutFunction }) {
   const { user } = useUser();
@@ -38,56 +60,62 @@ function Main({ setUser, logoutFunction }) {
           setRoleLoading(false);
           return;
         }
-        
+
         if (user?.gid) {
           const roleName = mapGidToRole(user.gid);
           setUserRole(roleName);
-          
+
           // Update user with role information
-          setUser(prev => ({
+          //TODO:: NEED DEP_ID WHEN LOG IN 
+          setUser((prev) => ({
             ...prev,
-            role: roleName
+            role: roleName,
+            dep_id:1,
+            id:1,
           }));
-          
+
           setRoleLoading(false);
           return;
         }
-        
+        console.log("user", user)
+
         // If no role in user object, fetch from API
         const roleData = await fetchUserRole();
         const roleName = roleData.roleName || mapGidToRole(roleData.gid);
-        
+
         setUserRole(roleName);
-        
+
         // Update user with role information
-        setUser(prev => ({
+        setUser((prev) => ({
           ...prev,
           role: roleName,
-          gid: roleData.gid
+          gid: roleData.gid,
         }));
-        
-        console.log('Role detected:', roleName);
+
+        console.log("Role detected:", roleName);
       } catch (error) {
-        console.error('Error detecting role:', error);
-        setError('Failed to detect user role. Please try logging in again.');
+        console.error("Error detecting role:", error);
+        setError("Failed to detect user role. Please try logging in again.");
         notification.error({
-          message: 'Role Detection Failed',
-          description: 'Could not determine your user role. Some features may be unavailable.'
+          message: "Role Detection Failed",
+          description:
+            "Could not determine your user role. Some features may be unavailable.",
         });
-        
+
         // Fallback to email-based role detection if API fails
         if (user?.email) {
           let fallbackRole = "";
           if (user.email.includes("department")) fallbackRole = "department";
-          else if (user.email.includes("supervisor")) fallbackRole = "supervisor";
+          else if (user.email.includes("supervisor"))
+            fallbackRole = "supervisor";
           else if (user.email.includes("student")) fallbackRole = "student";
           else if (user.email.includes("teacher")) fallbackRole = "teacher";
-          
+
           if (fallbackRole) {
             setUserRole(fallbackRole);
-            setUser(prev => ({
+            setUser((prev) => ({
               ...prev,
-              role: fallbackRole
+              role: fallbackRole,
             }));
           }
         }
@@ -95,6 +123,7 @@ function Main({ setUser, logoutFunction }) {
         setRoleLoading(false);
       }
     };
+
 
     detectUserRole();
   }, [user, setUser]);
@@ -109,6 +138,24 @@ function Main({ setUser, logoutFunction }) {
             <Route path="/studentlist" element={<StudentList />} />
             <Route path="/deformset" element={<DeFormSet />} />
             <Route path="/notifications" element={<NotificationDashboard />} />
+            {/* dashboard */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/allthesis/:id" element={<ThesisCycle />} />{" "}
+            {/* bsa delgerengui medeelel */}
+            <Route path="/aboutthesis/:id" element={<AboutThesis />} />{" "}
+            {/* gants bsa medeelel */}
+            <Route path="/studentPlan/:id" element={<Plan />} />
+            <Route path="/thesis-cycles" element={<ThesisCycleBetter />} />
+            <Route
+              path="/CommitteeScheduler"
+              element={<CommitteeScheduler />}
+            />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route
+              path="/supervisor/grading"
+              element={<SupervisorGradingPage />}
+            />
+            <Route path="/committees" element={<CommitteePanel />} />
           </>
         );
       case "supervisor":
@@ -126,6 +173,11 @@ function Main({ setUser, logoutFunction }) {
             <Route path="/topicliststud" element={<TopicListStud />} />
             <Route path="/proposetopicstud" element={<ProposeTopicStud />} />
             <Route path="/confirmedtopic" element={<ConfirmedTopicStud />} />
+            {/* student */}
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/studentPlan/:id" element={<Plan />} />
+
+            <Route path="/plan" element={<Plan />} />
           </>
         );
       case "teacher":
@@ -135,25 +187,44 @@ function Main({ setUser, logoutFunction }) {
             <Route path="/topiclist" element={<TopicList />} />
             <Route path="/proposetopics" element={<ProposeTopic />} />
             <Route path="/confirmedtopics" element={<ConfirmedTopics />} />
+            {/* Teacher->suprvisor */}
+            <Route
+              path="/teacher/dashboard"
+              element={<DashBoardSupervisor />}
+            />
+            <Route path="/thesisList" element={<SupervisodTheses />} />
+            <Route path="/aboutthesis/:id" element={<AboutThesis />} />
+            <Route path="/studentPlan/:id" element={<Plan />} />
+            <Route path="/teacher/committees" element={<CommitteeListPage />} />
+            <Route
+              path="/teacher/committees/detail/:id"
+              element={<CommitteeDetailPage />}
+            />
           </>
         );
       default:
         return (
-          <Route path="*" element={
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center p-8">
-                <h2 className="text-2xl font-bold mb-4">Access Error</h2>
-                <p>Your role could not be determined. Please contact an administrator.</p>
-                {error && <p className="text-red-500 mt-2">{error}</p>}
-                <button 
-                  onClick={logoutFunction}
-                  className="mt-4 px-4 py-2 bg-violet-500 text-white rounded"
-                >
-                  Logout and Try Again
-                </button>
+          <Route
+            path="*"
+            element={
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center p-8">
+                  <h2 className="text-2xl font-bold mb-4">Access Error</h2>
+                  <p>
+                    Your role could not be determined. Please contact an
+                    administrator.
+                  </p>
+                  {error && <p className="text-red-500 mt-2">{error}</p>}
+                  <button
+                    onClick={logoutFunction}
+                    className="mt-4 px-4 py-2 bg-violet-500 text-white rounded"
+                  >
+                    Logout and Try Again
+                  </button>
+                </div>
               </div>
-            </div>
-          } />
+            }
+          />
         );
     }
   };
@@ -172,18 +243,17 @@ function Main({ setUser, logoutFunction }) {
 
   return (
     <div className="app-layout">
-      <CustomNavBar 
-        user={user} 
-        setUser={setUser} 
-        logoutFunction={logoutFunction} 
-        onClick={handleMenuToggle} 
+            <ToastContainer />
+      <CustomNavBar
+        user={user}
+        setUser={setUser}
+        logoutFunction={logoutFunction}
+        onClick={handleMenuToggle}
       />
       <div className="content">
         <SideBar user={user} collapsed={menuCollapsed} />
         <div className="routes-content">
-          <Routes>
-            {getRoutes()}
-          </Routes>
+          <Routes>{getRoutes()}</Routes>
         </div>
       </div>
     </div>
