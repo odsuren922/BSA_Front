@@ -71,6 +71,7 @@ function Main({ setUser, logoutFunction }) {
             ...prev,
             role: roleName,
             dep_id:1,
+            id:1,
           }));
 
           setRoleLoading(false);

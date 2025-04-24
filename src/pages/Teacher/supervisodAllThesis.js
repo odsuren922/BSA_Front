@@ -19,7 +19,9 @@ const App = () => {
 
   const fetchTasks = async () => {
     try {
-      const response = await api.get(`/theses`);
+        console.log(user.id)
+      const response = await api.get(`/theses`
+      );
       setData(response.data.thesis); // Verify API response structure
       setLoading(false);
     } catch (error) {

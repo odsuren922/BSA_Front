@@ -38,6 +38,7 @@ const AdminDashboard = () => {
     fetchtasks();
   }, []);
   const fetchtasks = async () => {
+    console.log(user)
     try {
     //   const response = await api.get(`/active-cycles`);
     console.log(user.dep_id)
