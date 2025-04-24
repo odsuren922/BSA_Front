@@ -3,6 +3,17 @@ import { Spin, Button, notification, message, Popconfirm } from "antd";
 import { fetchData, postData } from "../../utils";
 import CustomTable from "../../components/CustomTable";
 
+// ✅ fields parse-г найдвартай хийх функц
+const parseFields = (raw) => {
+  try {
+    const parsed = JSON.parse(raw); // зөвхөн нэг parse
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("❌ Failed to parse fields:", raw, e);
+    return [];
+  }
+};
+
 const ConfirmedTopicList = () => {
   const [loading, setLoading] = useState(true);
   const [dataSource, setDataSource] = useState([]);
@@ -12,34 +23,28 @@ const ConfirmedTopicList = () => {
     try {
       setLoading(true);
       const response = await fetchData("topics_confirmed");
-      const rawData = response.data;
+      const rawData = response.data?.data ?? response;
 
-      if (!rawData || !Array.isArray(rawData)) {
+      if (!Array.isArray(rawData)) {
         throw new Error("Invalid data format received from API");
       }
 
       const transformedData = rawData.map((item) => {
-        try {
-          const fieldsArray = JSON.parse(item.fields);
-          const fieldsObject = fieldsArray.reduce(
-            (acc, field) => ({
-              ...acc,
-              [field.field]: field.value,
-              [`${field.field}_name`]: field.field2,
-            }),
-            {}
-          );
-          return { ...item, ...fieldsObject, key: item.id };
-        } catch (error) {
-          console.error("Error parsing fields:", item.fields, error);
-          return { ...item, key: item.id };
-        }
+        const fieldsArray = parseFields(item.fields);
+        const fieldsObject = fieldsArray.reduce((acc, field) => {
+          acc[field.field] = field.value;
+          acc[`${field.field}_name`] = field.field2;
+          return acc;
+        }, {});
+        return { ...item, ...fieldsObject, key: item.id || item.topic_id };
       });
 
       setDataSource(transformedData);
 
-      if (rawData[0]?.fields) {
-        const fieldsArray = JSON.parse(rawData[0].fields);
+      const example = rawData.find((item) => item.fields);
+      if (example) {
+        const fieldsArray = parseFields(example.fields);
+
         const dynamicColumns = fieldsArray
           .filter((field) =>
             ["name_mongolian", "name_english"].includes(field.field)
@@ -74,7 +79,6 @@ const ConfirmedTopicList = () => {
               <Popconfirm
                 title="Та цуцлахдаа итгэлтэй байна уу?"
                 onConfirm={() => handleAction(record)}
-                onCancel={() => console.log("Cancelled!")}
                 okText="Тийм"
                 cancelText="Үгүй"
               >
@@ -85,7 +89,7 @@ const ConfirmedTopicList = () => {
         ]);
       }
     } catch (error) {
-      console.error("Error fetching topics:", error);
+      console.error("❌ Error fetching topics:", error);
       notification.error({
         message: "Error",
         description: "Failed to fetch topics. Check console for details.",
@@ -93,12 +97,10 @@ const ConfirmedTopicList = () => {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line
   }, []);
 
   const handleAction = useCallback(
     async (data) => {
-
       try {
         const payload = {
           topic_id: data.topic_id,
@@ -116,7 +118,7 @@ const ConfirmedTopicList = () => {
 
         fetchTopics();
       } catch (error) {
-        console.error(`Error handling topic:`, error);
+        console.error("❌ Error declining topic:", error);
         message.error("Алдаа гарлаа!");
       }
     },

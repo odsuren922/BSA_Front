@@ -23,14 +23,16 @@ const RequestedTopicList = () => {
       const transformedData = rawData.map((item) => {
         let parsedFields = {};
         try {
-          const fieldsArray = JSON.parse(item.fields);
+          const firstParse = JSON.parse(item.fields);
+          const fieldsArray = JSON.parse(firstParse);
+
           parsedFields = fieldsArray.reduce((acc, field) => {
             acc[field.field] = field.value;
             acc[`${field.field}_name`] = field.field2;
             return acc;
           }, {});
         } catch (error) {
-          console.warn("Failed to parse fields:", item.fields);
+          console.warn("❗ Failed to parse fields:", item.fields);
         }
 
         const status = item.is_selected ? "approved" : "submitted";
@@ -39,29 +41,37 @@ const RequestedTopicList = () => {
           ...item,
           ...parsedFields,
           key: item.id,
-          status
+          status,
         };
       });
 
       setDataSource(transformedData);
 
-      // Set dynamic columns based on available field names
+      // Dynamic columns
       const dynamicColumns = [];
 
       if (rawData.length > 0) {
-        const firstFields = JSON.parse(rawData[0].fields);
+        try {
+          const firstParse = JSON.parse(rawData[0].fields);
+          const firstFields = JSON.parse(firstParse);
 
-        dynamicColumns.push(
-          ...firstFields
-            .filter((field) => ["name_mongolian", "name_english", "description"].includes(field.field))
-            .map((field) => ({
-              title: field.field2,
-              dataIndex: field.field,
-              key: field.field
-            }))
-        );
+          dynamicColumns.push(
+            ...firstFields
+              .filter((field) =>
+                ["name_mongolian", "name_english", "description"].includes(field.field)
+              )
+              .map((field) => ({
+                title: field.field2,
+                dataIndex: field.field,
+                key: field.field,
+              }))
+          );
+        } catch (err) {
+          console.warn("❗ Failed to parse fields for columns:", rawData[0].fields);
+        }
       }
 
+      // Static columns
       dynamicColumns.push(
         {
           title: "Хүсэлт илгээсэн",
@@ -83,7 +93,10 @@ const RequestedTopicList = () => {
               refused: { text: "Татгалзсан", color: "red" },
               submitted: { text: "Дэвшүүлсэн", color: "green" },
             };
-            const { text, color } = statusMap[status] || { text: "Тодорхойгүй", color: "gray" };
+            const { text, color } = statusMap[status] || {
+              text: "Тодорхойгүй",
+              color: "gray",
+            };
             return <Tag color={color}>{text}</Tag>;
           },
         },
@@ -102,7 +115,7 @@ const RequestedTopicList = () => {
 
       setColumns(dynamicColumns);
     } catch (error) {
-      console.error("Error fetching topic requests:", error);
+      console.error("❌ Error fetching topic requests:", error);
       notification.error({
         message: "Error",
         description: "Failed to fetch topics. Check console for details.",
