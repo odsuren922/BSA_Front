@@ -46,7 +46,7 @@ const StudentDashboard = () => {
       setLoading(true);
       try {
         console.log("user", user);
-        const thesis = await api.get(`/thesisInfoBySid/${user.id}`);
+        const thesis = await api.get(`/thesisInfoBySid`);
         console.log(thesis.data.data);
         setThesis(thesis.data.data);
 

@@ -1,4 +1,3 @@
-// Ant Design-enhanced version of ThesisCycleManagement
 import React, { useState, useEffect } from "react";
 import {
   Table,
