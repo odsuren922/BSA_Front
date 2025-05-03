@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Row, Col, Card, CardBody } from "reactstrap";
 import PlanTable from "../../components/plan/PlanTable";
-import GanttChart from "../../components/plan/GanttChart";
+// import GanttChart from "../../components/plan/GanttChart";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, Spin, Tag, Table } from "antd"; // NEW
+import { Button, Spin, Tag } from "antd"; // NEW
 import { PlusOutlined, FilePdfOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ConfirmModal from "../../components/Common/ConfirmModal";
 import api from "../../context/api_helper";
 // import { useAuth } from "../../context/AuthContext";
-import { UserProvider, useUser } from "../../context/UserContext";
+import {  useUser } from "../../context/UserContext";
 
 import "./Plan.css";
 import generatePDF from "../../components/plan/pdfGenerator";
@@ -31,7 +31,7 @@ const TableComponent = () => {
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const [planStatus, setPlanStatus] = useState([]);
-  const [isReturnModalOpen, setReturnModalOpen] = useState(false);
+
   const [confirmAction, setConfirmAction] = useState(null); // Хийх ёстой action
   const [isConfirmOpen, setIsConfirmOpen] = useState(false); // Modal нээгдсэн эсэх
   const [deletedSubtaskIds, setDeletedSubtaskIds] = useState([]);
@@ -45,6 +45,7 @@ const TableComponent = () => {
     setLoading(true);
     try {
       const Thesis = await api.get(`/onethesis/${thesisId}`);
+      console.log("Thesis", Thesis.data);
 
       const thesisData = Thesis?.data?.data;
 
@@ -55,15 +56,10 @@ const TableComponent = () => {
       setData(thesisData.tasks ?? []);
       setThesis(thesisData);
       setThesisCycle(thesisData.thesis_cycle ?? null);
-      setPlanStatus(thesisData.thesisPlanStatus ?? {});
+      setPlanStatus(thesisData.thesisPlanStatus ?? null);
     } catch (error) {
-      if (error.response?.status === 403) {
-        toast.error("Та энэ төлөвлөгөөг үзэх эрхгүй байна.");
-       // navigate("/student/dashboard");
-      } else {
-        console.error("Error fetching tasks:", error);
+       
         toast.error("Төлөвлөгөө ачаалахад алдаа гарлаа.");
-      }
     } finally {
       setLoading(false);
     }
@@ -351,11 +347,12 @@ const TableComponent = () => {
       minute: "2-digit",
     });
   };
-  const isEditable =
-    (user.role === "student" && planStatus?.teacher_status !== "approved") ||
-    user.role === "teacher";
+  const isEditable = true;
+    // (user.role === "student" && planStatus?.teacher_status !== "approved") ||
+    // user.role === "teacher";
 
   const renderPlanStatus = () => {
+    console.log("planStatus", !planStatus);
     if (!planStatus) return <div>Төлөв: Статусын мэдээлэл алга байна</div>;
 
     const {

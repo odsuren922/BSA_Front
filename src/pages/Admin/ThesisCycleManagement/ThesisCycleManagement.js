@@ -17,6 +17,7 @@ import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import api from "../../../context/api_helper";
 
 
+
 import CycleFormModal from "../../../components/thesisCycle/CycleFormModal";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -42,10 +43,12 @@ const ThesisCycleManagement = ({ onDataChange , user, schemas}) => {
 
   const fetchThesisCycle = async () => {
     setLoading(true);
+    console.log(user.dep_id);
     try {
       const response = await api.get(`/thesis-cycles`,{
         params: { dep_id: user.dep_id }
       });
+      
       setCycles(response.data);
       console.log(response.data);
     } catch (error) {

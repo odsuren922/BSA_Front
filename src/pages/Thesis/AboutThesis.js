@@ -2,27 +2,25 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../context/api_helper";
 //import { useAuth } from "../../context/AuthContext";
-import { UserProvider, useUser } from "../../context/UserContext";
+// import {  useUser } from "../../context/UserContext";
 
-import ThesisScores from "./ThesisScore";
+
 import {
   Container,
   Row,
   Col,
   Card,
-  Spinner,
   CardBody,
   CardTitle,
   CardSubtitle,
   CardText,
 } from "reactstrap";
-import { Button, Spin, Typography } from "antd";
-import Breadcrumbs from "../../components/Common/Breadcrumb";
+import { Button, Spin } from "antd";
 import { Divider } from "antd";
 import AboutThesisTabs from "../../components/thesis/ThesisTabs";
-const { Title, Text, Paragraph } = Typography;
+
 const AboutThesis = () => {
-  const { user } = useUser();
+//   const { user } = useUser();
   const { id } = useParams();
   const [student, setStudent] = useState([]);
   const [supervisor, setSupervisor] = useState([]);
@@ -41,7 +39,7 @@ const AboutThesis = () => {
       setLoading(true);
       try {
         const thesis = await api.get(`/thesisInfo/${id}`);
-        console.log(thesis.data.data);
+        console.log('thesis.data.data', thesis.data.data);
         setThesis(thesis.data.data);
         setStudent(thesis.data.data.student);
         setSupervisor(thesis.data.data.supervisor);

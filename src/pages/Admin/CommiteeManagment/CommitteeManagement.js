@@ -15,7 +15,7 @@ import {
   Avatar,
   Table,
   Collapse,
-  Spin
+  Spin,
 } from "antd";
 import {
   CalculatorOutlined,
@@ -32,7 +32,6 @@ const { Title, Text } = Typography;
 const CommitteeManagement = ({ cycleId, componentId, user }) => {
   const [committees, setCommittees] = useState([]);
 
-  const [theses, setTheses] = useState([]);
   const [gradingComponent, setGradingComponent] = useState([]);
   const [showCalculator, setShowCalculator] = useState(false);
   const [studentCounts, setStudentCounts] = useState([]);
@@ -44,7 +43,6 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
   const [selectedCommittee, setSelectedCommittee] = useState(null);
   const [scoreForm] = Form.useForm();
 
-
   useEffect(() => {
     fetchData();
   }, [cycleId, user.dep_id]);
@@ -52,78 +50,41 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [
-        studentRes,
-        ThesisDate,
-        TeacherData,
-        committeesRes,
-        gradingComponent,
-      ] = await Promise.all([
-        api.get(`/cycles/${cycleId}/student-counts`),
-        api.get(`/cycles/${cycleId}/active-theses`),
-        api.get(`/teachers/count/department/${user.dep_id}`),
+      const [committeesRes, counts] = await Promise.all([
         api.get(
           `/thesis-cycles/${cycleId}/grading-components/${componentId}/committees`
         ),
-        api.get(`/grading-components/${componentId}`),
+        api.get(`/thesis-cycles/${cycleId}/counts`),
       ]);
-  
-      setTheses(ThesisDate.data);
-      setGradingComponent(gradingComponent.data);
-  
+      console.log("committeesRes.data.data.", counts.data);
+
+      //   setTheses(ThesisDate.data);
+      //   setGradingComponent(gradingComponent.data);
+      setGradingComponent(committeesRes.data.data.grading_component);
+
       const committeesData = committeesRes.data.data;
       const roleOrder = {
         leader: 1,
         secretary: 2,
         member: 3,
       };
-  
-      const committeesWithScores = await Promise.all(
-        committeesData.map(async (committee) => {
-          try {
-            const scores = await fetchScores(committee.id);
-            return {
-              ...committee,
-              members: [...(committee.members || [])].sort(
-                (a, b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99)
-              ),
-              students: scores,
-            };
-          } catch (error) {
-            console.error(
-              `Error fetching scores for committee ${committee.id}:`,
-              error
-            );
-            return {
-              ...committee,
-              members: [...(committee.members || [])].sort(
-                (a, b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99)
-              ),
-              students: [], // fallback хоосон оюутан
-            };
-          }
-        })
-      );
-  
+      console.log("committeesData", committeesData);
+      setCommittees(committeesData);
+      //   setCommittees(committeesWithScores);
 
-      setCommittees(committeesWithScores);
-  
-      setCustomTeacherCount(TeacherData.data.count);
+      setCustomTeacherCount(counts.data.teacher_count);
       setCustomStudentCount(
-        studentRes.data.reduce((sum, item) => sum + item.student_count, 0)
+        counts.data.program_counts.reduce(
+          (sum, item) => sum + item.student_count,
+          0
+        )
       );
-      setStudentCounts(studentRes.data);
+      setStudentCounts(counts.data.program_counts);
     } catch (error) {
       console.error("Error initializing data:", error);
     } finally {
       setLoading(false);
     }
-  };
-  
-  const fetchScores = async (committeeId) => {
-    const res = await api.get(`/committees/${committeeId}/scores`);
-  console.log(res.data);
-    return res.data;
   };
 
   const handleOpenScoreModal = (committee) => {
@@ -192,11 +153,14 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
         const teacher = selectedCommittee.members.find(
           (t) => t.teacher && t.teacher.id.toString() === teacherKey.toString()
         );
+        //TODO::
 
         if (teacher && score !== undefined && score !== null) {
+            console.log("student.thesis.id",student.student.thesis.id)
           payload.push({
             student_id: student.student.id,
-            teacher_id: teacher.teacher.id,
+            thesis_id : student.student.thesis.id,
+            committee_member_id: teacher.id,
             component_id: componentId,
             committee_id: selectedCommittee.id,
             score,
@@ -204,10 +168,11 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
         }
       });
     });
-
     try {
       console.log("payload:", payload);
-      await api.post("/committee-scores/bulk", { data: payload });
+
+      await api.post("/committee-scores/batch", payload);
+
       toast.success("Оноо амжилттай хадгалагдлаа");
       setSelectedCommittee(null);
       fetchData();
@@ -219,20 +184,62 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
 
   const getInitialFormValues = (committee) => {
     if (!committee) return {};
-  
+
     const initialValues = {};
-  
+
     committee.students?.forEach((student) => {
       initialValues[student.id] = {};
       (student.scores || []).forEach((grade) => {
         initialValues[student.id][grade.teacher_id] = grade.score;
       });
     });
-  
+
     return initialValues;
   };
-  
+  const isCommitteeReadyToFinalize = (committee) => {
+    const totalMembers = committee.members.length;
+    const totalStudents = committee.students.length;
 
+    // Check if every member has given score to every student
+    return committee.students.every((student) =>
+      committee.members.every((member) =>
+        member.committeeScores?.some(
+          (cs) => cs.student?.id === student.student?.id
+        )
+      )
+    );
+  };
+
+  const handleFinalizeCommittee = async (committee) => {
+    try {
+      const res = await api.post(
+        "/committee-scores/batch-finalize-by-committee",
+        {
+          committee_id: committee.id,
+        }
+      );
+
+        toast.success("Оноо амжилттай илгээгдлээ!");
+        fetchData(); // Refresh after finalize
+   
+    } catch (error) {
+      console.error(error);
+      toast.error("Оноо илгээхэд алдаа гарлаа!");
+    }
+  };
+  const isCommitteeFinalized = (committee) => {
+
+    if (!committee.scores || committee.scores.length === 0) {
+      return false;
+    }
+  
+  
+    return (
+      committee.students.length > 0 &&
+      committee.scores.length === committee.students.length
+    );
+  };
+  
   const renderCommitteeMemberItem = (member) => {
     const firstName = member.teacher?.firstname || "";
     const firstLetter = member.teacher?.lastname || "";
@@ -276,9 +283,7 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
       </Tag>
     ));
   };
-  const getStudentThesis = (studentId) => {
-    return theses.find((thesis) => thesis.student_info.id === studentId);
-  };
+
   const getStudentTableColumns = (graders = []) => {
     const baseColumns = [
       {
@@ -317,8 +322,9 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
         dataIndex: "student",
         key: "supervisor",
         render: (student) => {
-          const thesis = getStudentThesis(student.id);
-          const supervisor = thesis?.supervisor_info;
+          const thesis = student.thesis;
+          console.log(student);
+          const supervisor = thesis?.supervisor;
           return supervisor
             ? `${supervisor.lastname?.charAt(0) || ""}. ${
                 supervisor.firstname || ""
@@ -334,33 +340,23 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
         <div style={{ textAlign: "center" }}>
           <div>{`${grader.teacher?.lastname || ""}`}</div>
           <div>{`${grader.teacher?.firstname || ""}`}</div>
-          {/* <Tag color={roleColorMap[grader.role]} style={{ marginTop: 4 }}>
-            {grader.role === "leader"
-              ? "Удир."
-              : grader.role === "secretary"
-              ? "Нарийн."
-              : "Гишүүн"}
-          </Tag> */}
         </div>
       ),
-      dataIndex: "scores",
       key: `score-${grader.id}`,
-      render: (scores, record) => {
-        const score = (scores || []).find((s) => s.teacher_id === grader.teacher?.id);
+      render: (_, record) => {
+        const studentId = record.student.id;
+
+        const scoreObj = grader.committeeScores?.find(
+          (cs) => cs.student?.id === studentId
+        );
+
+        const score = parseFloat(scoreObj?.score);
+
         return (
           <div style={{ textAlign: "center" }}>
-            {score?.score !== undefined ? (
-              <Tag
-                color={
-                  score.score >= gradingComponent.score * 0.8
-                    ? "green"
-                    : score.score >= gradingComponent.score * 0.5
-                    ? "orange"
-                    : "red"
-                }
-                style={{ fontSize: 14, padding: "4px 8px", minWidth: 40 }}
-              >
-                {score.score}
+            {scoreObj ? (
+              <Tag style={{ fontSize: 14, padding: "4px 8px", minWidth: 40 }}>
+                {score}
               </Tag>
             ) : (
               <Tag color="default" style={{ opacity: 0.6 }}>
@@ -373,43 +369,40 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
       width: 120,
       align: "center",
     }));
-
     const scoreColumns = [
-        {
-            title: "Нийт",
-            key: "totalScore",
-            render: (_, record) => {
-                const scores = record.scores
-                  ?.map((s) => Number(s.score))  // тоо руу хөрвүүлж авна
-                  .filter((s) => !isNaN(s));    // зөвхөн тоонууд
-              
-                const avg = scores.length
-                  ? (scores.reduce((sum, s) => sum + s, 0) / scores.length).toFixed(2)
-                  : "-";
-              
-                return (
-                  <Text strong style={{ fontSize: 14 }}>
-                    {avg}
-                  </Text>
-                );
-              },
-              
-            width: 80,
-            align: "center",
-          },
-          
-    //   {
-    //     title: "Эцсийн дүн",
-    //     dataIndex: "finalScore",
-    //     key: "finalScore",
-    //     render: (score) => (
-    //       <Text strong style={{ fontSize: 14, color: "#1890ff" }}>
-    //         {score !== undefined ? score : "-"}
-    //       </Text>
-    //     ),
-    //     width: 100,
-    //     align: "center",
-    //   },
+      {
+        title: "Нийт",
+        key: "totalScore",
+        render: (_, record) => {
+          const studentId = record.student.id;
+
+          // Collect all scores for this student from all graders
+          const scores = graders
+            .map(
+              (grader) =>
+                grader.committeeScores?.find(
+                  (cs) => cs.student?.id === studentId
+                )?.score
+            )
+            .filter((s) => s !== undefined && !isNaN(parseFloat(s)))
+            .map((s) => parseFloat(s));
+
+          const avg =
+            scores.length > 0
+              ? (scores.reduce((sum, s) => sum + s, 0) / scores.length).toFixed(
+                  2
+                )
+              : "-";
+
+          return (
+            <Text strong style={{ fontSize: 14 }}>
+              {avg}
+            </Text>
+          );
+        },
+        width: 80,
+        align: "center",
+      },
     ];
 
     return [...baseColumns, ...teacherScoreColumns, ...scoreColumns];
@@ -460,16 +453,8 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
         </Col>
       </Row>
       {loading ? (
-  <Spin tip="Ачааллаж байна..." />
-) : committees.length === 0 ? (
-  <Alert
-    message="Мэдээлэл байхгүй"
-    description="Одоогоор бүртгэлтэй комисс байхгүй байна."
-    type="info"
-    showIcon
-  />
-) : (
-    (committees.length === 0 ? (
+        <Spin tip="Ачааллаж байна..." />
+      ) : committees.length === 0 ? (
         <Alert
           message="Мэдээлэл байхгүй"
           description="Одоогоор бүртгэлтэй комисс байхгүй байна."
@@ -491,11 +476,21 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
               key={committee.id || index}
               header={
                 <div>
-                  <strong>{committee.name || `Комисс ${index + 1}`}</strong>{" "}
-                  <Tag color="processing" style={{ marginLeft: 8 }}>
-                    {committee.students?.length} оюутан
+                <strong>{committee.name || `Комисс ${index + 1}`}</strong>{" "}
+                <Tag color="processing" style={{ marginLeft: 8 }}>
+                  {committee.students?.length} оюутан
+                </Tag>
+                {isCommitteeFinalized(committee) ? (
+                  <Tag color="green" style={{ marginLeft: 8 }}>
+                    Илгээсэн
                   </Tag>
-                </div>
+                ) : (
+                  <Tag color="red" style={{ marginLeft: 8 }}>
+                    Илгээгээгүй
+                  </Tag>
+                )}
+              </div>
+              
               }
             >
               <Row gutter={[16, 16]}>
@@ -523,6 +518,15 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
                   >
                     Оноо оруулах
                   </Button>
+
+                  <Button
+                    type="primary"
+                    disabled={!isCommitteeReadyToFinalize(committee)}
+                    onClick={() => handleFinalizeCommittee(committee)}
+                  >
+                    Оноог илгээх
+                  </Button>
+
                   <Table
                     dataSource={committee.students || []}
                     columns={getStudentTableColumns(committee.members)}
@@ -536,10 +540,7 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
             </Collapse.Panel>
           ))}
         </Collapse>
-      ))
-)}
-
-      
+      )}
 
       <Modal
         title="Багш, оюутны тоог шалгах"
@@ -602,8 +603,8 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
             >
               <Row gutter={[8, 8]} style={{ marginBottom: 10 }}>
                 {selectedCommittee.members?.map((teacher) => {
-                  const grade = student.scores?.find(
-                    (score) => score.teacher_id === teacher.teacher.id
+                  const grade = teacher.committeeScores?.find(
+                    (cs) => cs.student?.id === student.student?.id
                   );
 
                   return (
@@ -620,7 +621,7 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
                         }`}
                         name={[
                           student.id.toString(),
-                          teacher.teacher.id.toString(),
+                          teacher.teacher?.id?.toString(),
                         ]}
                         initialValue={grade?.score || null}
                       >

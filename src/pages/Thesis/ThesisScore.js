@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Table, Card, Spin, message, Form, InputNumber, Button } from "antd";
+import { Table, Card, Spin, Form, Button,Tag } from "antd";
 import api from "../../context/api_helper";
 // import { useAuth } from "../../context/AuthContext";
-import { UserProvider, useUser } from "../../context/UserContext";
+import { useUser } from "../../context/UserContext";
 
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -13,7 +13,7 @@ import "react-toastify/dist/ReactToastify.css";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
+const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis,gradingSchema }) => {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -27,8 +27,10 @@ const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
   const fetchScores = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/scores/${thesisId}/`);
-      setScores(res.data);
+      const res = await api.get(`/scores/getScoreByThesis/${thesisId}/`);
+
+      console.log(res.data);
+      setScores(res.data.data);
     } catch (err) {
       toast.error("Оноо дуудахад алдаа гарлаа");
     } finally {
@@ -90,48 +92,30 @@ const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
       setSaving(false);
     }
   };
-
   const columns = [
     {
       title: "Үнэлгээний хэсэг",
-      dataIndex: "name",
+      dataIndex: ["component", "name"],
     },
     {
       title: "Нийт боломжит оноо",
-      dataIndex: "score",
+      dataIndex: ["component", "score"],
     },
     {
       title: "Авсан оноо",
       render: (_, record) => {
-        const scoreValue = record.given_score?.average_score;
-
-        return canGiveScore(record) ? (
-          <Form.Item
-            name={`score_${record.id}`}
-            initialValue={scoreValue}
-            rules={[
-              { required: true, message: "Оноо заавал оруулна" },
-              {
-                type: "number",
-                min: 0,
-                max: record.score,
-                message: `0 - ${record.score} хооронд оноо оруулна уу`,
-              },
-            ]}
-          >
-            <InputNumber min={0} max={record.score} />
-          </Form.Item>
-        ) : scoreValue != null ? (
-          scoreValue
+        const scoreValue = parseFloat(record.score);
+        return scoreValue ? (
+          <span style={{ fontWeight: "bold", fontSize: 14 }}>{scoreValue}</span>
         ) : (
           "-"
         );
       },
     },
     {
-      title: "7 хоногийн хугацаа",
+      title: "7 хоногийн хугацаа өдрөөр",
       render: (_, record) => {
-        const week = parseInt(record.scheduled_week);
+        const week = parseInt(record.component?.scheduled_week);
         if (!isNaN(week)) {
           const { start, end } = calScheduleWeek(week);
           return `${start.toISOString().split("T")[0].replace(/-/g, ".")} – ${end
@@ -142,19 +126,41 @@ const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
         return "-";
       },
     },
+    {
+      title: "7 хоног",
+      dataIndex: ["component", "scheduled_week"],
+      render: (week) => {
+        if (!week) return "-";
+        return (
+          <Tag color="blue" style={{ fontSize: "14px", padding: "2px 8px" }}>
+            {week}-р 7 хоног
+          </Tag>
+        );
+      },
+    },
   ];
-
+  
+  const computedData = gradingSchema?.grading_components?.map((component) => {
+    const matchedScore = scores.find((s) => s.component?.id === component.id);
+  
+    return {
+      id: component.id,
+      component: component, // бүх мэдээллийг дамжуулах
+      score: matchedScore?.score ?? null, // оноо байгаа бол оноо, байхгүй бол null
+    };
+  }) || [];
+  
   const editable = scores.some((record) => canGiveScore(record));
 
   return (
     <Card
       title="Үнэлгээ"
       extra={
-        editable && (
-          <Button type="primary" loading={saving} onClick={() => form.submit()}>
+      
+        editable &&  ( <Button type="primary" loading={saving} onClick={() => form.submit()}>
             Хадгалах
-          </Button>
-        )
+          </Button>)
+        
       }
     >
       {loading ? (
@@ -163,7 +169,7 @@ const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
         <Form form={form} onFinish={handleSave}>
           <Table
             columns={columns}
-            dataSource={scores}
+            dataSource={computedData}
             rowKey={(record) => record.id}
             pagination={false}
           />

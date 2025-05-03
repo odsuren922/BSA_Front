@@ -32,6 +32,7 @@ const CommitteePanel = () => {
             `/thesis-cycles/${cycleId}/grading-components/${componentId}/committees`
           ),
         ]);
+        console.log("committeesRes", committeesRes.data.data);
 
         setCommittees(committeesRes.data.data);
       } catch (error) {
@@ -58,7 +59,7 @@ const handleBack = () => {
       </Button>
       {/* <h2>Committee Panel</h2> */}
     
-    <Tabs defaultActiveKey="teachers">
+    <Tabs defaultActiveKey="committee">
     <Tabs.TabPane tab="Комисс" key="committee">
       <Calculator cycleId={cycleId} componentId={componentId}  user={user}/>
       </Tabs.TabPane>

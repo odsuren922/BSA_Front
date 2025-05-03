@@ -27,17 +27,40 @@ function SendTopic() {
     });
   };
 
-  const fetchProgramData = async () => {
-    try {
-      const data = await fetchData("api/department");
-      if (data && data.length > 0) {
-        const departmentPrograms = JSON.parse(data[0].programs || "[]");
+//   const fetchProgramData = async () => {
+//     try {
+//       const data = await fetchData("department");
+//       console.log('data', data)
+//       if (data && data.length > 0) {
+//         const departmentPrograms = JSON.parse(data[0].programs || "[]");
 
+//         const formattedOptions = departmentPrograms.map((program) => ({
+//           value: program.program_id,
+//           label: program.program_name,
+//         }));
+
+//         setOptions(formattedOptions);
+//       }
+//     } catch (error) {
+//       console.error("Error fetching department data:", error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+const fetchProgramData = async () => {
+    try {
+      const data = await fetchData("department");
+      console.log('data', data);
+      
+      if (data && data.length > 0) {
+        const departmentPrograms = data[0].programs; // ← ЗӨВ!
+        
         const formattedOptions = departmentPrograms.map((program) => ({
           value: program.program_id,
           label: program.program_name,
         }));
-
+  
         setOptions(formattedOptions);
       }
     } catch (error) {
@@ -46,11 +69,12 @@ function SendTopic() {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     const fetchProposalData = async () => {
       try {
-        const data = await fetchData("api/proposalform");
+        const data = await fetchData("proposalform");
+        console.log("form", data)
         if (data && data[0]) {
           setFormId(data[0].id);
           setFormData(data[0].fields);

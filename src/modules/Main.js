@@ -41,7 +41,8 @@ import SupervisorGradingPage from "../pages/Admin/Grading/SupervisorsScore";
 import CommitteePanel from "../pages/Admin/CommitteePanel";
 import CommitteeScheduler from "../pages/Admin/CommiteeManagment/Scheduler";
 import Calendar from "../pages/Admin/NotUseful/Calendar";
-
+import ThesisDeadlinePage from "../pages/Admin/ThesisCycleManagement/ThesisDeadline";
+import ThesisCycleManagement from "../pages/Admin/ThesisCycleManagement/ThesisCycleManagement";
 function Main({ setUser, logoutFunction }) {
   const { user } = useUser();
   const [menuCollapsed, setMenuCollapsed] = useState(false);
@@ -64,20 +65,17 @@ function Main({ setUser, logoutFunction }) {
         if (user?.gid) {
           const roleName = mapGidToRole(user.gid);
           setUserRole(roleName);
-
-          // Update user with role information
-          //TODO:: NEED DEP_ID WHEN LOG IN 
           setUser((prev) => ({
             ...prev,
             role: roleName,
-            dep_id:1,
-            id:1,
+            dep_id: 1,
+            id: 1,
           }));
 
           setRoleLoading(false);
           return;
         }
-        console.log("user", user)
+        console.log("user", user);
 
         // If no role in user object, fetch from API
         const roleData = await fetchUserRole();
@@ -124,7 +122,6 @@ function Main({ setUser, logoutFunction }) {
       }
     };
 
-
     detectUserRole();
   }, [user, setUser]);
 
@@ -156,6 +153,7 @@ function Main({ setUser, logoutFunction }) {
               element={<SupervisorGradingPage />}
             />
             <Route path="/committees" element={<CommitteePanel />} />
+            <Route path="/thesis-deadlines" element={<ThesisDeadlinePage />} />
           </>
         );
       case "supervisor":
@@ -243,7 +241,7 @@ function Main({ setUser, logoutFunction }) {
 
   return (
     <div className="app-layout">
-            <ToastContainer />
+      <ToastContainer />
       <CustomNavBar
         user={user}
         setUser={setUser}
