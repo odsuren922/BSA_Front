@@ -48,7 +48,7 @@ const OAuthCallback = () => {
         setTimeout(() => navigate('/'), 1000);
       } catch (error) {
         console.error('Error in OAuth callback:', error);
-        setError(`Баталгаажуулалтын алдаа: ${error.message}`);
+        // setError(`Баталгаажуулалтын алдаа: ${error.message}`);
         setStatus('Баталгаажуулалт амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
         setTimeout(() => navigate('/login'), 3000);
       }

@@ -1,6 +1,4 @@
-// src/oauth.js
-
-import api from './api/axios'; // Fix the import path
+import api from '../api/axios';
 
 /**
  * Redirect user to the OAuth login page
@@ -159,12 +157,6 @@ export const logout = async () => {
 };
 
 /**
- * Log out the user (alias for logout function)
- * @returns {Promise<boolean>} success status
- */
-export const logoutOAuth = logout;
-
-/**
  * Check if token is expired or about to expire
  * @returns {boolean} - Whether token needs refresh
  */
@@ -183,38 +175,6 @@ export const isTokenExpired = () => {
   return currentTime >= (expirationTime - 5 * 60 * 1000);
 };
 
-/**
- * Check the OAuth status on app initialization
- * @returns {Promise<boolean>} true if user is authenticated
- */
-export const checkOAuthStatus = async () => {
-  try {
-    const token = localStorage.getItem('oauth_token');
-    if (!token) {
-      return false;
-    }
-
-    // Check if token is expired
-    if (isTokenExpired()) {
-      try {
-        // Try to refresh the token
-        await refreshAccessToken();
-      } catch (error) {
-        // If refresh fails, user needs to log in again
-        return false;
-      }
-    }
-
-    // Try to fetch user data to verify token is valid
-    const userData = await fetchUserData();
-    return !!userData;
-  } catch (error) {
-    console.error('Error checking OAuth status:', error);
-    return false;
-  }
-};
-
-// Export all functions as named exports
 export default {
   redirectToOAuthLogin,
   exchangeCodeForToken,
@@ -222,7 +182,5 @@ export default {
   fetchUserRole,
   refreshAccessToken,
   logout,
-  isTokenExpired,
-  checkOAuthStatus,
-  logoutOAuth
+  isTokenExpired
 };

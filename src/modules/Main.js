@@ -17,7 +17,6 @@ import ProposeTopic from "./teacher/ProposeTopic";
 import TopicList from "./teacher/TopicList";
 import SideBar from "../components/navbar/SideBar";
 import CustomNavBar from "../components/navbar/CustomNavBar";
-import NotificationDashboard from "./department/notifications/NotificationDashboard";
 
 function Main({ setUser, logoutFunction }) {
   const { user } = useUser();
@@ -107,7 +106,6 @@ function Main({ setUser, logoutFunction }) {
             <Route index element={<Navigate to="/studentlist" replace />} />
             <Route path="/studentlist" element={<StudentList />} />
             <Route path="/deformset" element={<DeFormSet />} />
-            <Route path="/notifications" element={<NotificationDashboard />} />
           </>
         );
       case "supervisor":
