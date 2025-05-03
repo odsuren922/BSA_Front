@@ -1,228 +1,186 @@
-// src/oauth.js
+import axios from 'axios';
 
-import api from './api/axios'; // Fix the import path
+// Backend API URLs
+const API_URL = 'http://127.0.0.1:8000';
+const OAUTH_REDIRECT_URL = `${API_URL}/oauth/redirect`;
+const OAUTH_TOKEN_URL = `${API_URL}/api/oauth/token`;
+const OAUTH_REFRESH_URL = `${API_URL}/api/oauth/refresh-token`;
+const USER_DATA_URL = `${API_URL}/api/user`;
 
 /**
- * Redirect user to the OAuth login page
+ * Redirect the user to OAuth login page
  */
 export const redirectToOAuthLogin = () => {
-  const redirectUri = encodeURIComponent(`${window.location.origin}/auth`);
-  const state = generateRandomState();
-  
-  // Store state in localStorage to validate on return
-  localStorage.setItem('oauth_state', state);
-  
-  // Build OAuth URL
-  const authUrl = `https://auth.num.edu.mn/oauth2/oauth/authorize?client_id=${process.env.REACT_APP_OAUTH_CLIENT_ID}&response_type=code&redirect_uri=${redirectUri}&state=${state}`;
-  
-  // Redirect to OAuth provider
-  window.location.href = authUrl;
-};
-
-/**
- * Generate a random state for CSRF protection
- */
-const generateRandomState = () => {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
+  // Redirect user to backend's OAuth redirect endpoint
+  window.location.href = OAUTH_REDIRECT_URL;
 };
 
 /**
  * Exchange authorization code for tokens
- * @param {string} code - The authorization code
- * @param {string} state - The state parameter for validation
- * @returns {Promise<Object>} - Token data
+ * @param {string} code - The authorization code received from OAuth provider
+ * @param {string} state - The state parameter for CSRF protection
+ * @returns {Promise<Object>} - Token response
  */
 export const exchangeCodeForToken = async (code, state) => {
-  // Verify state matches what we stored
-  const storedState = localStorage.getItem('oauth_state');
-  
-  if (!storedState || storedState !== state) {
-    throw new Error('Invalid state parameter');
-  }
-  
-  // Clear stored state
-  localStorage.removeItem('oauth_state');
-  
   try {
-    // Exchange code for token
-    const response = await api.post('/api/oauth/token', {
-      code,
-      redirect_uri: `${window.location.origin}/auth`
-    });
+    const response = await axios.post(OAUTH_TOKEN_URL, { code, state });
     
-    if (!response.data || !response.data.access_token) {
-      throw new Error('Invalid response from server');
+    if (response.data && response.data.access_token) {
+      // Store tokens in localStorage
+      localStorage.setItem('oauth_token', response.data.access_token);
+      
+      if (response.data.refresh_token) {
+        localStorage.setItem('refresh_token', response.data.refresh_token);
+      }
+      
+      localStorage.setItem('expires_in', response.data.expires_in.toString());
+      localStorage.setItem('token_time', response.data.token_time.toString());
+      
+      return response.data;
     }
     
-    // Store tokens and user data
-    localStorage.setItem('oauth_token', response.data.access_token);
-    
-    if (response.data.refresh_token) {
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-    }
-    
-    localStorage.setItem('expires_in', response.data.expires_in?.toString() || '3600');
-    localStorage.setItem('token_time', response.data.token_time?.toString() || Date.now().toString());
-    
-    return response.data;
+    throw new Error('Invalid token response');
   } catch (error) {
-    console.error('Error exchanging code for token:', error);
+    console.error('Failed to exchange code for token:', error);
     throw error;
   }
 };
 
 /**
- * Fetch user data using the current token
+ * Fetch user data with the current access token
  * @returns {Promise<Object>} - User data
  */
 export const fetchUserData = async () => {
   try {
-    const response = await api.get('/api/user');
+    const token = localStorage.getItem('oauth_token');
+    
+    if (!token) {
+      throw new Error('No access token available');
+    }
+    
+    const response = await axios.get(USER_DATA_URL, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
     return response.data;
   } catch (error) {
-    console.error('Error fetching user data:', error);
+    console.error('Failed to fetch user data:', error);
     throw error;
   }
 };
 
 /**
- * Get the user's role information
- * @returns {Promise<Object>} - Role information
- */
-export const fetchUserRole = async () => {
-  try {
-    const response = await api.get('/api/user/role');
-    return response.data?.data || {};
-  } catch (error) {
-    console.error('Error fetching user role:', error);
-    throw error;
-  }
-};
-
-/**
- * Refresh the access token using refresh token
- * @returns {Promise<Object>} - New token data
+ * Refresh the access token
+ * @returns {Promise<boolean>} - Success state
  */
 export const refreshAccessToken = async () => {
-  const refreshToken = localStorage.getItem('refresh_token');
-  
-  if (!refreshToken) {
-    throw new Error('No refresh token available');
-  }
-  
   try {
-    const response = await api.post('/api/oauth/refresh-token', {
+    const refreshToken = localStorage.getItem('refresh_token');
+    
+    if (!refreshToken) {
+      return false;
+    }
+    
+    const response = await axios.post(OAUTH_REFRESH_URL, {
       refresh_token: refreshToken
     });
     
-    if (!response.data || !response.data.access_token) {
-      throw new Error('Invalid response from token refresh');
+    if (response.data && response.data.access_token) {
+      // Update tokens in localStorage
+      localStorage.setItem('oauth_token', response.data.access_token);
+      
+      if (response.data.refresh_token) {
+        localStorage.setItem('refresh_token', response.data.refresh_token);
+      }
+      
+      localStorage.setItem('expires_in', response.data.expires_in.toString());
+      localStorage.setItem('token_time', response.data.token_time.toString());
+      
+      return true;
     }
     
-    // Update stored tokens
-    localStorage.setItem('oauth_token', response.data.access_token);
-    
-    if (response.data.refresh_token) {
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-    }
-    
-    localStorage.setItem('expires_in', response.data.expires_in?.toString() || '3600');
-    localStorage.setItem('token_time', response.data.token_time?.toString() || Date.now().toString());
-    
-    return response.data;
+    return false;
   } catch (error) {
-    console.error('Error refreshing token:', error);
-    throw error;
-  }
-};
-
-/**
- * Logout the user
- * @returns {Promise<boolean>} - Success status
- */
-export const logout = async () => {
-  try {
-    // Clear all auth-related storage
-    localStorage.removeItem('oauth_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('expires_in');
-    localStorage.removeItem('token_time');
-    
-    // Redirect to login
-    window.location.href = '/login';
-    return true;
-  } catch (error) {
-    console.error('Error during logout:', error);
+    console.error('Failed to refresh token:', error);
     return false;
   }
 };
 
 /**
- * Log out the user (alias for logout function)
- * @returns {Promise<boolean>} success status
- */
-export const logoutOAuth = logout;
-
-/**
- * Check if token is expired or about to expire
- * @returns {boolean} - Whether token needs refresh
+ * Check if the current token is expired
+ * @returns {boolean} - Is token expired
  */
 export const isTokenExpired = () => {
-  const tokenTime = localStorage.getItem('token_time');
-  const expiresIn = localStorage.getItem('expires_in');
+  const tokenTime = parseInt(localStorage.getItem('token_time') || '0', 10);
+  const expiresIn = parseInt(localStorage.getItem('expires_in') || '3600', 10);
+  const currentTime = Math.floor(Date.now() / 1000);
   
-  if (!tokenTime || !expiresIn) {
-    return true;
-  }
-  
-  const expirationTime = parseInt(tokenTime, 10) + parseInt(expiresIn, 10) * 1000;
-  const currentTime = Date.now();
-  
-  // Consider token expired if it's within 5 minutes of expiration
-  return currentTime >= (expirationTime - 5 * 60 * 1000);
+  // Token is expired if the current time is past the expiration time
+  return currentTime >= (tokenTime + expiresIn);
 };
 
 /**
- * Check the OAuth status on app initialization
- * @returns {Promise<boolean>} true if user is authenticated
+ * Check if token is about to expire (within 5 minutes)
+ * @returns {boolean} - Is token about to expire
+ */
+export const isTokenExpiring = () => {
+  const tokenTime = parseInt(localStorage.getItem('token_time') || '0', 10);
+  const expiresIn = parseInt(localStorage.getItem('expires_in') || '3600', 10);
+  const currentTime = Math.floor(Date.now() / 1000);
+  
+  // Token is expiring if less than 5 minutes remain
+  return (tokenTime + expiresIn - currentTime) < 300;
+};
+
+/**
+ * Check current OAuth status and refresh token if needed
+ * @returns {Promise<Object|null>} - User data or null if not authenticated
  */
 export const checkOAuthStatus = async () => {
   try {
+    // Check if we have a token
     const token = localStorage.getItem('oauth_token');
+    
     if (!token) {
-      return false;
+      return null;
     }
-
-    // Check if token is expired
+    
+    // If token is expired, try to refresh it
     if (isTokenExpired()) {
-      try {
-        // Try to refresh the token
-        await refreshAccessToken();
-      } catch (error) {
-        // If refresh fails, user needs to log in again
-        return false;
+      const refreshSuccess = await refreshAccessToken();
+      
+      if (!refreshSuccess) {
+        // Clear invalid tokens
+        localStorage.removeItem('oauth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('expires_in');
+        localStorage.removeItem('token_time');
+        return null;
       }
     }
-
-    // Try to fetch user data to verify token is valid
-    const userData = await fetchUserData();
-    return !!userData;
+    // If token is about to expire, refresh in background
+    else if (isTokenExpiring()) {
+      refreshAccessToken().catch(console.error);
+    }
+    
+    // Fetch and return user data
+    return await fetchUserData();
   } catch (error) {
-    console.error('Error checking OAuth status:', error);
-    return false;
+    console.error('OAuth status check failed:', error);
+    return null;
   }
 };
 
-// Export all functions as named exports
-export default {
-  redirectToOAuthLogin,
-  exchangeCodeForToken,
-  fetchUserData,
-  fetchUserRole,
-  refreshAccessToken,
-  logout,
-  isTokenExpired,
-  checkOAuthStatus,
-  logoutOAuth
+/**
+ * Logout - Clear tokens and return success
+ * @returns {Promise<boolean>} - Success state
+ */
+export const logoutOAuth = async () => {
+  localStorage.removeItem('oauth_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('expires_in');
+  localStorage.removeItem('token_time');
+  return true;
 };

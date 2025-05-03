@@ -46,16 +46,20 @@ function SendPropTopic() {
           const targetUser = fieldObject.targetUser;
           return targetUser === "All" || targetUser === "Student";
         })
-        .forEach((fieldObject) => {
-          const firstKey = Object.keys(fieldObject)[0];
-          const field2 = Object.values(fieldObject)[0];
+        .forEach((fieldObject, index) => {
+          const displayField = Object.entries(fieldObject).find(
+            ([key]) => key !== "targetUser"
+          );
+          const fieldKey = displayField?.[0] || `field_${index}`;
+          const fieldLabel = displayField?.[1] || "";
+
           const targetUser = fieldObject.targetUser;
 
-          if (values[firstKey]) {
+          if (values[fieldKey]) {
             transformedData.push({
-              field: firstKey,
-              field2,
-              value: values[firstKey],
+              field: fieldKey,
+              field2: fieldLabel,
+              value: values[fieldKey],
               targetUser,
             });
           }
@@ -72,7 +76,6 @@ function SendPropTopic() {
     try {
       const values = form.getFieldsValue();
       const draftData = transformToDraftFormat(values);
-      console.log("Draft Data to be Sent:", draftData);
       await postData("topic/storestudent", {
         form_id: formId,
         status: "draft",
@@ -80,7 +83,7 @@ function SendPropTopic() {
       });
       openNotification(
         "success",
-        "Draft Saved",
+        "Ноорог хадгалагдлаа",
         "Ноорогт амжилттай хадгаллаа."
       );
       form.resetFields();
@@ -88,8 +91,8 @@ function SendPropTopic() {
       console.error("Error saving draft:", error);
       openNotification(
         "error",
-        "Save Failed",
-        "Ноорог хадгалах явцад алдаа гарлаа."
+        "Хадгалах амжилтгүй",
+        "Ноорог хадгалахад алдаа гарлаа."
       );
     }
   };
@@ -97,7 +100,6 @@ function SendPropTopic() {
   const onFinish = async (values) => {
     try {
       const submitData = transformToDraftFormat(values);
-      console.log("Submitted Data to be Sent:", submitData);
       await postData("topic/storestudent", {
         form_id: formId,
         status: "submitted",
@@ -105,16 +107,16 @@ function SendPropTopic() {
       });
       openNotification(
         "success",
-        "Submission Successful",
-        "Амжилттай сэдэв дэвшүүллээ."
+        "Илгээх амжилттай",
+        "Сэдэв амжилттай илгээгдлээ."
       );
       form.resetFields();
     } catch (error) {
       console.error("Error submitting form:", error);
       openNotification(
         "error",
-        "Submission Failed",
-        "Сэдэв дэвшүүлэх явцад алдаа гарлаа."
+        "Илгээх амжилтгүй",
+        "Сэдэв илгээхэд алдаа гарлаа."
       );
     }
   };
@@ -137,51 +139,57 @@ function SendPropTopic() {
               <Button onClick={saveToDraft}>Ноорогт хадгалах</Button>
             </Col>
             <Col>
-              <Button
-                type="primary"
-                htmlType="submit"
-                styles={{ defaultHoverBg: "palegreen" }}
-              >
+              <Button type="primary" htmlType="submit">
                 Илгээх
               </Button>
             </Col>
           </Row>
 
           <Row gutter={[24, 24]} style={{ marginTop: "16px" }}>
+            {/* Тогтмол талбарууд */}
             {defData
               .filter((fieldObject) => {
                 const targetUser = fieldObject.targetUser;
                 return targetUser === "All" || targetUser === "Student";
               })
               .map((fieldObject, index) => {
-                const firstKey = Object.keys(fieldObject)[0];
-                const firstValue = Object.values(fieldObject)[0];
+                const displayField = Object.entries(fieldObject).find(
+                  ([key]) => key !== "targetUser"
+                );
+                const fieldKey = displayField?.[0] || `def_field_${index}`;
+                const fieldLabel = displayField?.[1] || "Талбар";
+
                 return (
-                  <Col xs={24} sm={12} md={8} lg={8} xl={8} key={index}>
+                  <Col xs={24} sm={12} md={8} lg={8} xl={8} key={`def-${index}`}>
                     <Form.Item
-                      label={firstValue}
-                      name={firstKey}
+                      label={fieldLabel}
+                      name={fieldKey}
                       rules={[
                         {
                           required: true,
-                          message: `${firstValue} бөглөнө үү!`,
+                          message: `${fieldLabel} бөглөнө үү!`,
                         },
                       ]}
                     >
-                      <Input placeholder={`${firstValue} бөглөнө үү!`} />
+                      <Input placeholder={`${fieldLabel} бөглөнө үү!`} />
                     </Form.Item>
                   </Col>
                 );
               })}
 
+            {/* Хувийн талбарууд */}
             {formData
               .filter((fieldObject) => {
                 const targetUser = fieldObject.targetUser;
                 return targetUser === "All" || targetUser === "Student";
               })
               .map((fieldObject, index) => {
-                const firstKey = Object.keys(fieldObject)[0];
-                const firstValue = Object.values(fieldObject)[0];
+                const displayField = Object.entries(fieldObject).find(
+                  ([key]) => key !== "targetUser"
+                );
+                const fieldKey = displayField?.[0] || `form_field_${index}`;
+                const fieldLabel = displayField?.[1] || "Талбар";
+
                 return (
                   <Col
                     xs={24}
@@ -191,8 +199,8 @@ function SendPropTopic() {
                     xl={8}
                     key={`form-${index}`}
                   >
-                    <Form.Item label={firstValue} name={firstKey}>
-                      <TextArea placeholder={`${firstValue} бөглөнө үү!`} />
+                    <Form.Item label={fieldLabel} name={fieldKey}>
+                      <TextArea placeholder={`${fieldLabel} бөглөнө үү!`} />
                     </Form.Item>
                   </Col>
                 );

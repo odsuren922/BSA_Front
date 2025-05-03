@@ -10,8 +10,17 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
   const renderFields = () => {
     if (!data?.fields) return null;
 
-    const fieldsArray = JSON.parse(data.fields);
+    let fieldsArray = [];
 
+    try {
+      const firstParse = JSON.parse(data.fields);
+      fieldsArray = JSON.parse(firstParse); // stringified JSON array
+    } catch (error) {
+      console.error("❗ Failed to parse fields in ApproveDetail:", error);
+      return <p>Мэдээллийг уншиж чадсангүй.</p>;
+    }
+
+    // 3 баганатай харуулахын тулд мөрөөр нь хуваах
     const rows = [];
     for (let i = 0; i < fieldsArray.length; i += 3) {
       rows.push(fieldsArray.slice(i, i + 3));
@@ -57,25 +66,19 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
       if (onActionComplete) onActionComplete();
       onClose();
     } catch (error) {
-      console.error(`Error handling topic:`, error);
+      console.error("❌ Error handling topic confirm:", error);
       message.error("Алдаа гарлаа!");
     }
   };
 
-  const renderFooter = () => {
-    return [
-      <Button key="cancel" onClick={onClose}>
-        Болих
-      </Button>,
-      <Button
-        key="confirm"
-        type="primary"
-        onClick={() => handleAction("submitted")}
-      >
-        Зөвшөөрөх
-      </Button>,
-    ];
-  };
+  const renderFooter = () => [
+    <Button key="cancel" onClick={onClose}>
+      Болих
+    </Button>,
+    <Button key="confirm" type="primary" onClick={() => handleAction("submitted")}>
+      Зөвшөөрөх
+    </Button>,
+  ];
 
   return (
     <Modal

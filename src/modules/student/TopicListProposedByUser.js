@@ -88,6 +88,7 @@ const TopicListProposedByUser = () => {
   return (
     <div className="p-4">
       <Spin spinning={loading}>
+
         <CustomTable
           bordered
           columns={columns}
