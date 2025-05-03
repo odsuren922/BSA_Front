@@ -1,70 +1,109 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./auth/Login";
 import Main from "./modules/Main";
 import OAuthCallback from "./auth/OAuthCallback";
 import { checkOAuthStatus, logoutOAuth } from "./oauth";
 import { UserProvider, useUser } from "./context/UserContext";
-import { fetchUserRole, mapGidToRole } from "./services/RoleService";
-import { ToastContainer } from "react-toastify";
+import { notification } from "antd";
 import "react-toastify/dist/ReactToastify.css";
+
+// Session check interval (5 minutes)
+const SESSION_CHECK_INTERVAL = 5 * 60 * 1000;
 
 function AppContent() {
   const { user, setUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      try {
-        // 1. OAuth-р нэвтэрсэн хэрэглэгчийн мэдээллийг авна
-        const userData = await checkOAuthStatus();
+  // Function to handle authentication check
+  const checkAuth = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Check if user is authenticated via OAuth
+      const userData = await checkOAuthStatus();
 
-        if (userData) {
-          // 2. Тухайн хэрэглэгчийн role (gid) авах
-          const roleRes = await fetchUserRole(); // { gid: "5" }
-          const role = mapGidToRole(roleRes.gid); // "supervisor", "student", ...
-
-          // 3. Context-д хадгалах (email, name, role)
-          setUser({
-            ...userData,
-            role: role,
-          });
-
-        //  console.log("User authenticated:", userData);
-          setUser(userData);
-          console.log("User authenticated:", userData);
-          setAuthError(null);
-        } else {
-          console.log("No authenticated user found");
-          setUser(null);
-        }
-
-      } catch (error) {
-        console.error("Authentication check failed:", error);
-        setAuthError(error.message);
+      if (userData) {
+        // Set user data in context
+        setUser(userData);
+        setAuthError(null);
+      } else {
+        console.log("No authenticated user found");
         setUser(null);
-      } finally {
-        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Authentication check failed:", error);
+      setAuthError(error.message);
+      setUser(null);
+      
+      // Show error notification
+      notification.error({
+        message: "Нэвтрэлт алдаатай",
+        description: "Таны нэвтрэлт алдаатай байна. Дахин нэвтэрнэ үү.",
+        duration: 5
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [setUser]);
+
+  // Function to handle logout
+  const handleLogout = useCallback(async () => {
+    try {
+      await logoutOAuth();
+      setUser(null);
+      
+      // Show success notification
+      notification.success({
+        message: "Амжилттай гарлаа",
+        description: "Та системээс амжилттай гарлаа.",
+        duration: 3
+      });
+      
+      // Redirect to login page
+      window.location.href = "/login?success=logged_out";
+    } catch (error) {
+      console.error("Logout failed:", error);
+      
+      // Still clear the user state even if API fails
+      setUser(null);
+    }
+  }, [setUser]);
+
+  // Initial authentication check
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Periodic authentication check
+  useEffect(() => {
+    // Set up interval for periodic checks
+    const authCheckInterval = setInterval(checkAuth, SESSION_CHECK_INTERVAL);
+    
+    // Event listener for storage changes (for multi-tab support)
+    const handleStorageChange = (e) => {
+      if (e.key === 'oauth_token' && !e.newValue) {
+        // Token was removed in another tab
+        setUser(null);
       }
     };
-
-    checkAuth();
-
-    const authCheckInterval = setInterval(checkAuth, 10 * 60 * 1000);
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Clean up interval and event listener
     return () => {
       clearInterval(authCheckInterval);
+      window.removeEventListener('storage', handleStorageChange);
     };
-  }, [setUser]);
-  
+  }, [checkAuth]);
 
+  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500 mx-auto mb-4"></div>
-          <p className="text-2xl font-semibold">Loading...</p>
+          <p className="text-2xl font-semibold">Уншиж байна...</p>
         </div>
       </div>
     );
@@ -88,7 +127,7 @@ function AppContent() {
         {/* Protected routes */}
         <Route path="/*" element={
           user ? (
-            <Main setUser={setUser} logoutFunction={logoutOAuth} />
+            <Main user={user} setUser={setUser} logoutFunction={handleLogout} />
           ) : (
             <Navigate to={`/login${authError ? `?error=${encodeURIComponent(authError)}` : ''}`} replace />
           )

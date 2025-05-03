@@ -1,7 +1,6 @@
-// src/auth/OAuthCallback.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { exchangeCodeForToken, fetchUserData } from '../oauth';
+import axios from 'axios';
 import { useUser } from '../context/UserContext';
 
 const OAuthCallback = () => {
@@ -10,9 +9,14 @@ const OAuthCallback = () => {
   const { setUser } = useUser();
   const [status, setStatus] = useState('Processing authentication...');
   const [error, setError] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const processCallback = async () => {
+      // Prevent double processing
+      if (isProcessing) return;
+      setIsProcessing(true);
+      
       try {
         // Get the authorization code and state from URL
         const params = new URLSearchParams(location.search);
@@ -28,34 +32,82 @@ const OAuthCallback = () => {
           return;
         }
         
-        // Exchange authorization code for tokens
+        // Exchange authorization code for tokens DIRECTLY with backend
         setStatus('Токеноор код солилцож байна...');
-        const tokenData = await exchangeCodeForToken(code, state);
+        
+        // First get CSRF cookie if needed
+        await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', { withCredentials: true });
+        
+        // Make a single token exchange request
+        const response = await axios.post('http://127.0.0.1:8000/oauth/exchange-token', {
+          code,
+          state,
+          redirect_uri: window.location.origin + '/auth'
+        }, {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        
+        const tokenData = response.data;
         
         if (!tokenData || !tokenData.access_token) {
           throw new Error('Failed to obtain access token');
         }
         
-        // Fetch user data with the new token
-        setStatus('Хэрэглэгчийн мэдээллийг татаж байна...');
-        const userData = await fetchUserData();
+        // Store tokens in localStorage
+        localStorage.setItem('oauth_token', tokenData.access_token);
         
-        // Update global user state
-        setUser(userData);
+        if (tokenData.refresh_token) {
+          localStorage.setItem('refresh_token', tokenData.refresh_token);
+        }
         
-        // Success, redirect to home
-        setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
-        setTimeout(() => navigate('/'), 1000);
+        localStorage.setItem('expires_in', tokenData.expires_in.toString());
+        localStorage.setItem('token_time', tokenData.token_time.toString());
+        
+        // Store user data directly from response
+        if (tokenData.user) {
+          setUser(tokenData.user);
+          
+          // Success, redirect to home
+          setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
+          setTimeout(() => navigate('/'), 1000);
+        } else {
+          // If no user data in response, try to fetch it
+          setStatus('Хэрэглэгчийн мэдээллийг татаж байна...');
+          
+          // Wait a moment to ensure token is properly stored
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const userResponse = await axios.get('http://127.0.0.1:8000/api/user', {
+            headers: {
+              'Authorization': `Bearer ${tokenData.access_token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            withCredentials: true
+          });
+          
+          setUser(userResponse.data);
+          
+          // Success, redirect to home
+          setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
+          setTimeout(() => navigate('/'), 1000);
+        }
       } catch (error) {
         console.error('Error in OAuth callback:', error);
-        // setError(`Баталгаажуулалтын алдаа: ${error.message}`);
+        setError(`Баталгаажуулалтын алдаа: ${error.message}`);
         setStatus('Баталгаажуулалт амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
         setTimeout(() => navigate('/login'), 3000);
+      } finally {
+        setIsProcessing(false);
       }
     };
 
     processCallback();
-  }, [navigate, location, setUser]);
+  }, [navigate, location, setUser, isProcessing]);
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
