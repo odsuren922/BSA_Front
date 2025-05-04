@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
+<<<<<<< HEAD
 import { Table, Spin, Button, notification } from "antd";
+=======
+import { Table, Spin, Button } from "antd";
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 import { fetchData } from "../../utils";
 import DraftDetail from "../DraftDetail";
 
@@ -10,6 +14,7 @@ const DraftList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState(null);
 
+<<<<<<< HEAD
   const fetchTopics = async () => {
     try {
       setLoading(true);
@@ -73,6 +78,70 @@ const DraftList = () => {
   };
 
   useEffect(() => {
+=======
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        const rawData = await fetchData("topics/draftteacher");
+        const transformedData = rawData.map((item) => {
+          if (!item.fields) {
+            return { ...item, key: item.id };
+          }
+
+          const fieldsArray = JSON.parse(item.fields);
+          const fieldsObject = fieldsArray.reduce(
+            (acc, field) => ({
+              ...acc,
+              [field.field]: field.value,
+              [`${field.field}_name`]: field.field2,
+            }),
+            {}
+          );
+
+          return { ...item, ...fieldsObject, key: item.id };
+        });
+
+        setDataSource(transformedData);
+
+        const firstRowFields = rawData.find((item) => item.fields);
+        if (firstRowFields) {
+          const dynamicColumns = JSON.parse(firstRowFields.fields)
+            .filter((field) =>
+              ["name_english", "name_mongolian", "description"].includes(
+                field.field
+              )
+            )
+            .map((field) => ({
+              title: field.field2,
+              dataIndex: field.field,
+              key: field.field,
+            }));
+
+          setColumns([
+            ...dynamicColumns,
+            {
+              title: "Үйлдэл",
+              fixed: "right",
+              width: 150,
+              render: (_, record) => (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button type="default" onClick={() => handleDetails(record)}>
+                    Дэлгэрэнгүй
+                  </Button>
+                </div>
+              ),
+            },
+          ]);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching topics:", error);
+        setLoading(false);
+      }
+    };
+
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
     fetchTopics();
   }, []);
 
@@ -91,7 +160,10 @@ const DraftList = () => {
           scroll={{ x: "max-content" }}
         />
       </Spin>
+<<<<<<< HEAD
 
+=======
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
       {isModalOpen && (
         <DraftDetail
           isModalOpen={isModalOpen}

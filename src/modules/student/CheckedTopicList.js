@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
+<<<<<<< HEAD
 import { Spin, Button, notification, Tag } from "antd";
 import CustomTable from "../../components/CustomTable";
 import TopicDetail from "../TopicDetail";
 import { fetchData } from "../../utils";
+=======
+import { Spin, Button, notification } from "antd";
+import { fetchData } from "../../utils";
+import TopicDetail from "../TopicDetail";
+import CustomTable from "../../components/CustomTable";
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 
 const CheckedTopicList = ({ active }) => {
   const [loading, setLoading] = useState(true);
@@ -13,6 +20,7 @@ const CheckedTopicList = ({ active }) => {
 
   const fetchTopics = useCallback(async () => {
     if (!active) return;
+<<<<<<< HEAD
     setLoading(true);
 
     try {
@@ -37,11 +45,29 @@ const CheckedTopicList = ({ active }) => {
           ...fieldsObject,
           key: item.id,
         };
+=======
+
+    setLoading(true);
+    try {
+      const rawData = await fetchData("topics/checkedtopics");
+      const transformedData = rawData.map((item) => {
+        const fieldsArray = JSON.parse(item.fields);
+        const fieldsObject = fieldsArray.reduce(
+          (acc, field) => ({
+            ...acc,
+            [field.field]: field.value,
+            [`${field.field}_name`]: field.field2,
+          }),
+          {}
+        );
+        return { ...item, ...fieldsObject, key: item.id };
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
       });
 
       setDataSource(transformedData);
 
       if (transformedData.length > 0) {
+<<<<<<< HEAD
         const dynamicColumns = [
           {
             title: "Сэдвийн нэр (Монгол)",
@@ -86,14 +112,44 @@ const CheckedTopicList = ({ active }) => {
             ),
           },
         ];
+=======
+        const dynamicColumns = JSON.parse(transformedData[0].fields)
+          .filter((field) =>
+            ["name_english", "name_mongolian", "description"].includes(
+              field.field
+            )
+          )
+          .map((field) => ({
+            title: field.field2,
+            dataIndex: field.field,
+            key: field.field,
+          }));
+
+        dynamicColumns.push({
+          title: "Үйлдэл",
+          key: "actions",
+          fixed: "right",
+          width: 150,
+          render: (_, record) => (
+            <Button type="default" onClick={() => handleDetails(record)}>
+              Дэлгэрэнгүй
+            </Button>
+          ),
+        });
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 
         setColumns(dynamicColumns);
       }
     } catch (error) {
       console.error("Error fetching topics:", error);
       notification.error({
+<<<<<<< HEAD
         message: "Алдаа",
         description: "Сэдвүүдийг татаж чадсангүй. Дахин оролдоно уу.",
+=======
+        message: "Error",
+        description: "Failed to fetch topics. Please try again later.",
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
       });
     } finally {
       setLoading(false);
@@ -114,6 +170,13 @@ const CheckedTopicList = ({ active }) => {
     setIsModalOpen(true);
   };
 
+<<<<<<< HEAD
+=======
+  const closeDetailModal = () => {
+    setIsModalOpen(false);
+  };
+
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
   return (
     <div className="p-4">
       <Spin spinning={loading}>
@@ -130,7 +193,11 @@ const CheckedTopicList = ({ active }) => {
         <TopicDetail
           isModalOpen={isModalOpen}
           data={selectedRowData}
+<<<<<<< HEAD
           onClose={() => setIsModalOpen(false)}
+=======
+          onClose={closeDetailModal}
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
         />
       )}
     </div>

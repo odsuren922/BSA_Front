@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+<<<<<<< HEAD
 import {
   Layout,
   Spin,
@@ -16,6 +17,17 @@ import { registerMongolFont } from "../../fonts/noto-mongolian-fonts";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { Content } from "antd/es/layout/layout"; // эсвэл "antd/lib/layout/layout"
+=======
+import { Layout, Spin, notification, Typography, Tag, Button, Space } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
+import { fetchData } from "../../utils";
+import CustomTable from "../../components/CustomTable";
+import { Content } from "antd/lib/layout/layout";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 
 const { Title } = Typography;
 
@@ -38,11 +50,16 @@ const StudentList = () => {
       ],
       onFilter: (value, record) => record.is_choosed === value,
       render: (is_choosed) => (
+<<<<<<< HEAD
         <Tag color={is_choosed ? "green" : "volcano"}>
+=======
+        <Tag color={is_choosed ? "green" : "yellow"}>
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
           {is_choosed ? "Тийм" : "Үгүй"}
         </Tag>
       ),
     },
+<<<<<<< HEAD
     {
       title: "Сэдвийн нэр",
       dataIndex: "topic_title",
@@ -59,20 +76,36 @@ const StudentList = () => {
     },
     { title: "Цахим хаяг", dataIndex: "mail", key: "mail" },
     { title: "Утас", dataIndex: "phone", key: "phone" },
+=======
+    { title: "Цахим хаяг", dataIndex: "mail", key: "mail" },
+    { title: "Утасны дугаар", dataIndex: "phone", key: "phone" },
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
   ];
 
   const fetchStudents = async () => {
     try {
       const rawData = await fetchData("students/all");
+<<<<<<< HEAD
       if (!rawData.length) throw new Error("No student data found");
       setDataSource(rawData);
+=======
+      if (!rawData.length) throw new Error("No data returned");
+
+      setDataSource(rawData);
+      setLoading(false);
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
     } catch (error) {
       console.error("Error fetching students:", error);
       notification.error({
         message: "Алдаа",
+<<<<<<< HEAD
         description: "Оюутнуудын мэдээлэл татахад алдаа гарлаа.",
       });
     } finally {
+=======
+        description: "Оюутнуудын мэдээллийг татахад алдаа гарлаа.",
+      });
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
       setLoading(false);
     }
   };
@@ -81,6 +114,7 @@ const StudentList = () => {
     fetchStudents();
   }, []);
 
+<<<<<<< HEAD
   const filteredForExport = () =>
     dataSource
       .filter((s) => s.is_choosed)
@@ -140,6 +174,50 @@ const StudentList = () => {
     const csv = XLSX.utils.sheet_to_csv(worksheet);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, "oyutnuud.csv");
+=======
+  // 🎯 Excel экспорт
+  const exportToExcel = () => {
+    const data = dataSource.map((row) => ({
+      "SISI ID": row.sisi_id,
+      "Нэр": row.firstname,
+      "Овог": row.lastname,
+      "Хөтөлбөр": row.program,
+      "Сэдэв сонгосон эсэх": row.is_choosed ? "Тийм" : "Үгүй",
+      "Цахим хаяг": row.mail,
+      "Утасны дугаар": row.phone,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Оюутнууд");
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, "Оюутны жагсаалт.xlsx");
+  };
+
+  // 📄 PDF экспорт
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Оюутны жагсаалт", 14, 15);
+
+    const tableData = dataSource.map((row) => [
+      row.sisi_id,
+      row.firstname,
+      row.lastname,
+      row.program,
+      row.is_choosed ? "Тийм" : "Үгүй",
+      row.mail,
+      row.phone,
+    ]);
+
+    autoTable(doc, {
+      startY: 20,
+      head: [["SISI ID", "Нэр", "Овог", "Хөтөлбөр", "Сэдэв", "Цахим хаяг", "Утас"]],
+      body: tableData,
+    });
+
+    doc.save("Оюутны жагсаалт.pdf");
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
   };
 
   return (
@@ -148,6 +226,7 @@ const StudentList = () => {
         <Title level={3}>Оюутны Жагсаалт</Title>
       </header>
 
+<<<<<<< HEAD
       <Layout style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}>
         <Content style={{ padding: "0 16px" }}>
           <div className="p-4">
@@ -166,6 +245,23 @@ const StudentList = () => {
                 </Button>
                 <Button onClick={handleDownloadCSV}>CSV татах</Button>
               </div>
+=======
+      <Layout
+        style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}
+      >
+        <Content style={{ padding: "0 16px" }}>
+          <div className="p-4">
+            <Spin spinning={loading}>
+              {/* Экспорт товчлуурууд */}
+              <Space style={{ marginBottom: 16 }}>
+                <Button icon={<DownloadOutlined />} onClick={exportToExcel}>
+                  Excel татах
+                </Button>
+                <Button icon={<DownloadOutlined />} onClick={exportToPDF}>
+                  PDF татах
+                </Button>
+              </Space>
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 
               <CustomTable
                 columns={columns}

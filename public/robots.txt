@@ -1,6 +1,10 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # https://www.robotstxt.org/robotstxt.html
 =======
 >>>>>>> 254ea35 (Initial commit)
+=======
+# https://www.robotstxt.org/robotstxt.html
+>>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 User-agent: *
 Disallow:
