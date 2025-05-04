@@ -17,11 +17,11 @@ export const fetchData = async (endpoint, params = {}) => {
                          error.message || 
                          'An unexpected error occurred';
 
-    notification.error({
-      message: "Request Failed",
-      description: errorMessage,
-      duration: 5
-    });
+    // notification.error({
+    //   message: "Request Failed",
+    //   description: errorMessage,
+    //   duration: 5
+    // });
 
     throw error;
   }
@@ -65,11 +65,11 @@ export const postData = async (endpoint, data = {}, method = "post") => {
                          error.message || 
                          'An unexpected error occurred';
 
-    notification.error({
-      message: "Request Failed",
-      description: errorMessage,
-      duration: 5
-    });
+    // notification.error({
+    //   message: "Request Failed",
+    //   description: errorMessage,
+    //   duration: 5
+    // });
 
     throw error;
   }
