@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { useUser } from '../context/UserContext';
+import authService from '../services/authService';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
@@ -23,8 +23,6 @@ const OAuthCallback = () => {
         const code = params.get('code');
         const state = params.get('state');
         
-        console.log('Authorization callback received with code:', code ? 'present' : 'missing');
-        
         if (!code) {
           setError('URL дээр зөвшөөрлийн код олдсонгүй');
           setStatus('Зөвшөөрөл амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
@@ -35,68 +33,21 @@ const OAuthCallback = () => {
         // Exchange authorization code for tokens
         setStatus('Токеноор код солилцож байна...');
         
-        // First get CSRF cookie - critical step
-        await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', { 
-          withCredentials: true 
-        });
+        const tokenData = await authService.exchangeCodeForToken(
+          code, 
+          state, 
+          window.location.origin + '/auth'
+        );
         
-        // Make the token exchange request with proper configuration
-        const response = await axios.post('http://127.0.0.1:8000/api/oauth/exchange-token', {
-          code,
-          state,
-          redirect_uri: window.location.origin + '/auth'
-        }, {
-          withCredentials: true, 
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        });
-        
-        const tokenData = response.data;
-        
-        if (!tokenData || !tokenData.access_token) {
-          throw new Error('Failed to obtain access token');
-        }
-        
-        // Store tokens in localStorage
-        localStorage.setItem('oauth_token', tokenData.access_token);
-        
-        if (tokenData.refresh_token) {
-          localStorage.setItem('refresh_token', tokenData.refresh_token);
-        }
-        
-        localStorage.setItem('expires_in', tokenData.expires_in.toString());
-        localStorage.setItem('token_time', tokenData.token_time.toString());
-        
-        // Store user data directly from response
+        // Success - get user data if not included in token response
         if (tokenData.user) {
           setUser(tokenData.user);
-          
-          // Success, redirect to home
           setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
           setTimeout(() => navigate('/'), 1000);
         } else {
-          // If no user data in response, try to fetch it
           setStatus('Хэрэглэгчийн мэдээллийг татаж байна...');
-          
-          // Wait a moment to ensure token is properly stored
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const userResponse = await axios.get('http://127.0.0.1:8000/api/user', {
-            headers: {
-              'Authorization': `Bearer ${tokenData.access_token}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            withCredentials: true
-          });
-          
-          setUser(userResponse.data);
-          
-          // Success, redirect to home
+          const userData = await authService.getUserData();
+          setUser(userData);
           setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
           setTimeout(() => navigate('/'), 1000);
         }
