@@ -15,15 +15,12 @@ export const SidebarData = {
       icon: <IoIcons.IoIosPaper />,
       cName: "nav-text",
     },
-<<<<<<< HEAD
-=======
     {
       title: "Мэдэгдэл удирдах",
       path: "/notifications",
       icon: <IoIcons.IoIosNotifications />,
       cName: "nav-text",
     },
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
   ],
   supervisor: [
     {
@@ -40,10 +37,6 @@ export const SidebarData = {
     },
   ],
   student: [
-<<<<<<< HEAD
-=======
-
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
     {
       title: "Сэдвийн жагсаалт",
       path: "/topicliststud",
@@ -82,9 +75,5 @@ export const SidebarData = {
       icon: <IoIcons.IoIosPaper />,
       cName: "nav-text",
     },
-<<<<<<< HEAD
-=======
-
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
   ],
 };

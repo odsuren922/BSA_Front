@@ -8,11 +8,6 @@
     "@testing-library/user-event": "^13.5.0",
     "antd": "^5.21.6",
     "axios": "^0.24.0",
-<<<<<<< HEAD
-    "cors": "^2.8.5",
-    "firebase": "^9.23.0",
-    "react": "^18.3.1",
-=======
     "bootstrap": "^5.3.5",
     "cors": "^2.8.5",
     "file-saver": "^2.0.5",
@@ -20,28 +15,23 @@
     "frappe-gantt": "^1.0.3",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
-    "lucide-react": "^0.503.0",
+    "lucide-react": "^0.507.0",
     "moment": "^2.30.1",
-    "pdfmake": "^0.2.18",
+    "pdfmake": "^0.2.19",
     "react": "^18.3.1",
     "react-big-calendar": "^1.18.0",
     "react-bootstrap": "^2.10.9",
     "react-bootstrap-icons": "^1.11.5",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
     "react-dom": "^18.3.1",
     "react-icons": "^5.3.0",
     "react-router-dom": "^6.27.0",
     "react-scripts": "5.0.1",
-<<<<<<< HEAD
-    "web-vitals": "^2.1.4",
-=======
     "react-toastify": "^11.0.5",
     "reactstrap": "^9.2.3",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5",
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
     "yarn": "^1.22.22"
   },
   "scripts": {

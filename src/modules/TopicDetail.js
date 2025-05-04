@@ -98,11 +98,7 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
         await postData("topic-requests", {
           topic_id: data.id,
           // student_id: user.id
-<<<<<<< HEAD
-          student_id: "21B1NUM1961",
-=======
           student_id: "21B1NUM0540",
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
           note: textAreaValue,
           selection_date: new Date()
             .toISOString()
@@ -155,11 +151,7 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
   };
 
   const renderFooter = () => {
-<<<<<<< HEAD
-    if (user?.email === "supervisor@gmail.com") {
-=======
     if (user?.role === "supervisor") {
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
       return [
         <Button key="cancel" onClick={onClose}>
           Болих

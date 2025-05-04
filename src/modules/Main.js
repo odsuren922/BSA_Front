@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useUser } from "../context/UserContext";
-import "./Main.css";
-
-=======
 import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
@@ -12,7 +5,6 @@ import { Spin, notification } from "antd";
 import { fetchUserRole, mapGidToRole } from "../services/RoleService";
 import "./Main.css";
 import { ToastContainer } from "react-toastify";
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 // Import components
 import DeFormSet from "./department/DeFormSet";
 import StudentList from "./department/StudentList";
@@ -26,64 +18,6 @@ import ProposeTopic from "./teacher/ProposeTopic";
 import TopicList from "./teacher/TopicList";
 import SideBar from "../components/navbar/SideBar";
 import CustomNavBar from "../components/navbar/CustomNavBar";
-<<<<<<< HEAD
-
-function Main({ setAuthState }) {
-  const { user } = useUser();
-
-  const roleRoutes = {
-    department: (
-      <>
-        <Route path="/" element={<StudentList />} />
-        <Route path="/studentlist" element={<StudentList />} />
-        <Route path="/deformset" element={<DeFormSet />} />
-      </>
-    ),
-    supervisor: (
-      <>
-        <Route path="/" element={<ProposedTopics />} />
-        <Route path="/proposedtopics" element={<ProposedTopics />} />
-        <Route path="/approvedtopics" element={<ApprovedTopics />} />
-      </>
-    ),
-    student: (
-      <>
-        <Route path="/" element={<TopicListStud />} />
-        <Route path="/topicliststud" element={<TopicListStud />} />
-        <Route path="/proposetopicstud" element={<ProposeTopicStud />} />
-        <Route path="/confirmedtopic" element={<ConfirmedTopicStud />} />
-      </>
-    ),
-    teacher: (
-      <>
-        <Route path="/" element={<TopicList />} />
-        <Route path="/topiclist" element={<TopicList />} />
-        <Route path="/proposetopics" element={<ProposeTopic />} />
-        <Route path="/confirmedtopics" element={<ConfirmedTopics />} />
-      </>
-    ),
-  };
-
-  let userRole = "";
-  if (user?.email?.includes("department")) userRole = "department";
-  else if (user?.email?.includes("supervisor")) userRole = "supervisor";
-  else if (user?.email?.includes("student")) userRole = "student";
-  else if (user?.email?.includes("teacher")) userRole = "teacher";
-
-  const routeItems = roleRoutes[userRole] || null;
-
-  return (
-    <div className="app-layout">
-      <Router>
-        <CustomNavBar user={user} setAuthState={setAuthState} />
-        <div className="content">
-          <SideBar user={user} />
-          <div className="routes-content">
-            <Routes>{routeItems}</Routes>
-          </div>
-        </div>
-      </Router>
-=======
 import NotificationDashboard from "./department/notifications/NotificationDashboard";
 
 // Student Pages
@@ -330,7 +264,6 @@ function Main({ setUser, logoutFunction }) {
           <Routes>{getRoutes()}</Routes>
         </div>
       </div>
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
     </div>
   );
 }

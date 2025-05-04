@@ -1,14 +1,6 @@
 import React from "react";
 import { Layout, Menu, Avatar, Dropdown, Space, Badge } from "antd";
 import { BellOutlined, DownOutlined, MenuOutlined } from "@ant-design/icons";
-<<<<<<< HEAD
-import { signOut } from "firebase/auth";
-import { auth } from "../../firebase";
-
-const { Header } = Layout;
-
-const CustomNavBar = ({ user, setAuthState, setUser, onClick }) => {
-=======
 
 import NotificationBell from "../notifications/NotificationBell";
 
@@ -16,7 +8,6 @@ import NotificationBell from "../notifications/NotificationBell";
 const { Header } = Layout;
 
 const CustomNavBar = ({ user, setUser, logoutFunction, onClick }) => {
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
   const menuItems = [
     { key: "teachers", label: "Багш, ажилтан" },
     { key: "program", label: "Хөтөлбөр" },
@@ -24,20 +15,6 @@ const CustomNavBar = ({ user, setUser, logoutFunction, onClick }) => {
     { key: "schedule", label: "Хичээлийн хуваарь" },
   ];
 
-<<<<<<< HEAD
-  const signOutHandler = () => {
-    if (!auth) {
-      console.error("Auth object is undefined");
-      return;
-    }
-
-    signOut(auth)
-      .then(() => {
-        setUser(null);
-        setAuthState("login");
-      })
-      .catch((err) => console.error("Sign-out error:", err));
-=======
   const signOutHandler = async () => {
     const success = await logoutFunction();
     if (success) {
@@ -45,7 +22,6 @@ const CustomNavBar = ({ user, setUser, logoutFunction, onClick }) => {
     } else {
       console.error("Logout failed");
     }
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
   };
 
   const userMenu = (
@@ -60,11 +36,7 @@ const CustomNavBar = ({ user, setUser, logoutFunction, onClick }) => {
     />
   );
 
-<<<<<<< HEAD
-  const username = user?.email?.split("@")[0] || "Guest";
-=======
   const username = user?.fnamem;
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 
   return (
     <Header
@@ -128,16 +100,9 @@ const CustomNavBar = ({ user, setUser, logoutFunction, onClick }) => {
           ))}
         </div>
 
-<<<<<<< HEAD
-        {/* <Badge offset={[10, 0]}>
-          <BellOutlined style={{ fontSize: "20px", cursor: "pointer" }} />
-        </Badge> */}
-        <div
-=======
 
         {/* <NotificationBell /> -aar tur soliv */}
         {/* <div
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
           style={{
             backgroundColor: "white",
             borderRadius: "50%",
@@ -153,13 +118,9 @@ const CustomNavBar = ({ user, setUser, logoutFunction, onClick }) => {
               style={{ fontSize: "20px", cursor: "pointer", color: "gray" }}
             />
           </Badge>
-<<<<<<< HEAD
-        </div>
-=======
         </div> */}
 
         <NotificationBell />
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
 
         <div
           style={{
@@ -181,8 +142,4 @@ const CustomNavBar = ({ user, setUser, logoutFunction, onClick }) => {
   );
 };
 
-<<<<<<< HEAD
 export default CustomNavBar;
-=======
-export default CustomNavBar;
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
