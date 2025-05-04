@@ -32,22 +32,25 @@ const OAuthCallback = () => {
           return;
         }
         
-        // Exchange authorization code for tokens DIRECTLY with backend
+        // Exchange authorization code for tokens
         setStatus('Токеноор код солилцож байна...');
         
-        // First get CSRF cookie if needed
-        await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', { withCredentials: true });
+        // First get CSRF cookie - critical step
+        await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', { 
+          withCredentials: true 
+        });
         
-        // Make a single token exchange request
-        const response = await axios.post('http://127.0.0.1:8000/oauth/exchange-token', {
+        // Make the token exchange request with proper configuration
+        const response = await axios.post('http://127.0.0.1:8000/api/oauth/exchange-token', {
           code,
           state,
           redirect_uri: window.location.origin + '/auth'
         }, {
-          withCredentials: true,
+          withCredentials: true, 
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
           }
         });
         
@@ -85,7 +88,8 @@ const OAuthCallback = () => {
             headers: {
               'Authorization': `Bearer ${tokenData.access_token}`,
               'Content-Type': 'application/json',
-              'Accept': 'application/json'
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
             },
             withCredentials: true
           });

@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-// Backend API URLs - update these to match your actual setup
+// Backend API URLs
 const API_URL = 'http://127.0.0.1:8000';
 const OAUTH_REDIRECT_URL = `${API_URL}/oauth/redirect`;
-const OAUTH_TOKEN_URL = `${API_URL}/oauth/exchange-token`;
-const OAUTH_REFRESH_URL = `${API_URL}/oauth/refresh-token`;
+const OAUTH_TOKEN_URL = `${API_URL}/api/oauth/exchange-token`;
+const OAUTH_REFRESH_URL = `${API_URL}/api/oauth/refresh-token`;
 const USER_DATA_URL = `${API_URL}/api/user`;
 
 // Configure axios instance with CSRF handling
@@ -13,11 +13,12 @@ const api = axios.create({
   withCredentials: true, // Important for CSRF cookie
   headers: {
     'Accept': 'application/json',
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
   }
 });
 
-// Request interceptor to add token
+// Request interceptor
 api.interceptors.request.use(async (config) => {
   // Add token to Authorization header if available
   const token = localStorage.getItem('oauth_token');
@@ -28,7 +29,12 @@ api.interceptors.request.use(async (config) => {
   // Get CSRF token for non-GET requests
   if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
     try {
-      await axios.get(`${API_URL}/sanctum/csrf-cookie`, { withCredentials: true });
+      await axios.get(`${API_URL}/sanctum/csrf-cookie`, { 
+        withCredentials: true,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
     } catch (error) {
       console.error('Failed to get CSRF token:', error);
     }
@@ -39,7 +45,7 @@ api.interceptors.request.use(async (config) => {
   return Promise.reject(error);
 });
 
-// Response interceptor to handle token refresh
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -55,24 +61,22 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
-        console.log('Attempting to refresh token...');
         const refreshToken = localStorage.getItem('refresh_token');
         
         // Use direct axios instead of api instance to avoid potential circular dependencies
-        const response = await axios.post(`${API_URL}/oauth/refresh-token`, 
+        const response = await axios.post(`${API_URL}/api/oauth/refresh-token`, 
           { refresh_token: refreshToken },
           { 
             headers: { 
               'Content-Type': 'application/json',
-              'Accept': 'application/json'
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
             },
             withCredentials: true 
           }
         );
         
         if (response.data?.access_token) {
-          console.log('Token refreshed successfully');
-          
           // Update stored tokens
           localStorage.setItem('oauth_token', response.data.access_token);
           
@@ -133,7 +137,8 @@ export const fetchUserData = async () => {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
       },
       withCredentials: true
     });
@@ -163,7 +168,8 @@ export const refreshAccessToken = async () => {
       { 
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
         },
         withCredentials: true 
       }
@@ -271,7 +277,8 @@ export const logoutOAuth = async () => {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('oauth_token')}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
       },
       withCredentials: true
     });

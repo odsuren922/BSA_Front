@@ -1,18 +1,25 @@
 import axios from 'axios';
 
+const API_URL = 'http://127.0.0.1:8000';
+
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000',
+  baseURL: API_URL,
   headers: {
     'Accept': 'application/json',
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest' // Required for Sanctum
   },
-  withCredentials: true // 🔥 CSRF cookie дамжуулахад шаардлагатай
+  withCredentials: true // Required for Sanctum cookies
 });
 
-// ✅ Зөв: CSRF cookie-г өөрийн api instance-р дамжуулан авна
-const getCSRFToken = async () => {
+const getCsrfToken = async () => {
   try {
-    await api.get('/sanctum/csrf-cookie'); // baseURL + withCredentials ашиглана
+    await axios.get(`${API_URL}/sanctum/csrf-cookie`, { 
+      withCredentials: true,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
     return true;
   } catch (error) {
     console.error('Error getting CSRF token:', error);
@@ -20,16 +27,22 @@ const getCSRFToken = async () => {
   }
 };
 
-// 🔐 Request interceptor
+// Request Interceptor - With improved CSRF handling
 api.interceptors.request.use(
   async config => {
+    // Add authorization token if available
     const token = localStorage.getItem('oauth_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-
+   
+    // Get CSRF token for state-changing methods
     if (['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
-      await getCSRFToken();
+      try {
+        await axios.get(`${API_URL}/sanctum/csrf-cookie`, { withCredentials: true });
+      } catch (err) {
+        console.error('Failed to fetch CSRF cookie:', err);
+      }
     }
 
     return config;
@@ -40,7 +53,7 @@ api.interceptors.request.use(
   }
 );
 
-// 🔄 Token refresh + response interceptor
+// Response Interceptor - With improved token refresh
 api.interceptors.response.use(
   response => response,
   async error => {
@@ -57,10 +70,15 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) throw new Error('No refresh token available');
 
-        const response = await axios.post('http://127.0.0.1:8000/api/oauth/refresh-token', {
+        const response = await axios.post(`${API_URL}/api/oauth/refresh-token`, {
           refresh_token: refreshToken
         }, {
-          withCredentials: true
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
         });
 
         if (response.data?.access_token) {
@@ -101,28 +119,13 @@ api.interceptors.response.use(
   }
 );
 
-// 🔧 Auth failure event setter
-api.setAuthFailureHandler = (callback) => {
-  api.onAuthFailure = callback;
-};
-
-// 🧪 Logging utility
-const logError = (method, url, error) => {
-  console.error(`API ${method} request to ${url} failed:`, 
-    error.response ? {
-      status: error.response.status,
-      data: error.response.data,
-      headers: error.response.headers
-    } : error.message);
-};
-
-// 📦 Expose CRUD API methods
+// Helper methods
 const enhancedApi = {
   get: async (url, config = {}) => {
     try {
       return await api.get(url, config);
     } catch (error) {
-      logError('GET', url, error);
+      console.error(`API GET request to ${url} failed:`, error);
       throw error;
     }
   },
@@ -131,7 +134,7 @@ const enhancedApi = {
     try {
       return await api.post(url, data, config);
     } catch (error) {
-      logError('POST', url, error);
+      console.error(`API POST request to ${url} failed:`, error);
       throw error;
     }
   },
@@ -140,7 +143,7 @@ const enhancedApi = {
     try {
       return await api.put(url, data, config);
     } catch (error) {
-      logError('PUT', url, error);
+      console.error(`API PUT request to ${url} failed:`, error);
       throw error;
     }
   },
@@ -149,13 +152,15 @@ const enhancedApi = {
     try {
       return await api.delete(url, config);
     } catch (error) {
-      logError('DELETE', url, error);
+      console.error(`API DELETE request to ${url} failed:`, error);
       throw error;
     }
   },
 
   instance: api,
-  setAuthFailureHandler: api.setAuthFailureHandler
+  setAuthFailureHandler: (callback) => {
+    api.onAuthFailure = callback;
+  }
 };
 
 export default enhancedApi;
