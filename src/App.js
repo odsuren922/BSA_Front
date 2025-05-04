@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Login from "./auth/Login";
 import Main from "./modules/Main";
 import OAuthCallback from "./auth/OAuthCallback";
-import { checkOAuthStatus, logoutOAuth } from "./oauth";
+import authService from "./services/authService";
 import { UserProvider, useUser } from "./context/UserContext";
 import { notification } from "antd";
 import "react-toastify/dist/ReactToastify.css";
@@ -20,15 +20,40 @@ function AppContent() {
   const checkAuth = useCallback(async () => {
     setLoading(true);
     try {
-      // Check if user is authenticated via OAuth
-      const userData = await checkOAuthStatus();
+      // First check if user data is already in localStorage
+      const storedUser = localStorage.getItem('user_data');
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          setAuthError(null);
+          setLoading(false);
+          return;
+        } catch (e) {
+          console.error('Failed to parse stored user data:', e);
+        }
+      }
 
-      if (userData) {
-        // Set user data in context
-        setUser(userData);
-        setAuthError(null);
+      // If token exists but is expired, try to refresh it
+      if (authService.isAuthenticated() && authService.isTokenExpired()) {
+        await authService.refreshToken();
+      }
+      
+      // Check if user is authenticated
+      if (authService.isAuthenticated()) {
+        // Get user data
+        const userData = await authService.getUserData();
+        
+        if (userData) {
+          setUser(userData);
+          setAuthError(null);
+        } else {
+          console.log("No user data found");
+          setUser(null);
+          setAuthError("Failed to load user data");
+        }
       } else {
-        console.log("No authenticated user found");
+        console.log("No authentication token found");
         setUser(null);
       }
     } catch (error) {
@@ -50,7 +75,7 @@ function AppContent() {
   // Function to handle logout
   const handleLogout = useCallback(async () => {
     try {
-      await logoutOAuth();
+      await authService.logout();
       setUser(null);
       
       // Show success notification
@@ -67,6 +92,16 @@ function AppContent() {
       
       // Still clear the user state even if API fails
       setUser(null);
+      
+      // Show error notification 
+      notification.error({
+        message: "Гарах үед алдаа гарлаа",
+        description: "Тогтолцооноос гарах үед алдаа гарсан хэдий ч, та амжилттай гарсан.",
+        duration: 5
+      });
+      
+      // Redirect to login page anyway
+      window.location.href = "/login";
     }
   }, [setUser]);
 
@@ -78,7 +113,12 @@ function AppContent() {
   // Periodic authentication check
   useEffect(() => {
     // Set up interval for periodic checks
-    const authCheckInterval = setInterval(checkAuth, SESSION_CHECK_INTERVAL);
+    const authCheckInterval = setInterval(() => {
+      // Only check if we're authenticated
+      if (authService.isAuthenticated()) {
+        authService.refreshTokenIfNeeded().catch(console.error);
+      }
+    }, SESSION_CHECK_INTERVAL);
     
     // Event listener for storage changes (for multi-tab support)
     const handleStorageChange = (e) => {
@@ -88,14 +128,29 @@ function AppContent() {
       }
     };
     
-    window.addEventListener('storage', handleStorageChange);
+    // Event listener for auth failure
+    const handleAuthFailure = (e) => {
+      console.log('Auth failure event received', e.detail);
+      setUser(null);
+      setAuthError(e.detail?.message || 'Authentication failed');
+      
+      notification.error({
+        message: "Нэвтрэлт алдаатай",
+        description: e.detail?.message || "Таны нэвтрэлт алдаатай байна. Дахин нэвтэрнэ үү.",
+        duration: 5
+      });
+    };
     
-    // Clean up interval and event listener
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('auth:failure', handleAuthFailure);
+    
+    // Clean up interval and event listeners
     return () => {
       clearInterval(authCheckInterval);
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('auth:failure', handleAuthFailure);
     };
-  }, [checkAuth]);
+  }, [checkAuth, setUser]);
 
   // Loading state
   if (loading) {

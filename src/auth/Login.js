@@ -1,14 +1,56 @@
 // src/auth/Login.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { redirectToOAuthLogin } from '../oauth';
-import { notification } from 'antd';
+import { notification, Spin } from 'antd';
+import axios from 'axios';
 
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  useEffect(() => {
+    // Check if we're already authenticated
+    const checkExistingAuth = async () => {
+      try {
+        const token = localStorage.getItem('oauth_token');
+        const userData = localStorage.getItem('user_data');
+        
+        if (token && userData) {
+          // Validate token by making a request to the API
+          try {
+            const response = await axios.get('http://127.0.0.1:8000/api/user', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              withCredentials: true
+            });
+            
+            if (response.status === 200) {
+              // We're already authenticated, redirect to home
+              navigate('/');
+              return;
+            }
+          } catch (err) {
+            // Token is invalid, clear it
+            localStorage.removeItem('oauth_token');
+            localStorage.removeItem('user_data');
+            console.error('Invalid token:', err);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking auth:', err);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+    
+    checkExistingAuth();
+  }, [navigate]);
   
   useEffect(() => {
     // Check for error messages in the URL query params
@@ -43,18 +85,39 @@ function Login() {
     if (successMessage) {
       notification.success({
         message: 'Амжилттай',
-        description: successMessage,
+        description: successMessage === 'logged_out' ? 'Та системээс амжилттай гарлаа.' : successMessage,
         duration: 3
+      });
+    }
+    
+    // Check if we're being redirected from a failed authentication attempt
+    if (location.state && location.state.error) {
+      setError(location.state.error);
+      
+      notification.error({
+        message: 'Нэвтрэх алдаа',
+        description: location.state.error,
+        duration: 5
       });
     }
   }, [location]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setLoading(true);
     
     try {
-      // Redirect to the OAuth login flow
-      redirectToOAuthLogin();
+      // First, make a request to get CSRF cookie
+      await axios.get('http://127.0.0.1:8000/sanctum/csrf-cookie', {
+        withCredentials: true,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      // Then redirect to the OAuth login flow
+      window.location.href = 'http://127.0.0.1:8000/oauth/redirect';
     } catch (err) {
       setLoading(false);
       setError('Нэвтрэх үйлчилгээтэй холбогдоход алдаа гарлаа. Дахин оролдоно уу.');
@@ -66,6 +129,17 @@ function Login() {
       });
     }
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <Spin size="large" />
+          <p className="mt-4">Хэрэглэгчийн нэвтрэлтийг шалгаж байна...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full h-screen">

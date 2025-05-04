@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import authService from '../services/authService';
+import { notification } from 'antd';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
@@ -26,7 +27,16 @@ const OAuthCallback = () => {
         if (!code) {
           setError('URL дээр зөвшөөрлийн код олдсонгүй');
           setStatus('Зөвшөөрөл амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
-          setTimeout(() => navigate('/login'), 3000);
+          
+          notification.error({
+            message: 'Authentication Error',
+            description: 'Missing authorization code. Please try logging in again.',
+            duration: 5
+          });
+          
+          setTimeout(() => navigate('/login', { 
+            state: { error: 'Missing authorization code' }
+          }), 3000);
           return;
         }
         
@@ -43,19 +53,64 @@ const OAuthCallback = () => {
         if (tokenData.user) {
           setUser(tokenData.user);
           setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
+          
+          notification.success({
+            message: 'Authentication Successful',
+            description: 'You have been successfully authenticated',
+            duration: 3
+          });
+          
           setTimeout(() => navigate('/'), 1000);
         } else {
           setStatus('Хэрэглэгчийн мэдээллийг татаж байна...');
-          const userData = await authService.getUserData();
-          setUser(userData);
-          setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
-          setTimeout(() => navigate('/'), 1000);
+          
+          // Try to get user data
+          try {
+            const userData = await authService.getUserData();
+            setUser(userData);
+            
+            notification.success({
+              message: 'Authentication Successful',
+              description: 'You have been successfully authenticated',
+              duration: 3
+            });
+            
+            setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
+            setTimeout(() => navigate('/'), 1000);
+          } catch (userDataError) {
+            console.error('Error fetching user data:', userDataError);
+            
+            // Try one more time after a short delay
+            setTimeout(async () => {
+              try {
+                const userData = await authService.getUserData();
+                setUser(userData);
+                setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
+                setTimeout(() => navigate('/'), 1000);
+              } catch (retryError) {
+                setError(`Хэрэглэгчийн мэдээлэл авахад алдаа гарлаа: ${retryError.message}`);
+                setStatus('Баталгаажуулалт амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
+                setTimeout(() => navigate('/login', { 
+                  state: { error: 'Failed to fetch user data' }
+                }), 3000);
+              }
+            }, 2000);
+          }
         }
       } catch (error) {
         console.error('Error in OAuth callback:', error);
         setError(`Баталгаажуулалтын алдаа: ${error.message}`);
         setStatus('Баталгаажуулалт амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
-        setTimeout(() => navigate('/login'), 3000);
+        
+        notification.error({
+          message: 'Authentication Error',
+          description: `An error occurred during authentication: ${error.message}`,
+          duration: 5
+        });
+        
+        setTimeout(() => navigate('/login', { 
+          state: { error: error.message }
+        }), 3000);
       } finally {
         setIsProcessing(false);
       }

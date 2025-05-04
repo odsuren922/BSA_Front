@@ -6,6 +6,7 @@ const TOKEN_KEY = 'oauth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const EXPIRES_IN_KEY = 'expires_in';
 const TOKEN_TIME_KEY = 'token_time';
+const USER_DATA_KEY = 'user_data';
 
 // Create axios instance with interceptors
 const api = axios.create({
@@ -28,7 +29,12 @@ api.interceptors.request.use(async (config) => {
   // Get CSRF token for non-GET requests
   if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
     try {
-      await axios.get(`${API_URL}/sanctum/csrf-cookie`, { withCredentials: true });
+      await axios.get(`${API_URL}/sanctum/csrf-cookie`, { 
+        withCredentials: true,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
     } catch (error) {
       console.error('Failed to get CSRF token:', error);
     }
@@ -72,7 +78,12 @@ api.interceptors.response.use(
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         clearTokenData();
-        window.location.href = '/login?error=session_expired';
+        
+        // Dispatch an event so the App component can handle the auth failure
+        window.dispatchEvent(new CustomEvent('auth:failure', { 
+          detail: { message: 'Your session has expired. Please log in again.' }
+        }));
+        
         return Promise.reject(refreshError);
       }
     }
@@ -91,6 +102,11 @@ const storeTokenData = (tokenData) => {
   
   localStorage.setItem(EXPIRES_IN_KEY, tokenData.expires_in.toString());
   localStorage.setItem(TOKEN_TIME_KEY, (tokenData.token_time || tokenData.created_at || Math.floor(Date.now() / 1000)).toString());
+  
+  // Store user data if available
+  if (tokenData.user) {
+    localStorage.setItem(USER_DATA_KEY, JSON.stringify(tokenData.user));
+  }
 };
 
 const clearTokenData = () => {
@@ -98,6 +114,7 @@ const clearTokenData = () => {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(EXPIRES_IN_KEY);
   localStorage.removeItem(TOKEN_TIME_KEY);
+  localStorage.removeItem(USER_DATA_KEY);
 };
 
 const isAuthenticated = () => {
@@ -123,7 +140,12 @@ const isTokenExpiring = (bufferSeconds = 300) => {
 const exchangeCodeForToken = async (code, state, redirectUri) => {
   try {
     // First get CSRF cookie
-    await axios.get(`${API_URL}/sanctum/csrf-cookie`, { withCredentials: true });
+    await axios.get(`${API_URL}/sanctum/csrf-cookie`, { 
+      withCredentials: true,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
     
     // Make token exchange request
     const response = await axios.post(`${API_URL}/api/oauth/exchange-token`, {
@@ -141,6 +163,12 @@ const exchangeCodeForToken = async (code, state, redirectUri) => {
     
     if (response.data?.access_token) {
       storeTokenData(response.data);
+      
+      // If the response includes a Sanctum token, store it separately
+      if (response.data.sanctum_token) {
+        localStorage.setItem('sanctum_token', response.data.sanctum_token);
+      }
+      
       return response.data;
     } else {
       throw new Error('Invalid token response');
@@ -152,8 +180,24 @@ const exchangeCodeForToken = async (code, state, redirectUri) => {
 };
 
 const getUserData = async () => {
+  // First check if we have user data in localStorage
+  const userData = localStorage.getItem(USER_DATA_KEY);
+  if (userData) {
+    try {
+      return JSON.parse(userData);
+    } catch (e) {
+      console.error('Failed to parse stored user data:', e);
+    }
+  }
+  
   try {
     const response = await api.get('/api/user');
+    
+    // Store user data for future use
+    if (response.data) {
+      localStorage.setItem(USER_DATA_KEY, JSON.stringify(response.data));
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Failed to get user data:', error);
@@ -161,9 +205,55 @@ const getUserData = async () => {
   }
 };
 
+const refreshTokenIfNeeded = async () => {
+  if (isTokenExpired()) {
+    console.log('Token is expired, refreshing...');
+    return refreshToken();
+  } else if (isTokenExpiring()) {
+    console.log('Token is about to expire, refreshing in background...');
+    refreshToken().catch(console.error);
+  }
+  return true;
+};
+
+const refreshToken = async () => {
+  try {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+    
+    const response = await axios.post(`${API_URL}/api/oauth/refresh-token`, {
+      refresh_token: refreshToken
+    }, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
+    
+    if (response.data?.access_token) {
+      storeTokenData(response.data);
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Failed to refresh token:', error);
+    clearTokenData();
+    throw error;
+  }
+};
+
 const logout = async () => {
   try {
-    await api.post('/logout');
+    await api.post('/logout', {}, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}`
+      }
+    });
   } catch (error) {
     console.error('Logout API call failed:', error);
   } finally {
@@ -180,5 +270,7 @@ export default {
   isTokenExpiring,
   exchangeCodeForToken,
   getUserData,
+  refreshTokenIfNeeded,
+  refreshToken,
   logout
 };
