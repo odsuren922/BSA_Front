@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
-import authService from '../services/authService';
 import { notification } from 'antd';
+import authService from '../services/authService';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser } = useUser();
   const [status, setStatus] = useState('Processing authentication...');
   const [error, setError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -23,10 +21,11 @@ const OAuthCallback = () => {
         const params = new URLSearchParams(location.search);
         const code = params.get('code');
         const state = params.get('state');
+        const redirectPath = params.get('redirect') || '/';
         
         if (!code) {
-          setError('URL дээр зөвшөөрлийн код олдсонгүй');
-          setStatus('Зөвшөөрөл амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
+          setError('Authorization code not found in URL');
+          setStatus('Authentication failed. Redirecting to login page...');
           
           notification.error({
             message: 'Authentication Error',
@@ -41,7 +40,7 @@ const OAuthCallback = () => {
         }
         
         // Exchange authorization code for tokens
-        setStatus('Токеноор код солилцож байна...');
+        setStatus('Exchanging code for token...');
         
         const tokenData = await authService.exchangeCodeForToken(
           code, 
@@ -49,10 +48,9 @@ const OAuthCallback = () => {
           window.location.origin + '/auth'
         );
         
-        // Success - get user data if not included in token response
+        // Success path - get user data if not included in token response
         if (tokenData.user) {
-          setUser(tokenData.user);
-          setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
+          setStatus('Authentication successful! Redirecting...');
           
           notification.success({
             message: 'Authentication Successful',
@@ -60,14 +58,17 @@ const OAuthCallback = () => {
             duration: 3
           });
           
-          setTimeout(() => navigate('/'), 1000);
-        } else {
-          setStatus('Хэрэглэгчийн мэдээллийг татаж байна...');
+          // Get intended URL from localStorage or params, or default to home
+          let intendedUrl = localStorage.getItem('intended_url') || redirectPath || '/';
+          localStorage.removeItem('intended_url'); // Clear intended URL
           
+          // Redirect to intended URL
+          setTimeout(() => navigate(intendedUrl), 1000);
+        } else {
+          setStatus('Fetching user information...');
           // Try to get user data
           try {
-            const userData = await authService.getUserData();
-            setUser(userData);
+            await authService.fetchUserData();
             
             notification.success({
               message: 'Authentication Successful',
@@ -75,21 +76,28 @@ const OAuthCallback = () => {
               duration: 3
             });
             
-            setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
-            setTimeout(() => navigate('/'), 1000);
+            // Get intended URL from localStorage or params, or default to home
+            let intendedUrl = localStorage.getItem('intended_url') || redirectPath || '/';
+            localStorage.removeItem('intended_url'); // Clear intended URL
+            
+            setStatus('Authentication successful! Redirecting...');
+            setTimeout(() => navigate(intendedUrl), 1000);
           } catch (userDataError) {
             console.error('Error fetching user data:', userDataError);
             
             // Try one more time after a short delay
             setTimeout(async () => {
               try {
-                const userData = await authService.getUserData();
-                setUser(userData);
-                setStatus('Баталгаажуулалт амжилттай боллоо! Дахин чиглүүлж байна...');
-                setTimeout(() => navigate('/'), 1000);
+                await authService.fetchUserData();
+                
+                let intendedUrl = localStorage.getItem('intended_url') || redirectPath || '/';
+                localStorage.removeItem('intended_url');
+                
+                setStatus('Authentication successful! Redirecting...');
+                setTimeout(() => navigate(intendedUrl), 1000);
               } catch (retryError) {
-                setError(`Хэрэглэгчийн мэдээлэл авахад алдаа гарлаа: ${retryError.message}`);
-                setStatus('Баталгаажуулалт амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
+                setError(`Failed to fetch user data: ${retryError.message}`);
+                setStatus('Authentication failed. Redirecting to login page...');
                 setTimeout(() => navigate('/login', { 
                   state: { error: 'Failed to fetch user data' }
                 }), 3000);
@@ -99,8 +107,8 @@ const OAuthCallback = () => {
         }
       } catch (error) {
         console.error('Error in OAuth callback:', error);
-        setError(`Баталгаажуулалтын алдаа: ${error.message}`);
-        setStatus('Баталгаажуулалт амжилтгүй боллоо. Нэвтрэх хуудас руу дахин чиглүүлж байна...');
+        setError(`Authentication error: ${error.message}`);
+        setStatus('Authentication failed. Redirecting to login page...');
         
         notification.error({
           message: 'Authentication Error',
@@ -117,12 +125,23 @@ const OAuthCallback = () => {
     };
 
     processCallback();
-  }, [navigate, location, setUser, isProcessing]);
+  }, [navigate, location, isProcessing]);
+
+  // Store intended URL when component mounts
+  useEffect(() => {
+    // Check for redirect parameter in query
+    const params = new URLSearchParams(location.search);
+    const redirectPath = params.get('redirect');
+    
+    if (redirectPath) {
+      localStorage.setItem('intended_url', redirectPath);
+    }
+  }, [location]);
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-4">Баталгаажуулалт</h2>
+        <h2 className="text-2xl font-bold mb-4">Authentication</h2>
         
         <div className="mb-4">
           <p className="text-gray-700">{status}</p>

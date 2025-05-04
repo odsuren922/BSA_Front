@@ -1,4 +1,4 @@
-import api from "./api/axios";
+import authService from "./services/authService";
 import { notification } from "antd";
 
 /**
@@ -6,7 +6,7 @@ import { notification } from "antd";
  */
 export const fetchData = async (endpoint, params = {}) => {
   try {
-    const response = await api.get(`/api/${endpoint}`, { params });
+    const response = await authService.api.get(`/api/${endpoint}`, { params });
     const responseData = response.data?.data ?? response.data;
     return responseData;
   } catch (error) {
@@ -17,11 +17,14 @@ export const fetchData = async (endpoint, params = {}) => {
                          error.message || 
                          'An unexpected error occurred';
 
-    // notification.error({
-    //   message: "Request Failed",
-    //   description: errorMessage,
-    //   duration: 5
-    // });
+    // Only show notification for non-auth errors (auth errors are handled by the service)
+    if (error.response?.status !== 401) {
+      notification.error({
+        message: "Request Failed",
+        description: errorMessage,
+        duration: 5
+      });
+    }
 
     throw error;
   }
@@ -32,18 +35,14 @@ export const fetchData = async (endpoint, params = {}) => {
  */
 export const postData = async (endpoint, data = {}, method = "post") => {
   try {
-    if (["post", "put", "delete"].includes(method.toLowerCase())) {
-      // ✅ CSRF cookie-г амжиж татах
-      await api.get('/sanctum/csrf-cookie');
-    }
-
     let response;
+    
     if (method.toLowerCase() === "post") {
-      response = await api.post(`/api/${endpoint}`, data);
+      response = await authService.api.post(`/api/${endpoint}`, data);
     } else if (method.toLowerCase() === "put") {
-      response = await api.put(`/api/${endpoint}`, data);
+      response = await authService.api.put(`/api/${endpoint}`, data);
     } else if (method.toLowerCase() === "delete") {
-      response = await api.delete(`/api/${endpoint}`, { data });
+      response = await authService.api.delete(`/api/${endpoint}`, { data });
     } else {
       throw new Error(`Unsupported method: ${method}`);
     }
@@ -65,11 +64,14 @@ export const postData = async (endpoint, data = {}, method = "post") => {
                          error.message || 
                          'An unexpected error occurred';
 
-    // notification.error({
-    //   message: "Request Failed",
-    //   description: errorMessage,
-    //   duration: 5
-    // });
+    // Only show notification for non-auth errors (auth errors are handled by the service)
+    if (error.response?.status !== 401) {
+      notification.error({
+        message: "Request Failed",
+        description: errorMessage,
+        duration: 5
+      });
+    }
 
     throw error;
   }

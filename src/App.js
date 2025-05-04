@@ -1,12 +1,11 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./auth/Login";
 import Main from "./modules/Main";
 import OAuthCallback from "./auth/OAuthCallback";
 import authService from "./services/authService";
 import { UserProvider, useUser } from "./context/UserContext";
 import { notification } from "antd";
-import "react-toastify/dist/ReactToastify.css";
 
 // Session check interval (5 minutes)
 const SESSION_CHECK_INTERVAL = 5 * 60 * 1000;
@@ -15,45 +14,44 @@ function AppContent() {
   const { user, setUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const authCheckInProgress = useRef(false);
 
   // Function to handle authentication check
   const checkAuth = useCallback(async () => {
+    // Prevent concurrent auth checks
+    if (authCheckInProgress.current) {
+      return;
+    }
+    
+    authCheckInProgress.current = true;
     setLoading(true);
+    
     try {
-      // First check if user data is already in localStorage
-      const storedUser = localStorage.getItem('user_data');
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-          setAuthError(null);
-          setLoading(false);
-          return;
-        } catch (e) {
-          console.error('Failed to parse stored user data:', e);
-        }
-      }
-
-      // If token exists but is expired, try to refresh it
-      if (authService.isAuthenticated() && authService.isTokenExpired()) {
-        await authService.refreshToken();
-      }
-      
-      // Check if user is authenticated
+      // Check if we're already authenticated
       if (authService.isAuthenticated()) {
-        // Get user data
-        const userData = await authService.getUserData();
+        // Check if token needs refresh
+        await authService.refreshTokenIfNeeded();
+        
+        // Get user data from auth service
+        const userData = authService.getUser();
         
         if (userData) {
           setUser(userData);
           setAuthError(null);
         } else {
-          console.log("No user data found");
-          setUser(null);
-          setAuthError("Failed to load user data");
+          // Try to fetch user data if not in auth state
+          const fetchedUserData = await authService.fetchUserData();
+          if (fetchedUserData) {
+            setUser(fetchedUserData);
+            setAuthError(null);
+          } else {
+            console.log("No user data found");
+            setUser(null);
+            setAuthError("Failed to load user data");
+          }
         }
       } else {
-        console.log("No authentication token found");
+        console.log("Not authenticated");
         setUser(null);
       }
     } catch (error) {
@@ -63,12 +61,13 @@ function AppContent() {
       
       // Show error notification
       notification.error({
-        message: "Нэвтрэлт алдаатай",
-        description: "Таны нэвтрэлт алдаатай байна. Дахин нэвтэрнэ үү.",
+        message: "Authentication Error",
+        description: "Your session has expired. Please log in again.",
         duration: 5
       });
     } finally {
       setLoading(false);
+      authCheckInProgress.current = false;
     }
   }, [setUser]);
 
@@ -80,8 +79,8 @@ function AppContent() {
       
       // Show success notification
       notification.success({
-        message: "Амжилттай гарлаа",
-        description: "Та системээс амжилттай гарлаа.",
+        message: "Logged Out",
+        description: "You have been successfully logged out.",
         duration: 3
       });
       
@@ -95,8 +94,8 @@ function AppContent() {
       
       // Show error notification 
       notification.error({
-        message: "Гарах үед алдаа гарлаа",
-        description: "Тогтолцооноос гарах үед алдаа гарсан хэдий ч, та амжилттай гарсан.",
+        message: "Logout Error",
+        description: "There was an error logging out, but your session has been cleared.",
         duration: 5
       });
       
@@ -108,49 +107,58 @@ function AppContent() {
   // Initial authentication check
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
-
-  // Periodic authentication check
-  useEffect(() => {
-    // Set up interval for periodic checks
-    const authCheckInterval = setInterval(() => {
-      // Only check if we're authenticated
-      if (authService.isAuthenticated()) {
-        authService.refreshTokenIfNeeded().catch(console.error);
-      }
-    }, SESSION_CHECK_INTERVAL);
     
-    // Event listener for storage changes (for multi-tab support)
-    const handleStorageChange = (e) => {
-      if (e.key === 'oauth_token' && !e.newValue) {
-        // Token was removed in another tab
+    // Set up auth change listener
+    const handleAuthChange = (e) => {
+      if (e.detail) {
+        setUser(e.detail.user);
+      } else {
         setUser(null);
       }
     };
     
-    // Event listener for auth failure
+    // Set up auth failure listener
     const handleAuthFailure = (e) => {
       console.log('Auth failure event received', e.detail);
       setUser(null);
       setAuthError(e.detail?.message || 'Authentication failed');
       
+      // Save current path for redirect after login
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/auth') {
+        localStorage.setItem('intended_url', currentPath);
+      }
+      
       notification.error({
-        message: "Нэвтрэлт алдаатай",
-        description: e.detail?.message || "Таны нэвтрэлт алдаатай байна. Дахин нэвтэрнэ үү.",
+        message: "Authentication Error",
+        description: e.detail?.message || "Your session has expired. Please log in again.",
         duration: 5
       });
     };
     
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('auth:changed', handleAuthChange);
     window.addEventListener('auth:failure', handleAuthFailure);
     
-    // Clean up interval and event listeners
     return () => {
-      clearInterval(authCheckInterval);
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('auth:changed', handleAuthChange);
       window.removeEventListener('auth:failure', handleAuthFailure);
     };
   }, [checkAuth, setUser]);
+
+  // Periodic authentication check
+  useEffect(() => {
+    // Set up interval for periodic checks
+    const authCheckInterval = setInterval(() => {
+      // Only check if we're authenticated and not already checking
+      if (authService.isAuthenticated() && !authCheckInProgress.current) {
+        authService.refreshTokenIfNeeded().catch(console.error);
+      }
+    }, SESSION_CHECK_INTERVAL);
+    
+    return () => {
+      clearInterval(authCheckInterval);
+    };
+  }, []);
 
   // Loading state
   if (loading) {
@@ -158,7 +166,7 @@ function AppContent() {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500 mx-auto mb-4"></div>
-          <p className="text-2xl font-semibold">Уншиж байна...</p>
+          <p className="text-2xl font-semibold">Loading...</p>
         </div>
       </div>
     );
