@@ -125,7 +125,7 @@ const GradingSchemaTable = ({ gradingSchema, thesisCycle, cycleId }) => {
                   </Button>
                 );
               }
-              if (value !== "committee") {
+             else if (value === "supervisor") {
                 return (
                   <Button
                     size="small"
@@ -139,7 +139,22 @@ const GradingSchemaTable = ({ gradingSchema, thesisCycle, cycleId }) => {
                   </Button>
                 );
               }
-              return "-";
+              else{
+                return (
+                    <Button
+                      size="small"
+                      onClick={() =>
+                        navigate(
+                          `/assignedTeacher/grading?cycleId=${cycleId}&schemaId=${record.schemaId}&component=${component.id}`
+                        )
+                      }
+                    >
+                      Оноо
+                    </Button>
+                  );
+
+              }
+             
             }
             return value ?? "-";
           }

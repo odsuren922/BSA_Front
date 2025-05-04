@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Row, Container } from "reactstrap";
+import { Container } from "reactstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import api from "../../context/api_helper.js";
-// import { useAuth } from "../../context/AuthContext.js";
-import { UserProvider, useUser } from "../../context/UserContext";
-
+import { useUser } from "../../context/UserContext";
 import Breadcrumbs from "../../components/Common/Breadcrumb.js";
 import ThesisCard from "./ThesisCard.js";
+import { Spinner } from "reactstrap";
+import { Alert } from "reactstrap";
+import { Tabs, Button, Col, Card, Row, Layout, Typography } from "antd";
+
+const { Content } = Layout;
+const { Title } = Typography;
 
 const App = () => {
   const [data, setData] = useState([]);
+  const [gradingTheses, SetGradingTheses] = useState([]);
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchTasks();
@@ -19,28 +25,45 @@ const App = () => {
 
   const fetchTasks = async () => {
     try {
-        console.log(user.id)
-      const response = await api.get(`/theses`
-      );
-      setData(response.data.thesis); // Verify API response structure
-      setLoading(false);
+      setLoading(true);
+      setError(null);
+      const response = await api.get(`/theses`);
+      //   const examineTheses = await api.get(`/examine/theses`);
+      //   SetGradingTheses(examineTheses.data)
+      setData(response.data.thesis);
     } catch (error) {
       console.error("Error fetching theses:", error);
+      setError("Failed to load thesis data. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <React.Fragment>
-      <div className="page-content">
-        <Container>
-        <Breadcrumbs breadcrumbItem="Бакалаврын судалгааны ажил" />
+      <div className="p-4 bg-transparent">
+        <header className="text-left mb-4">
+          <Title level={3}>Бакалаврын судалгааны ажил</Title>
+        </header>
 
-            <ThesisCard data={data} />
-            
-
-   
-        </Container>
-        
+        {loading ? (
+          <div className="text-center my-5">
+            <Spinner color="primary" />
+            <p className="mt-2">Төслүүдийг ачаалж байна...</p>
+          </div>
+        ) : error ? (
+          <Alert color="danger">
+            {error}
+            <button className="btn btn-link p-0 ml-2" onClick={fetchTasks}>
+              Дахин оролдох
+            </button>
+          </Alert>
+        ) : (
+          < >
+     
+            <ThesisCard data={data} loading={loading} />,
+          </>
+        )}
       </div>
     </React.Fragment>
   );

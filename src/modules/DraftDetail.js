@@ -16,11 +16,7 @@ const DraftDetail = ({ isModalOpen, data, onClose }) => {
     const fetchProposalData = async () => {
       try {
         setLoading(true);
-<<<<<<< HEAD
-        const proposalData = await fetchData("api/proposalform");
-=======
         const proposalData = await fetchData("proposalform");
->>>>>>> 64d8a392fc33ab22c1d0b1f387c3294e72182f99
         if (proposalData && proposalData[0]) {
           setFormData(proposalData[0].fields);
           setDefData(proposalData[0].default_fields);

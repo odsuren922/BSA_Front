@@ -46,8 +46,7 @@ const CommitteeScheduler = () => {
   const [activeCommitteeTab, setActiveCommitteeTab] = useState(null);
   const [activeDetailTab, setActiveDetailTab] = useState("1"); // Default to first tab
   const [showScheduler, setShowScheduler] = useState(false);
-const [selectedCommittee, setSelectedCommittee] = useState(null);
-
+  const [selectedCommittee, setSelectedCommittee] = useState(null);
 
   // Color schemes
   const strongColors = [
@@ -145,7 +144,7 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
   }, [committees]);
 
   const eventStyleGetter = (event) => {
-    const backgroundColor =  "#3174ad";
+    const backgroundColor = "#3174ad";
     return {
       style: {
         backgroundColor,
@@ -252,9 +251,7 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
         render: (student) => {
           const supervisor = student.thesis?.supervisor;
           return supervisor
-            ? `${supervisor.lastname || ""} ${
-                supervisor.firstname || ""
-              }`
+            ? `${supervisor.lastname || ""} ${supervisor.firstname || ""}`
             : "-";
         },
         width: 120,
@@ -307,32 +304,31 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
       <div className="committee-details">
         <Tabs activeKey={activeDetailTab} onChange={handleDetailTabChange}>
           <TabPane tab="Багш нар" key="1">
-           <Card>
-
-            <List
-              dataSource={committee.members}
-              renderItem={renderCommitteeMemberItem}
-              locale={{ emptyText: "Багш нэмэгдээгүй байна" }}
-            />
-            <div style={{ marginTop: 16 }}>
-              <Text strong>Хөтөлбөрүүд:</Text>
-              <div style={{ marginTop: 8 }}>
-                {renderCommitteeStudentPrograms(committee)}
+            <Card>
+              <List
+                dataSource={committee.members}
+                renderItem={renderCommitteeMemberItem}
+                locale={{ emptyText: "Багш нэмэгдээгүй байна" }}
+              />
+              <div style={{ marginTop: 16 }}>
+                <Text strong>Хөтөлбөрүүд:</Text>
+                <div style={{ marginTop: 8 }}>
+                  {renderCommitteeStudentPrograms(committee)}
+                </div>
               </div>
-            </div>
-           </Card>
+            </Card>
           </TabPane>
           <TabPane tab="Оюутнууд" key="2">
             <Card>
-            <Table
-              dataSource={committee.students || []}
-              columns={getStudentTableColumns()}
-              rowKey={(record) => record.id}
-              pagination={{ pageSize: 20 }}
-              bordered
-              size="small"
-              scroll={{ x: true }}
-            />
+              <Table
+                dataSource={committee.students || []}
+                columns={getStudentTableColumns()}
+                rowKey={(record) => record.id}
+                pagination={{ pageSize: 20 }}
+                bordered
+                size="small"
+                scroll={{ x: true }}
+              />
             </Card>
           </TabPane>
 
@@ -440,26 +436,29 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
 
   const renderCommitteeCards = () => {
     const data = committees.map((committee) => {
-      const lastSchedule = committee.schedules?.[committee.schedules.length - 1];
-  
+      const lastSchedule =
+        committee.schedules?.[committee.schedules.length - 1];
+
       const programCounts = {};
       committee.students?.forEach((s) => {
         const program = s.student?.program || "Тодорхойгүй";
         programCounts[program] = (programCounts[program] || 0) + 1;
       });
-  
+
       return {
         key: committee.id,
         time: lastSchedule
-        ? (() => {
-            const start = moment(lastSchedule.start_datetime);
-            const end = moment(lastSchedule.end_datetime);
-            return start.isSame(end, "day")
-              ? `${start.format("YYYY/MM/DD HH:mm")} - ${end.format("HH:mm")}`
-              : `${start.format("YYYY/MM/DD HH:mm")} - ${end.format("YYYY/MM/DD HH:mm")}`;
-          })()
-        : "–",
-      
+          ? (() => {
+              const start = moment(lastSchedule.start_datetime);
+              const end = moment(lastSchedule.end_datetime);
+              return start.isSame(end, "day")
+                ? `${start.format("YYYY/MM/DD HH:mm")} - ${end.format("HH:mm")}`
+                : `${start.format("YYYY/MM/DD HH:mm")} - ${end.format(
+                    "YYYY/MM/DD HH:mm"
+                  )}`;
+            })()
+          : "–",
+
         location: lastSchedule
           ? `${lastSchedule.location}, ${lastSchedule.room} тоот`
           : "–",
@@ -473,21 +472,20 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
         fullCommittee: committee,
       };
     });
-  
-    const columns = [
-        {
-            title: "Компонент",
-            dataIndex: "component",
-            key: "component",
-          },
-        
 
-          {
-            title: "Комисс",
-            dataIndex: "name",
-            key: "name",
-            render: (text) => <Text strong>{text}</Text>,
-          },
+    const columns = [
+      {
+        title: "Компонент",
+        dataIndex: "component",
+        key: "component",
+      },
+
+      {
+        title: "Комисс",
+        dataIndex: "name",
+        key: "name",
+        render: (text) => <Text strong>{text}</Text>,
+      },
       {
         title: "Цаг",
         dataIndex: "time",
@@ -499,7 +497,7 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
         key: "location",
         render: (text) => <Text type="secondary">{text}</Text>,
       },
-    
+
       {
         title: "Оюутнууд (хөтөлбөрөөр)",
         dataIndex: "programs",
@@ -517,7 +515,7 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
         key: "status",
       },
     ];
-  
+
     return (
       <div style={{ padding: 24 }}>
         <Typography.Title level={3}>Комиссын жагсаалт</Typography.Title>
@@ -537,8 +535,6 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
       </div>
     );
   };
-  
-  
 
   if (isLoading) {
     return (
@@ -553,23 +549,21 @@ const [selectedCommittee, setSelectedCommittee] = useState(null);
       {!showScheduler ? (
         renderCommitteeCards()
       ) : (
-        <div className="committee-scheduler-container" >
+        <div className="committee-scheduler-container">
           <Button type="text" onClick={() => setShowScheduler(false)}>
             ← Буцах
           </Button>
           <Row gutter={[24, 24]} justify="center">
-  <Col xs={24} md={16} lg={18}>
-    {renderCommitteeDetails(
-      committees.find((c) => c.id === activeCommitteeTab)
-    )}
-  </Col>
-</Row>
-
+            <Col xs={24} md={16} lg={18}>
+              {renderCommitteeDetails(
+                committees.find((c) => c.id === activeCommitteeTab)
+              )}
+            </Col>
+          </Row>
         </div>
       )}
     </DndProvider>
   );
-  
 };
 
 export default CommitteeScheduler;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Table, Card, Spin, message, Form, InputNumber, Button } from "antd";
+import { Table, Card, Spin, Form, Button, Tag } from "antd";
 import api from "../../context/api_helper";
 // import { useAuth } from "../../context/AuthContext";
-import { UserProvider, useUser } from "../../context/UserContext";
+import { useUser } from "../../context/UserContext";
 
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -13,30 +13,44 @@ import "react-toastify/dist/ReactToastify.css";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
-  const [scores, setScores] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+const ThesisScores = ({
+  thesisId,
+  thesisCycle,
+  supervisor,
+  thesis,
+  gradingSchema,
+  scores,
+  loading,
+}) => {
   const { user } = useUser();
   const [form] = Form.useForm();
+  const [assignments, setAssignments] = useState([]);
 
-  useEffect(() => {
-    if (thesisId) fetchScores();
-  }, [thesisId]);
-
-  const fetchScores = async () => {
-    setLoading(true);
+useEffect(() => {
+  const fetchAssignments = async () => {
     try {
-      const res = await api.get(`/scores/${thesisId}/`);
-      setScores(res.data);
-    } catch (err) {
-      toast.error("Оноо дуудахад алдаа гарлаа");
-    } finally {
-      setLoading(false);
+      const response = await api.get('/grading-assignments', {
+        params: {
+          grading_schema_id: gradingSchema?.id,
+          student_id: thesis?.student.id,
+        },
+      });
+      console.log("jahha", response.data)
+      setAssignments(response.data);
+    } catch (error) {
+      toast.error("Оноо өгсөн багшийн мэдээллийг авч чадсангүй");
     }
   };
 
+  if (gradingSchema?.id && thesis?.student.id) {
+    fetchAssignments();
+  }
+  console.log(thesis)
+}, [gradingSchema?.id, thesis?.student_id]);
+
+
   const calScheduleWeek = (week) => {
+
     const startDate = new Date(thesisCycle.start_date);
     const weekStart = new Date(startDate);
     weekStart.setDate(startDate.getDate() + (week - 1) * 7);
@@ -45,96 +59,47 @@ const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
     return { start: weekStart, end: weekEnd };
   };
 
-  const canGiveScore = (record) => {
-    //TODO
-    if ( (record.by_who !== "supervisor"))  return false;
-    if(record.by_who === "supervisor" && user.id !== thesis.supervisor.id) return false;
-
-    if(user.role ==="student" ) return false;
-    const week = parseInt(record.scheduled_week);
-    if (isNaN(week)) return false;
-     
-    const { start, end } = calScheduleWeek(week);
-    const now = dayjs().tz("Asia/Ulaanbaatar");
-    const startDate = dayjs(start).tz("Asia/Ulaanbaatar").startOf("day");
-    const endDate = dayjs(end).tz("Asia/Ulaanbaatar").endOf("day");
-
-    return now.isAfter(startDate) && now.isBefore(endDate);
-  };
-
-  const handleSave = async (values) => {
-    setSaving(true);
-    const payload = Object.entries(values).map(([key, value]) => ({
-      component_id: key.split("_")[1],
-      score: value,
-    }));
-
-    try {
-      if (user?.id === supervisor.id) {
-        await api.post(`/supervisor/thesis-scores`, {
-          thesis_id: thesisId,
-          score: payload[0].score,
-          grading_component_id: payload[0].component_id,
-          teacher_id: user.id,
-          given_by: user.role,
-          comment: "",
-          committee_id: "",
-        });
-      }
-
-      toast.success("Амжилттай хадгаллаа");
-      fetchScores();
-    } catch (err) {
-      toast.error("Хадгалах үед алдаа гарлаа");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const columns = [
     {
       title: "Үнэлгээний хэсэг",
-      dataIndex: "name",
+      dataIndex: ["component", "name"],
     },
     {
       title: "Нийт боломжит оноо",
-      dataIndex: "score",
+      dataIndex: ["component", "score"],
     },
+    {
+        title: "Үнэлгээ өгөх хүн",
+        dataIndex: ["component", "by_who_label"],
+      },
+      {
+        title: "Оноо өгөх",
+        dataIndex: "scoreGiver",
+        render: (text) => <span>{text || "-"}</span>,
+      },
+      
+      
     {
       title: "Авсан оноо",
       render: (_, record) => {
-        const scoreValue = record.given_score?.average_score;
-
-        return canGiveScore(record) ? (
-          <Form.Item
-            name={`score_${record.id}`}
-            initialValue={scoreValue}
-            rules={[
-              { required: true, message: "Оноо заавал оруулна" },
-              {
-                type: "number",
-                min: 0,
-                max: record.score,
-                message: `0 - ${record.score} хооронд оноо оруулна уу`,
-              },
-            ]}
-          >
-            <InputNumber min={0} max={record.score} />
-          </Form.Item>
-        ) : scoreValue != null ? (
-          scoreValue
+        const scoreValue = parseFloat(record.score);
+        return scoreValue ? (
+          <span style={{ fontWeight: "bold", fontSize: 14 }}>{scoreValue}</span>
         ) : (
           "-"
         );
       },
     },
     {
-      title: "7 хоногийн хугацаа",
+      title: "7 хоногийн хугацаа өдрөөр",
       render: (_, record) => {
-        const week = parseInt(record.scheduled_week);
+        const week = parseInt(record.component?.scheduled_week);
         if (!isNaN(week)) {
           const { start, end } = calScheduleWeek(week);
-          return `${start.toISOString().split("T")[0].replace(/-/g, ".")} – ${end
+          return `${start
+            .toISOString()
+            .split("T")[0]
+            .replace(/-/g, ".")} – ${end
             .toISOString()
             .split("T")[0]
             .replace(/-/g, ".")}`;
@@ -142,32 +107,66 @@ const ThesisScores = ({ thesisId, thesisCycle, supervisor,thesis }) => {
         return "-";
       },
     },
+    {
+      title: "7 хоног",
+      dataIndex: ["component", "scheduled_week"],
+      render: (week) => {
+        if (!week) return "-";
+        return (
+          <Tag color="blue" style={{ fontSize: "14px", padding: "2px 8px" }}>
+            {week}-р 7 хоног
+          </Tag>
+        );
+      },
+    },
   ];
 
-  const editable = scores.some((record) => canGiveScore(record));
+  const computedData =
+  gradingSchema?.grading_components?.map((component) => {
+    const matchedScore = scores.find((s) => s.component?.id === component.id);
+    const matchedAssignment = assignments.find((a) => a.component_id === component.id);
+
+    let scoreGiver = "-";
+
+    if (matchedAssignment?.by_who === "supervisor" && supervisor) {
+      scoreGiver = `${supervisor.lastname} ${supervisor.firstname}`;
+    }
+
+    if (matchedAssignment?.by_who === "committee" && matchedAssignment?.committee?.name) {
+      scoreGiver = matchedAssignment.committee.name;
+    }
+
+    if (matchedAssignment?.by_who === "examiner" && matchedAssignment?.assigned_teacher?.length > 0) {
+        const examiners = matchedAssignment.assigned_teacher
+          .map((t) => t.assigned_by)
+          .filter(Boolean)
+          .map((teacher) => `${teacher.lastname} ${teacher.firstname}`);
+        
+        scoreGiver = examiners.length > 0 ? examiners.join(", ") : "-";
+      }
+      
+
+    return {
+      id: component.id,
+      component: component,
+      score: matchedScore?.score ?? null,
+      scoreGiver, // оноо өгсөн хүний нэр/committee
+    };
+  }) || [];
+
+
 
   return (
-    <Card
-      title="Үнэлгээ"
-      extra={
-        editable && (
-          <Button type="primary" loading={saving} onClick={() => form.submit()}>
-            Хадгалах
-          </Button>
-        )
-      }
-    >
+    <Card title="Үнэлгээ">
       {loading ? (
         <Spin />
       ) : (
-        <Form form={form} onFinish={handleSave}>
-          <Table
-            columns={columns}
-            dataSource={scores}
-            rowKey={(record) => record.id}
-            pagination={false}
-          />
-        </Form>
+        <Table
+          columns={columns}
+          dataSource={computedData}
+          rowKey={(record) => record.id}
+          pagination={false}
+        />
       )}
     </Card>
   );

@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from "react";
 import api from "../../context/api_helper";
-import { Tabs, Button, Col, Card, Form, InputNumber, Row } from "antd";
+import {
+  Tabs,
+  Button,
+  Col,
+  Card,
+  Row,
+
+} from "antd";
 import { FilePdfOutlined } from "@ant-design/icons";
 import generatePDF from "../../components/plan/pdfGenerator";
-import GradingSchemaTable from "../../components/grading/GradingTable";
 import ThesisScores from "../../pages/Thesis/ThesisScore.js";
 //import { useAuth } from "../../context/AuthContext.js";
-import { UserProvider, useUser } from "../../context/UserContext";
-import ThesisFileUpload from "./UploadFile.js";
+import { useUser } from "../../context/UserContext";
+// import ThesisFileUpload from "./UploadFile.js";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import GanttChart from "../../components/plan/GanttChart";
+import ScoreForm from "./ScoreForm.js";
 
 const AboutThesisTabs = ({
   id,
@@ -19,68 +26,58 @@ const AboutThesisTabs = ({
   score,
   tasks,
   supervisor,
-  thesis 
+  thesis,
 }) => {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [files, setFiles] = useState([]);
-  const [editableData, setEditableData] = useState([]);
-  const safeTasks = tasks ?? [];
+  const [loading, setLoading] = useState(false);
 
-  const [editingKey, setEditingKey] = useState("");
+   const [scores, setScores] = useState([]);
+  const safeTasks = tasks ?? [];
+;
 
   const { user } = useUser();
-  useEffect(() => {
-    if (gradingSchema && gradingSchema.grading_components) {
-      const preparedData = [
-        {
-          key: "score",
-          year: gradingSchema.year,
-          name: gradingSchema.name,
-          ...gradingSchema.grading_components.reduce(
-            (acc, component, index) => {
-              acc[`component_${index + 1}`] = component.score;
-              return acc;
-            },
-            {}
-          ),
-        },
-        {
-          key: "by_who",
-          year: "",
-          name: "",
-          ...gradingSchema.grading_components.reduce(
-            (acc, component, index) => {
-              acc[`component_${index + 1}`] = component.by_who;
-              return acc;
-            },
-            {}
-          ),
-        },
-      ];
 
-      setEditableData(preparedData);
-    }
-
-    // if (id) {
-    //   fetchFiles();
-    // }
-  }, [gradingSchema, id]);
-
+  console.log("gradingSchema", gradingSchema);
   const fetchFiles = async () => {
     try {
-      const filesRes = await api.get(`/thesis/${id}/files`);
+        if(id){
+            const filesRes = await api.get(`/thesis/${id}/files`);
       console.log(filesRes);
       console.log(filesRes.data);
       setFiles(filesRes.data);
+        } else {
+            return
+        }
+      
     } catch (err) {
       console.error("File fetch error", err);
     }
   };
+  useEffect(() => {
+    fetchScores();
+  }, [id]);
+  const fetchScores = async () => {
+    setLoading(true);
+    try {
+        if(id){
+      const res = await api.get(`/scores/getScoreByThesis/${id}/`);
 
+      console.log(res.data);
+      setScores(res.data.data);
+    } else {
+        return
+    }
+    } catch (err) {
+      toast.error("Оноо дуудахад алдаа гарлаа");
+    } finally {
+      setLoading(false);
+    }
+  };
   const handlePDF = async () => {
     setPdfLoading(true);
     try {
-      const res = await api.get(`/thesis/${id}`); //TODO :: resource ashigladag bolgoh
+      const res = await api.get(`/thesis/${id}`);
 
       generatePDF(tasks, res.data.data, thesisCycle);
     } catch (error) {
@@ -140,13 +137,36 @@ const AboutThesisTabs = ({
               <Col xs={24} md={24}>
                 {/* <Card title="Үнэлгээний схем" className="mb-4">
                   </Card> */}
+                  {
+                    id ?(
+                        <ThesisScores
+                        thesisId={id}
+                        thesisCycle={thesisCycle}
+                        supervisor={supervisor}
+                        thesis={thesis}
+                        gradingSchema={gradingSchema}
+                        scores={scores}
+                        loading={loading}
+      
+                      />
+                    ):(
+                        <Col xl={24} style={{ marginBottom: "10px" }}>
+                        <Card>
+                          <p
+                            style={{
+                              color: "#6c757d",
+                              fontSize: "14px",
+                              marginTop: "10px",
+                            }}
+                          >
+                            Судалгааны ажил олдсонгүй.
+                          </p>
+                        </Card>
+                      </Col>
 
-                <ThesisScores
-                  thesisId={id}
-                  thesisCycle={thesisCycle}
-                  supervisor={supervisor}
-                  thesis={thesis}
-                />
+                    )
+                  }
+
               </Col>
             </div>
           ),
@@ -204,6 +224,45 @@ const AboutThesisTabs = ({
             </div>
           ),
         },
+        ...(user.role !== "student"
+            ? [
+                {
+                  label: "Оноо өгөх",
+                  key: "3",
+                  children: (
+                    <div>
+                      {thesis.supervisor ? (
+                        <ScoreForm
+                          thesisId={id}
+                          gradingSchema={gradingSchema}
+                          Supervisorid={thesis.supervisor.id}
+                          Studentid={thesis.student.id}
+                          thesisCycleId={thesisCycle.id}
+                          scores={scores}
+                          loading={loading}
+                          onSuccess={fetchScores}
+                        />
+                      ) : (
+                        <Col xl={24} style={{ marginBottom: "10px" }}>
+                          <Card>
+                            <p
+                              style={{
+                                color: "#6c757d",
+                                fontSize: "14px",
+                                marginTop: "10px",
+                              }}
+                            >
+                              Мэдээлэл алга
+                            </p>
+                          </Card>
+                        </Col>
+                      )}
+                    </div>
+                  ),
+                },
+              ]
+            : []),
+        
         //         {
         //   label: "Тайлан",
         //   key: "3",
@@ -289,52 +348,6 @@ const AboutThesisTabs = ({
         // },
       ]}
     />
-  );
-};
-const GiveScoreForm = ({ gradingSchema, thesisId, score, supervisor }) => {
-  const [form] = Form.useForm();
-  const { user } = useUser();
-
-  const handleSubmit = async (values) => {
-    await api.post("/thesis-scores", {
-      thesis_id: thesisId,
-      scores: values,
-    });
-    // toast.success("Амжилттай хадгаллаа");
-  };
-
-  return (
-    <Form form={form} onFinish={handleSubmit}>
-      {gradingSchema?.grading_components.map((comp) => {
-        const oldScore = score?.find((s) => s.component_id === comp.id)?.score;
-        const canEdit =
-          user?.id === supervisor.id && comp.by_who === "supervisor";
-
-        return (
-          <Form.Item
-            key={comp.id}
-            label={comp.name}
-            name={`component_${comp.id}`}
-            initialValue={oldScore}
-          >
-            {canEdit ? (
-              <InputNumber min={0} max={100} />
-            ) : (
-              <div>{oldScore ?? "Үнэлгээ ороогүй"}</div>
-            )}
-          </Form.Item>
-        );
-      })}
-
-      {gradingSchema?.grading_components.some(
-        (comp) => comp.by_who === "supervisor"
-      ) &&
-        user?.id === supervisor.id && (
-          <Button type="primary" htmlType="submit">
-            Хадгалах
-          </Button>
-        )}
-    </Form>
   );
 };
 

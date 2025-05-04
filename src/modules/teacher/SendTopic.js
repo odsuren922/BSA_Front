@@ -58,7 +58,9 @@ function SendTopic() {
 =======
   const fetchProgramData = async () => {
     try {
-      const data = await fetchData("api/department");
+      const data = await fetchData("department");
+      console.log('data', data);
+      
       if (data && data.length > 0) {
         const departmentPrograms = JSON.parse(data[0].programs || "[]");
         const formattedOptions = departmentPrograms.map((program) => ({
@@ -71,11 +73,13 @@ function SendTopic() {
       console.error("Error fetching department data:", error);
     }
   };
-
+  
   useEffect(() => {
     const fetchProposalData = async () => {
       try {
         const data = await fetchData("proposalform");
+        const data = await fetchData("proposalform");
+        console.log("form", data)
         if (data && data[0]) {
           setFormId(data[0].id);
           setFormData(data[0].fields);

@@ -39,6 +39,7 @@ const CommitteeScheduler = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -51,11 +52,14 @@ const CommitteeScheduler = () => {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const committeesData = await api.get(`/committees/active-cycle`);
       setCommittees(committeesData.data.data);
       updateEvents(committeesData.data.data);
     } catch (error) {
       console.error("Error fetching committees:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,7 +67,7 @@ const CommitteeScheduler = () => {
     const allEvents = committeesData.flatMap((committee) =>
       committee.schedules.map((schedule) => ({
         id: schedule.id,
-        title: `${committee.name}: ${schedule.notes}`,
+        title: `${committee.name}: ${schedule.notes || ""}`,
 
         start: new Date(schedule.start_datetime),
         end: new Date(schedule.end_datetime),
@@ -119,18 +123,57 @@ const CommitteeScheduler = () => {
 
   const handleDeleteMeeting = () => {
     if (!selectedEvent) return;
-    setShowDeleteModal(true);
+    Modal.confirm({
+      title: "Та энэ хуваарийг устгах уу?",
+      content: `${selectedEvent.title}`,
+      okText: "Тийм",
+      cancelText: "Үгүй",
+      onOk: async () => {
+        try {
+          await api.delete(
+            `/committees/${selectedEvent.committee}/schedules/${selectedEvent.id}`
+          );
+          toast.success("Устгалаа");
+
+          setEvents((prev) => prev.filter((e) => e.id !== selectedEvent.id));
+
+          setSelectedEvent(null);
+          setModalVisible(false);
+          setIsEditMode(false);
+          form.resetFields();
+        } catch (err) {
+          toast.error("Устгахад алдаа гарлаа");
+        } finally {
+          fetchData();
+        }
+      },
+    });
   };
 
   const handleSaveMeeting = async () => {
     try {
       const values = await form.validateFields();
+
+      const startDateTime = moment(values.start_date)
+        .set({
+          hour: values.start_time.hour(),
+          minute: values.start_time.minute(),
+        })
+        .toISOString();
+
+      const endDateTime = moment(values.end_date)
+        .set({
+          hour: values.end_time.hour(),
+          minute: values.end_time.minute(),
+        })
+        .toISOString();
+
       const payload = {
         notes: values.notes,
         location: values.location,
         event_type: "Комисс",
-        start_datetime: values.time[0].toISOString(),
-        end_datetime: values.time[1].toISOString(),
+        start_datetime: startDateTime,
+        end_datetime: endDateTime,
         room: values.room,
       };
 
@@ -213,22 +256,6 @@ const CommitteeScheduler = () => {
     };
   };
 
-  //   const CustomEvent = ({ event }) => {
-  //     const committee = committees.find((c) => c.id === event.committee);
-  //     return (
-        // <div>
-        //   <div style={{ fontWeight: "bold" }}>{event.title}</div>
-        //   <div style={{ fontSize: "12px" }}>
-        //     {event.location && <div>📍 {event.location}</div>}
-        //     {event.notes && <div>📝 {event.notes}</div>}
-        //     {committee && <div>Комисс: {committee.name}</div>}
-        //     {committee?.grading_component?.name && (
-        //       <div>Шалгуур: {committee.grading_component.name}</div>
-        //     )}
-        //   </div>
-        // </div>
-  //     );
-  //   };
   const CustomEvent = ({ event }) => {
     const committee = committees.find((c) => c.id === event.committee);
     const popoverContent = (
@@ -262,10 +289,6 @@ const CommitteeScheduler = () => {
         <div>
           ⏱ <strong>Time:</strong> {moment(event.start).format("HH:mm")} -{" "}
           {moment(event.end).format("HH:mm")}
-
-   
-       
-          
         </div>
       </div>
     );
@@ -278,18 +301,19 @@ const CommitteeScheduler = () => {
         placement="rightTop"
       >
         <div style={{ padding: "2px", cursor: "pointer" }}>
-       
-
           <div style={{ fontSize: "12px" }}>
-          {committee && <div> {committee.name}</div>}
+            {committee && <div> {committee.name}</div>}
             {committee?.grading_component?.name && (
               <div> {committee.grading_component.name}</div>
             )}
-            {event.location && <div> {event.location} байр {event.room} тоот </div>}
+            {event.location && (
+              <div>
+                {" "}
+                {event.location} байр {event.room} тоот{" "}
+              </div>
+            )}
             {event.notes && <div>📝 {event.notes}</div>}
-           
-    
-        </div>
+          </div>
         </div>
       </Popover>
     );
@@ -301,8 +325,12 @@ const CommitteeScheduler = () => {
       notes: event.notes,
       location: event.location,
       room: event.room,
-      time: [moment(event.start), moment(event.end)],
+      start_date: moment(event.start),
+      start_time: moment(event.start),
+      end_date: moment(event.end),
+      end_time: moment(event.end),
     });
+
     setModalVisible(true);
   };
   const groupedCommittees = committees.reduce((acc, committee) => {
@@ -452,12 +480,6 @@ const CommitteeScheduler = () => {
           </Col>
         </Row>
 
-        {/* <Modal
-          title="Шинэ уулзалт үүсгэх"
-          open={modalVisible}
-          onOk={handleCreateMeeting}
-          onCancel={() => setModalVisible(false)}
-        > */}
         <Modal
           title={isEditMode ? "Хуваарь засах" : "Шинэ уулзалт үүсгэх"}
           open={modalVisible}
@@ -490,25 +512,70 @@ const CommitteeScheduler = () => {
               <Input />
             </Form.Item>
 
-            <Form.Item
-              name="time"
-              label="Цагийн хүрээ"
-              rules={[{ required: true }]}
-            >
-              <DatePicker.RangePicker showTime format="YYYY-MM-DD HH:mm" />
-            </Form.Item>
-          </Form>
-        </Modal>
+            <Row gutter={16}>
+  <Col span={12}>
+    <Form.Item
+      name="start_date"
+      label="Эхлэх огноо"
+      rules={[{ required: true, message: "Эхлэх огноо сонгоно уу" }]}
+    >
+      <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
+    </Form.Item>
+  </Col>
+  <Col span={12}>
+    <Form.Item
+      name="start_time"
+      label="Эхлэх цаг"
+      rules={[{ required: true, message: "Эхлэх цаг оруулна уу" }]}
+    >
+      <DatePicker
+        picker="time"
+        format="HH:mm"
+        showTime={{ format: "HH:mm" }}
+        showNow={false}
+        showOk
+        style={{ width: "100%" }}
+      />
+    </Form.Item>
+  </Col>
+</Row>
 
-        <DeleteConfirmModal
-          show={showDeleteModal}
-          onHide={() => setShowDeleteModal(false)}
-          onConfirm={confirmDelete}
-          title="Хуваарь устгах уу?"
-          message="Та энэ хуваарийг устгахдаа итгэлтэй байна уу?"
-          confirmText="Тийм, устгах"
-          cancelText="Үгүй"
-        />
+<Row gutter={16}>
+  <Col span={12}>
+    <Form.Item
+      name="end_date"
+      label="Дуусах огноо"
+      rules={[{ required: true, message: "Дуусах огноо сонгоно уу" }]}
+    >
+      <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
+    </Form.Item>
+  </Col>
+  <Col span={12}>
+    <Form.Item
+      name="end_time"
+      label="Дуусах цаг"
+      rules={[{ required: true, message: "Дуусах цаг оруулна уу" }]}
+    >
+      <DatePicker
+        picker="time"
+        format="HH:mm"
+        showTime={{ format: "HH:mm" }}
+        showNow={false}
+        showOk
+        style={{ width: "100%" }}
+      />
+    </Form.Item>
+  </Col>
+</Row>
+
+          </Form>
+
+          {selectedEvent && (
+            <Button danger onClick={handleDeleteMeeting}>
+              Delete Meeting
+            </Button>
+          )}
+        </Modal>
       </DndProvider>
     </div>
   );

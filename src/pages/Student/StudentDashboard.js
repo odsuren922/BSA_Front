@@ -14,7 +14,7 @@ import {
 } from "antd";
 import AboutThesisTabs from "../../components/thesis/ThesisTabs";
 
-//TODO::EDIT
+
 import {
   studentOutlined,
   ScheduleOutlined,
@@ -46,7 +46,7 @@ const StudentDashboard = () => {
       setLoading(true);
       try {
         console.log("user", user);
-        const thesis = await api.get(`/thesisInfoBySid/${user.id}`);
+        const thesis = await api.get(`/thesisInfoBySid`);
         console.log(thesis.data.data);
         setThesis(thesis.data.data);
 
@@ -138,6 +138,7 @@ const StudentDashboard = () => {
                 thesisCycle={thesisCycle}
                 score={score}
                 tasks={tasks}
+                supervisor={supervisor}
               />
             </Card>
           </Col>
