@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { notification } from 'antd';
+import { notification, Spin } from 'antd';
 import authService from '../services/authService';
 
 const OAuthCallback = () => {
@@ -9,12 +9,16 @@ const OAuthCallback = () => {
   const [status, setStatus] = useState('Processing authentication...');
   const [error, setError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const processingTimestamp = useRef(Date.now());
 
   useEffect(() => {
     const processCallback = async () => {
       // Prevent double processing
       if (isProcessing) return;
       setIsProcessing(true);
+      processingTimestamp.current = Date.now();
+      
+      console.log(`Starting OAuth callback processing at ${new Date().toISOString()}`);
       
       try {
         // Get the authorization code and state from URL
@@ -41,12 +45,17 @@ const OAuthCallback = () => {
         
         // Exchange authorization code for tokens
         setStatus('Exchanging code for token...');
+        console.log(`Exchanging code for token at ${new Date().toISOString()}`);
         
         const tokenData = await authService.exchangeCodeForToken(
           code, 
           state, 
           window.location.origin + '/auth'
         );
+        
+        // Processing time metrics
+        const tokenExchangeTime = Date.now() - processingTimestamp.current;
+        console.log(`Token exchange completed in ${tokenExchangeTime}ms at ${new Date().toISOString()}`);
         
         // Success path - get user data if not included in token response
         if (tokenData.user) {
@@ -63,9 +72,12 @@ const OAuthCallback = () => {
           localStorage.removeItem('intended_url'); // Clear intended URL
           
           // Redirect to intended URL
+          console.log(`Redirecting to ${intendedUrl} at ${new Date().toISOString()}`);
           setTimeout(() => navigate(intendedUrl), 1000);
         } else {
           setStatus('Fetching user information...');
+          console.log(`Fetching user data at ${new Date().toISOString()}`);
+          
           // Try to get user data
           try {
             await authService.fetchUserData();
@@ -81,11 +93,15 @@ const OAuthCallback = () => {
             localStorage.removeItem('intended_url'); // Clear intended URL
             
             setStatus('Authentication successful! Redirecting...');
+            console.log(`Redirecting to ${intendedUrl} at ${new Date().toISOString()}`);
             setTimeout(() => navigate(intendedUrl), 1000);
           } catch (userDataError) {
             console.error('Error fetching user data:', userDataError);
             
             // Try one more time after a short delay
+            setStatus('Retrying user data fetch...');
+            console.log(`Retrying user data fetch at ${new Date().toISOString()}`);
+            
             setTimeout(async () => {
               try {
                 await authService.fetchUserData();
@@ -94,8 +110,10 @@ const OAuthCallback = () => {
                 localStorage.removeItem('intended_url');
                 
                 setStatus('Authentication successful! Redirecting...');
+                console.log(`Redirecting to ${intendedUrl} after retry at ${new Date().toISOString()}`);
                 setTimeout(() => navigate(intendedUrl), 1000);
               } catch (retryError) {
+                console.error('Error on retry fetch user data:', retryError);
                 setError(`Failed to fetch user data: ${retryError.message}`);
                 setStatus('Authentication failed. Redirecting to login page...');
                 setTimeout(() => navigate('/login', { 
@@ -121,6 +139,7 @@ const OAuthCallback = () => {
         }), 3000);
       } finally {
         setIsProcessing(false);
+        console.log(`OAuth callback processing completed at ${new Date().toISOString()}`);
       }
     };
 
@@ -154,7 +173,7 @@ const OAuthCallback = () => {
         </div>
         
         <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-violet-500"></div>
+          <Spin size="large" tip="Please wait..." />
         </div>
       </div>
     </div>
