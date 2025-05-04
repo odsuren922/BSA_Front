@@ -10,15 +10,19 @@ const OAuthCallback = () => {
   const [error, setError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const processingTimestamp = useRef(Date.now());
+  const exchangeRequestSent = useRef(false); // Flag to prevent duplicate requests
 
   useEffect(() => {
     const processCallback = async () => {
-      // Prevent double processing
-      if (isProcessing) return;
+      // Prevent duplicate processing
+      if (isProcessing || exchangeRequestSent.current) return;
+      
       setIsProcessing(true);
+      exchangeRequestSent.current = true; // Set flag to prevent duplicate calls
       processingTimestamp.current = Date.now();
       
-      console.log(`Starting OAuth callback processing at ${new Date().toISOString()}`);
+      const requestId = Math.random().toString(36).substring(2, 10);
+      console.log(`[Auth-${requestId}] Starting OAuth callback processing at ${new Date().toISOString()}`);
       
       try {
         // Get the authorization code and state from URL
@@ -45,12 +49,14 @@ const OAuthCallback = () => {
         
         // Exchange authorization code for tokens
         setStatus('Exchanging code for token...');
-        console.log(`Exchanging code for token at ${new Date().toISOString()}`);
+        console.log(`[Auth-${requestId}] Exchanging code for token at ${new Date().toISOString()}`);
         
+        // Add the requestId to the exchange request
         const tokenData = await authService.exchangeCodeForToken(
           code, 
           state, 
-          window.location.origin + '/auth'
+          window.location.origin + '/auth',
+          requestId // Pass requestId for correlation
         );
         
         // Processing time metrics
@@ -139,7 +145,7 @@ const OAuthCallback = () => {
         }), 3000);
       } finally {
         setIsProcessing(false);
-        console.log(`OAuth callback processing completed at ${new Date().toISOString()}`);
+        console.log(`[Auth-${requestId}] OAuth callback processing completed at ${new Date().toISOString()}`);
       }
     };
 

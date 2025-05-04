@@ -196,27 +196,31 @@ class AuthService {
      * @param {string} code
      * @param {string|null} state
      * @param {string|null} redirectUri
+     * @param {string|null} requestId For log correlation
      * @returns {Promise<Object>}
      */
-    async exchangeCodeForToken(code, state = null, redirectUri = null) {
-        console.debug('Exchanging code for token');
+    async exchangeCodeForToken(code, state = null, redirectUri = null, requestId = null) {
+        const logId = requestId || Math.random().toString(36).substring(2, 10);
+        console.debug(`[Auth-${logId}] Exchanging code for token`);
 
         try {
             const response = await axios.post(`${API_URL}/api/oauth/exchange-token`, {
                 code,
                 state,
                 redirect_uri: redirectUri,
-                timestamp: new Date().toISOString() // Add timestamp to help debug timing issues
+                request_id: logId, // Send to backend for correlation
+                timestamp: new Date().toISOString()
             }, {
                 withCredentials: true,
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-Request-ID': logId
                 }
             });
-
-            console.debug('Token exchange response received', {
+    
+            console.debug(`[Auth-${logId}] Token exchange response received`, {
                 status: response.status,
                 hasAccessToken: !!response.data?.access_token,
                 hasUserData: !!response.data?.user
@@ -236,19 +240,19 @@ class AuthService {
 
             return response.data;
         } catch (error) {
-            console.error('Failed to exchange code for token:', error);
-
-            // Provide more context in errors
-            const errorMessage = error.response?.data?.error || error.message;
+            // Error handling with improved logging
+            console.error(`[Auth-${logId}] Failed to exchange code for token:`, error);
+            
+            // Enhance error logging
             const errorDetails = {
                 status: error.response?.status,
                 statusText: error.response?.statusText,
                 data: error.response?.data,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                requestId: logId
             };
 
-            console.error('Token exchange error details:', errorDetails);
-
+            console.error(`[Auth-${logId}] Token exchange error details:`, errorDetails);
             throw error;
         }
     }
