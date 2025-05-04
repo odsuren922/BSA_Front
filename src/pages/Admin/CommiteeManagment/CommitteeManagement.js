@@ -218,7 +218,7 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
           committee_id: committee.id,
         }
       );
-
+console.log("res", res)
         toast.success("Оноо амжилттай илгээгдлээ!");
         fetchData(); // Refresh after finalize
    
@@ -227,18 +227,50 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
       toast.error("Оноо илгээхэд алдаа гарлаа!");
     }
   };
-  const isCommitteeFinalized = (committee) => {
-
-    if (!committee.scores || committee.scores.length === 0) {
-      return false;
-    }
+  const isCommitteeFinalized = (committee, componentId) => {
+    if (!committee?.scores || committee.scores.length === 0) return false;
   
+    const graders = committee.members || [];
+    const students = committee.students || [];
   
-    return (
-      committee.students.length > 0 &&
-      committee.scores.length === committee.students.length
-    );
+    return students.every((student) => {
+      const studentId = student.student?.id;
+  
+      // Finalized score from `scores` table
+      const finalScoreObj = committee.scores.find(
+        (s) =>
+          s.student_id === studentId &&
+          s.component_id === componentId &&
+          s.given_by_type === "App\\Models\\Committee" &&
+          s.given_by_id === committee.id
+      );
+  
+      // Дундаж тооцоолох
+      const scoresFromGraders = graders
+        .map(
+          (grader) =>
+            grader.committeeScores?.find(
+              (cs) => cs.student?.id === studentId && cs.component_id === componentId
+            )?.score
+        )
+        .filter((s) => s !== undefined && !isNaN(parseFloat(s)))
+        .map((s) => parseFloat(s));
+  
+      const avgScore =
+        scoresFromGraders.length > 0
+          ? parseFloat(
+              (
+                scoresFromGraders.reduce((sum, val) => sum + val, 0) /
+                scoresFromGraders.length
+              ).toFixed(2)
+            )
+          : null;
+  
+      return finalScoreObj && parseFloat(finalScoreObj.score) === avgScore;
+    });
   };
+  
+  
   
   const renderCommitteeMemberItem = (member) => {
     const firstName = member.teacher?.firstname || "";
@@ -511,7 +543,7 @@ const CommitteeManagement = ({ cycleId, componentId, user }) => {
                 </Col>
 
                 <Col xs={24} md={14} lg={24}>
-                  <Button
+                 <Button
                     type="primary"
                     style={{ marginBottom: 10 }}
                     onClick={() => handleOpenScoreModal(committee)}

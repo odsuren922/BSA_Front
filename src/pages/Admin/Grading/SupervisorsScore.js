@@ -1,76 +1,159 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { Table, DatePicker, Button, message, Space } from "antd";
+import { useLocation , useNavigate} from "react-router-dom";
+import { Table, Button, message, Space, InputNumber ,Typography,Tooltip} from "antd";
 import api from "../../../context/api_helper";
-//TODO
+
 const SupervisorGradingPage = () => {
+    const { Title, Text } = Typography;
+
   const { search } = useLocation();
   const query = new URLSearchParams(search);
   const cycleId = query.get("cycleId");
   const schemaId = query.get("schemaId");
   const componentId = query.get("component");
 
+  const [editMode, setEditMode] = useState(false);
+  const [editedScores, setEditedScores] = useState({});
   const [scores, setScores] = useState([]);
-
   const [loading, setLoading] = useState(false);
-
+  const navigate = useNavigate();
   const fetchGradingData = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/thesis-cycles/" + cycleId + "/grading-components/" + componentId + "/scores");
-  
-      const transformed = res.data.flatMap((student) =>
-        student.scores.map((score) => ({
-          teacher_name: `${score.teacher?.lastname || ""} ${score.teacher?.firstname || ""}`,
-          student_name: `${student.student?.lastname || ""} ${student.student?.firstname || ""}`,
-          score: score.score,
-          scored_at: score.created_at,
-          teacher_id: score.teacher?.id,
-          student_id: student.student?.id,
-        }))
-      );
-  
-      setScores(transformed);
+      const thesesRes = await api.get(`/cycles/${cycleId}/theses`);
+      const scoresRes = await api.get(`/thesis-cycles/${cycleId}/grading-components/${componentId}/scores`);
+
+      const theses = thesesRes.data;
+      const scores = scoresRes.data.data;
+
+      const scoreMap = {};
+      scores.forEach(score => {
+        scoreMap[score.student.id] = score;
+      });
+
+      const formatted = theses.map(thesis => {
+        const student = thesis.student_info;
+        const score = scoreMap[student.id];
+
+        return {
+          key: thesis.id,
+          student_id: student.id,
+          thesis_id: thesis.id,
+          supervisor_id: thesis.supervisor_info?.id,
+          student_name: `${student.lastname} ${student.firstname}`,
+          teacher_name: `${thesis.supervisor_info?.lastname} ${thesis.supervisor_info?.firstname} `|| "—",
+          score: score?.score || null,
+          scored_at: score?.created_at || "—",
+          thesis_title: thesis.name_mongolian,
+        };
+      });
+
+      setScores(formatted);
     } catch (err) {
       console.error(err);
-      message.error("Failed to load grading data.");
+      message.error("Оноо ачааллахад алдаа гарлаа.");
     }
     setLoading(false);
   };
-  
-
 
   useEffect(() => {
     fetchGradingData();
   }, [cycleId, schemaId, componentId]);
 
+  const handleSaveScores = async () => {
+    const payloads = scores
+      .filter((row) => editedScores[row.student_id] !== undefined)
+      .map((row) => ({
+        thesis_id: row.thesis_id,
+        student_id: row.student_id,
+        component_id: componentId,
+        score: Number(editedScores[row.student_id]),
+        given_by_type: "teacher",
+        given_by_id: row.supervisor_id,
+      }));
+
+    try {
+      await Promise.all(payloads.map((p) => api.post("/scores", p)));
+      message.success("Оноо амжилттай хадгалагдлаа.");
+      setEditMode(false);
+      setEditedScores({});
+      fetchGradingData();
+    } catch (err) {
+      console.error(err);
+      message.error("Оноо хадгалах үед алдаа гарлаа.");
+    }
+  };
+
   const columns = [
     {
-      title: "Teacher",
-      dataIndex: "teacher_name",
-      key: "teacher_name",
+      title: "Төгсөлтийн ажлын сэдэв",
+      dataIndex: "thesis_title",
+      key: "thesis_title",
     },
     {
-      title: "Student",
+      title: "Оюутан",
       dataIndex: "student_name",
       key: "student_name",
     },
     {
-      title: "Score",
-      dataIndex: "score",
-      key: "score",
+      title: "Удирдагч багш",
+      dataIndex: "teacher_name",
+      key: "teacher_name",
     },
     {
-      title: "Scored At",
-      dataIndex: "scored_at",
-      key: "scored_at",
+      title: "Оноо",
+      dataIndex: "score",
+      key: "score",
+      render: (text, record) =>
+        editMode ? (
+          <InputNumber
+            min={0}
+            max={100}
+            value={editedScores[record.student_id] ?? text}
+            onChange={(value) =>
+              setEditedScores((prev) => ({
+                ...prev,
+                [record.student_id]: value,
+              }))
+            }
+          />
+        ) : (
+          text ?? "—"
+        ),
     },
   ];
 
   return (
     <div>
-      <h2></h2>
+<div className="flex items-center justify-between mb-4 mt-4">
+  {/* Зүүн тал */}
+  <div className="flex items-center gap-2">
+    <Tooltip title="Буцах">
+      <Button
+        type="text"
+        className="p-0 text-lg flex items-center"
+        onClick={() => navigate(-1)}
+        icon={<span className="text-xl">←</span>}
+      />
+    </Tooltip>
+    <Title level={4} style={{ marginBottom: 0 }}>
+      Удирдагч багшийн үнэлгээ
+    </Title>
+  </div>
 
+  {/* Баруун тал */}
+  <div>
+    {!editMode ? (
+      <Button type="default" onClick={() => setEditMode(true)}>
+        Оноо оруулах
+      </Button>
+    ) : (
+      <Button type="primary" onClick={handleSaveScores}>
+        Бүгдийг хадгалах
+      </Button>
+    )}
+  </div>
+</div>
 
 
       <Table
@@ -78,7 +161,7 @@ const SupervisorGradingPage = () => {
         columns={columns}
         dataSource={scores}
         loading={loading}
-        rowKey={(row) => `${row.teacher_id}-${row.student_id}`}
+        rowKey={(row) => row.student_id}
         pagination={false}
       />
     </div>

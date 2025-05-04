@@ -30,7 +30,9 @@ const AboutThesisTabs = ({
 }) => {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
+   const [scores, setScores] = useState([]);
   const safeTasks = tasks ?? [];
 ;
 
@@ -39,19 +41,43 @@ const AboutThesisTabs = ({
   console.log("gradingSchema", gradingSchema);
   const fetchFiles = async () => {
     try {
-      const filesRes = await api.get(`/thesis/${id}/files`);
+        if(id){
+            const filesRes = await api.get(`/thesis/${id}/files`);
       console.log(filesRes);
       console.log(filesRes.data);
       setFiles(filesRes.data);
+        } else {
+            return
+        }
+      
     } catch (err) {
       console.error("File fetch error", err);
     }
   };
+  useEffect(() => {
+    fetchScores();
+  }, [id]);
+  const fetchScores = async () => {
+    setLoading(true);
+    try {
+        if(id){
+      const res = await api.get(`/scores/getScoreByThesis/${id}/`);
 
+      console.log(res.data);
+      setScores(res.data.data);
+    } else {
+        return
+    }
+    } catch (err) {
+      toast.error("Оноо дуудахад алдаа гарлаа");
+    } finally {
+      setLoading(false);
+    }
+  };
   const handlePDF = async () => {
     setPdfLoading(true);
     try {
-      const res = await api.get(`/thesis/${id}`); //TODO :: resource ashigladag bolgoh
+      const res = await api.get(`/thesis/${id}`);
 
       generatePDF(tasks, res.data.data, thesisCycle);
     } catch (error) {
@@ -111,14 +137,36 @@ const AboutThesisTabs = ({
               <Col xs={24} md={24}>
                 {/* <Card title="Үнэлгээний схем" className="mb-4">
                   </Card> */}
+                  {
+                    id ?(
+                        <ThesisScores
+                        thesisId={id}
+                        thesisCycle={thesisCycle}
+                        supervisor={supervisor}
+                        thesis={thesis}
+                        gradingSchema={gradingSchema}
+                        scores={scores}
+                        loading={loading}
+      
+                      />
+                    ):(
+                        <Col xl={24} style={{ marginBottom: "10px" }}>
+                        <Card>
+                          <p
+                            style={{
+                              color: "#6c757d",
+                              fontSize: "14px",
+                              marginTop: "10px",
+                            }}
+                          >
+                            Судалгааны ажил олдсонгүй.
+                          </p>
+                        </Card>
+                      </Col>
 
-                <ThesisScores
-                  thesisId={id}
-                  thesisCycle={thesisCycle}
-                  supervisor={supervisor}
-                  thesis={thesis}
-                  gradingSchema={gradingSchema}
-                />
+                    )
+                  }
+
               </Col>
             </div>
           ),
@@ -176,20 +224,45 @@ const AboutThesisTabs = ({
             </div>
           ),
         },
-        {
-          label: "Оноо өгөх",
-          key: "3",
-          children: <div>  <ScoreForm 
-    thesisId={id}
-    gradingSchema={gradingSchema}
-    Supervisorid={thesis.supervisor.id}
-    Studentid ={thesis.student.id}
-    thesisCycleId={thesisCycle.id}
-    onSuccess={() => {
-      // Add any refresh logic here if needed
-    }}
-  /></div>,
-        },
+        ...(user.role !== "student"
+            ? [
+                {
+                  label: "Оноо өгөх",
+                  key: "3",
+                  children: (
+                    <div>
+                      {thesis.supervisor ? (
+                        <ScoreForm
+                          thesisId={id}
+                          gradingSchema={gradingSchema}
+                          Supervisorid={thesis.supervisor.id}
+                          Studentid={thesis.student.id}
+                          thesisCycleId={thesisCycle.id}
+                          scores={scores}
+                          loading={loading}
+                          onSuccess={fetchScores}
+                        />
+                      ) : (
+                        <Col xl={24} style={{ marginBottom: "10px" }}>
+                          <Card>
+                            <p
+                              style={{
+                                color: "#6c757d",
+                                fontSize: "14px",
+                                marginTop: "10px",
+                              }}
+                            >
+                              Мэдээлэл алга
+                            </p>
+                          </Card>
+                        </Col>
+                      )}
+                    </div>
+                  ),
+                },
+              ]
+            : []),
+        
         //         {
         //   label: "Тайлан",
         //   key: "3",

@@ -38,6 +38,7 @@ import AdminDashboard from "../pages/Admin/AdminDashboard";
 import ThesisCycle from "../pages/Admin/ThesisCyclePage";
 import ThesisCycleBetter from "../pages/Admin/ThesisCycleManagement/ThesisCyclePanel";
 import SupervisorGradingPage from "../pages/Admin/Grading/SupervisorsScore";
+import AllThesisAssignedGradingPage from "../pages/Admin/Grading/AllThesisAssignedGradingPage";
 import CommitteePanel from "../pages/Admin/CommitteePanel";
 import CommitteeScheduler from "../pages/Admin/CommiteeManagment/Scheduler";
 import Calendar from "../pages/Admin/NotUseful/Calendar";
@@ -152,6 +153,10 @@ function Main({ setUser, logoutFunction }) {
               path="/supervisor/grading"
               element={<SupervisorGradingPage />}
             />
+            <Route
+              path="/assignedTeacher/grading"
+              element={<AllThesisAssignedGradingPage />}
+            />
             <Route path="/committees" element={<CommitteePanel />} />
             <Route path="/thesis-deadlines" element={<ThesisDeadlinePage />} />
           </>
@@ -176,6 +181,11 @@ function Main({ setUser, logoutFunction }) {
             <Route path="/studentPlan/:id" element={<Plan />} />
 
             <Route path="/plan" element={<Plan />} />
+            <Route path="/teacher/committees" element={<CommitteeListPage />} />
+            <Route
+              path="/teacher/committees/detail/:id"
+              element={<CommitteeDetailPage />}
+            />
           </>
         );
       case "teacher":

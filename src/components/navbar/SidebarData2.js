@@ -31,6 +31,12 @@ export const SidebarData2 = {
         icon: <IoIcons.IoIosPaper />,
         cName: "nav-text",
       },
+      {
+        title: "Комисс",
+        path: "/teacher/committees",
+        icon: <IoIcons.IoIosPaper />,
+        cName: "nav-text",
+      },
 
   ],
   teacher: [

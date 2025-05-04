@@ -4,6 +4,8 @@ import { Table, Tag, Typography, Spin, Layout, Tabs } from "antd";
 import api from "../../../context/api_helper";
 import moment from "moment";
 import CommitteeDetailsPage from "./CommitteeDetailPage";
+import { useUser } from "../../../context/UserContext";
+import AssignedGradingTable from './AssignedGradingTable';
 const { Text } = Typography;
 const { Title } = Typography;
 const { Content } = Layout;
@@ -11,6 +13,7 @@ const { Content } = Layout;
 const CommitteeListPage = () => {
   const [committees, setCommittees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+   const { user } = useUser();
   const navigate = useNavigate();
 
   const programColors = {
@@ -25,6 +28,7 @@ const CommitteeListPage = () => {
       try {
         setIsLoading(true);
         const response = await api.get(`/committees/by-teacher/1`);
+       
         console.log(response.data.data);
         setCommittees(response.data.data);
       } catch (error) {
@@ -109,14 +113,21 @@ const CommitteeListPage = () => {
     },
   ];
 
-  if (isLoading) {
-    return <Spin size="large" />;
-  }
+//   if (isLoading) {
+//     return <Spin size="large" />;
+//   }
 
   return (
     <div className="p-4 bg-transparent">
       <header className="text-left mb-4">
-        <Title level={3}>Комиссын жагсаалт</Title>
+        {user.role !== "student" ?(
+                    <Title level={3}>Комисс ба Шүүмж өгөх сурагчид</Title>
+
+        ):(
+            <Title level={3}>Комисс</Title>
+
+        )}
+   
       </header>
 
       <Layout className="bg-white rounded-lg p-4">
@@ -132,6 +143,7 @@ const CommitteeListPage = () => {
                     columns={columns}
                     dataSource={data}
                     pagination={false}
+                    loading={isLoading}
                     onRow={(record) => ({
                       //   onClick: () => navigate(`/teacher/committees/detail/${record.key}`),
                       onClick: () =>
@@ -146,28 +158,18 @@ const CommitteeListPage = () => {
                   />
                 ),
               },
+              ...(user.role !== "student"
+                ? [
               {
                 key: "2",
-                label: "Шүүмж өгөх судалгааны ажил",
+                label: user.role === "student" ? "Шүүмж авах багш" : "Шүүмж өгөх судалгааны ажил",
                 children: (
-                  <Table
-                    columns={columns}
-                    dataSource={data}
-                    pagination={false}
-                    onRow={(record) => ({
-                      //   onClick: () => navigate(`/teacher/committees/detail/${record.key}`),
-                      onClick: () =>
-                        navigate(`/teacher/committees/detail/${record.key}`, {
-                          state: {
-                            grading_component: record.component,
-                            thesis_cycle: record.thesis_cycle,
-                          },
-                        }),
-                    })}
-                    rowClassName="hoverable-row"
-                  />
+                    <AssignedGradingTable/>
+               
                 ),
-              },
+              }
+            ]
+            : [])
             ]}
           />
         </Content>

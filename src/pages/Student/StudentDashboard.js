@@ -14,7 +14,7 @@ import {
 } from "antd";
 import AboutThesisTabs from "../../components/thesis/ThesisTabs";
 
-//TODO::EDIT
+
 import {
   studentOutlined,
   ScheduleOutlined,
@@ -138,6 +138,7 @@ const StudentDashboard = () => {
                 thesisCycle={thesisCycle}
                 score={score}
                 tasks={tasks}
+                supervisor={supervisor}
               />
             </Card>
           </Col>

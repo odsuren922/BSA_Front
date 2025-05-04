@@ -13,9 +13,12 @@ import {
   Button,
   Modal,
   Steps,
+  Spin
 } from "antd";
+import { useUser } from "../../../context/UserContext";
 import { useParams, useLocation } from "react-router-dom";
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import api from "../../../context/api_helper";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
@@ -47,11 +50,14 @@ const CommitteeDetailsPage = () => {
   const [committee, setCommittee] = useState(null);
   const [activeTab, setActiveTab] = useState("1");
   const [selectedMemberId, setSelectedMemberId] = useState(null);
-
+  const [loading, setLoading] = useState(false);
   const [gradingComponents, setGradingComponents] = useState([]);
   const [selectedComId, setSelectedComId] = useState(null);
   const location = useLocation();
   const { grading_component, thesis_cycle } = location.state || {};
+  const [assignedLoading, setAssignedLoading] = useState(false);
+   const { user } = useUser();
+
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [open, setOpen] = useState(false);
   const [stepNum, setStepNum] = useState(1);
@@ -68,12 +74,21 @@ const CommitteeDetailsPage = () => {
 
   const fetchAssigned = async () => {
     if (!selectedComId || !thesis_cycle?.id) return;
-    const res = await api.get(
-      `/assigned-grading/component/${selectedComId}/cycle/${thesis_cycle.id}`
-    );
-    console.log("Assigned Data:", res.data);
-    setAssignedData(res.data);
+  
+    setAssignedLoading(true);
+    try {
+      const res = await api.get(
+        `/assigned-grading/component/${selectedComId}/cycle/${thesis_cycle.id}`
+      );
+      console.log("Assigned Data:", res.data);
+      setAssignedData(res.data.data);
+    } catch (err) {
+      console.error("Fetch assigned error:", err);
+    } finally {
+      setAssignedLoading(false);
+    }
   };
+  
 
   useEffect(() => {
     fetchAssigned();
@@ -81,18 +96,23 @@ const CommitteeDetailsPage = () => {
 
   useEffect(() => {
     const fetchCommittee = async () => {
-      const response = await api.get(`/committees/${id}`);
-      const gradingSchema = await api.get(
-        `/thesis-cycles/${thesis_cycle.id}/grading-schema-filter`
-      );
-
-      const data = response.data.data;
-      console.log(gradingSchema.data[0].grading_components);
-      setGradingComponents(gradingSchema.data[0].grading_components);
-
-      setCommittee(data);
+      setLoading(true);
+      try {
+        const response = await api.get(`/committees/${id}`);
+        const gradingSchema = await api.get(
+          `/thesis-cycles/${thesis_cycle.id}/grading-schema-filter`
+        );
+  
+        const data = response.data.data;
+        setGradingComponents(gradingSchema.data[0].grading_components);
+        setCommittee(data);
+      } catch (err) {
+        console.error("Committee fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-
+  
     fetchCommittee();
   }, [id]);
 
@@ -162,23 +182,35 @@ const CommitteeDetailsPage = () => {
       ),
     },
     {
-      title: "Томилогдсон багш",
-      dataIndex: "student",
-      render: (student) => {
-        const assigned = assignedData.find((a) => a.student_id === student.id);
-        const teacher = committee.members.find(
-          (m) => m.teacher?.id === assigned?.assigned_by_id
-        );
-
-        return teacher ? (
-          <Tag color="green">
-            {teacher.teacher.lastname} {teacher.teacher.firstname}
-          </Tag>
-        ) : (
-          <Text type="secondary">-</Text>
-        );
-      },
-    },
+        title: "Томилогдсон багш",
+        dataIndex: "student",
+        render: (student) => {
+          const assigned = assignedData.find((a) => a.student_id === student.id);
+          const teacher = committee.members.find(
+            (m) => m.teacher?.id === assigned?.assigned_by_id
+          );
+      
+          return assigned ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Tag color="green">
+                {teacher
+                  ? `${teacher.teacher.lastname} ${teacher.teacher.firstname}`
+                  : "Багш"}
+              </Tag>
+              <Button
+                danger
+                size="small"
+                onClick={() => handleDeleteAssignedGrading(assigned.id)}
+              >
+                X
+              </Button>
+            </div>
+          ) : (
+            <Text type="secondary">-</Text>
+          );
+        },
+      }
+      
   ];
   const getStudentTableColumns2 = () => [
     {
@@ -224,13 +256,36 @@ const CommitteeDetailsPage = () => {
       ),
     },
 
-    {
-      title: "Дэлгэрэнгүй",
-      render: (text, record) => (
-        <a href={`/aboutthesis/${record.student.thesis.id}`}>Дэлгэрэнгүй</a>
-      ),
-    },
+    ...(user.role !== "student"
+        ? [
+            {
+              title: "Дэлгэрэнгүй",
+              render: (text, record) => (
+                <a href={`/aboutthesis/${record.student.thesis.id}`}>Дэлгэрэнгүй</a>
+              ),
+            },
+          ]
+        : []),
   ];
+  const handleDeleteAssignedGrading = async (assignedId) => {
+    Modal.confirm({
+      title: "Та энэ томилгоог устгахдаа итгэлтэй байна уу?",
+      okText: "Тийм",
+      cancelText: "Үгүй",
+      okType: "danger",
+      async onOk() {
+        try {
+          await api.delete(`/assigned-grading/${assignedId}`);
+          await fetchAssigned();
+          toast.success("Амжилттай устгагдлаа");
+        } catch (error) {
+          console.error("Устгах үед алдаа:", error);
+          toast.error("Устгаж чадсангүй");
+        }
+      },
+    });
+  };
+  
   const handleAssignedGrading = async () => {
     if (!selectedMemberId || !selectedComId || selectedRowKeys.length === 0) {
       return Modal.warning({
@@ -273,49 +328,33 @@ const CommitteeDetailsPage = () => {
       });
     }
   };
+ // if (loading) return <Spin size="large" style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
 
-  if (!committee) return <Empty description="Committee not found" />;
-
+ if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 100 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+  
+  if (!committee) {
+    return <Empty description="Committee not found" />;
+  }
+  
   return (
     <div style={{ padding: 24 }}>
-      <Typography.Title level={3}>{committee.name}</Typography.Title>
+    
+
+       
+      <Typography.Title level={3}>{committee?.name}</Typography.Title>
+
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
         <TabPane tab="Оюутнууд" key="1">
-          {/* <Col xs={24} md={10} lg={8}>
-            <Card>
-              <List
-                dataSource={committee.members}
-                renderItem={(member) => {
-                  const isSelected = selectedMemberId === member.id;
 
-                  return (
-                    <List.Item
-                      style={{
-                        backgroundColor: isSelected ? "#e6f7ff" : undefined,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => setSelectedMemberId(member.id)}
-                      actions={[
-                        <Tag
-                          color={roleColorMap[member.role]}
-                          key={member.role}
-                        >
-                          {roleLabels[member.role]}
-                        </Tag>,
-                      ]}
-                    >
-                      <List.Item.Meta
-                        title={`${member.teacher?.lastname} ${member.teacher?.firstname}`}
-                      />
-                    </List.Item>
-                  );
-                }}
-              />
-            </Card>
-          </Col> */}
 
           <Col xs={24} md={14} lg={24}>
-            <Card>
+            <Card  loading={loading}>
               <Table
                 dataSource={committee.students}
                 columns={getStudentTableColumns2()}
@@ -325,9 +364,12 @@ const CommitteeDetailsPage = () => {
               />
             </Card>
           </Col>
+   
         </TabPane>
+   
+
         <TabPane tab="Багш нар" key="2">
-          <Card>
+        <Card  loading={loading}>
             <List
               dataSource={committee.members}
               renderItem={(member) => (
@@ -346,6 +388,7 @@ const CommitteeDetailsPage = () => {
             />
           </Card>
         </TabPane>
+        {user.role !== "student" && (
         <TabPane tab="Шүүмж багш томилох" key="3">
           <Row justify="center">
             <Col xs={24} sm={20} md={16} lg={14}>
@@ -362,7 +405,8 @@ const CommitteeDetailsPage = () => {
 
           {stepNum === 1 && (
             <Col xs={24} md={12} lg={12}>
-              <Card title="Үнэлгээний компонент сонгох">
+            <Card title="Үнэлгээний компонент сонгох" loading={assignedLoading || loading} >
+
                 <List
                   grid={{ gutter: 12, column: 3 }}
                   dataSource={gradingComponents}
@@ -381,7 +425,7 @@ const CommitteeDetailsPage = () => {
                         >
                           <Card.Meta
                             title={<Text strong>{component.name}</Text>}
-                            description={`Оноо: ${component.score}, Хэн өгдөг: ${component.by_who}`}
+                            description={`Оноо: ${component.score}`}
                           />
                         </Card>
                       </List.Item>
@@ -454,6 +498,7 @@ const CommitteeDetailsPage = () => {
             </>
           )}
         </TabPane>
+        )}
       </Tabs>
       <Modal
         title="Баталгаажуулах"
