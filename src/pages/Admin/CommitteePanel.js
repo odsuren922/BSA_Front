@@ -55,7 +55,7 @@ const handleBack = () => {
        <Container className="mt-5">
 
      <Button onClick={() => navigate(-1)} type="primary" className="mb-3">
-        ← Back
+        ← Буцах
       </Button>
       {/* <h2>Committee Panel</h2> */}
     

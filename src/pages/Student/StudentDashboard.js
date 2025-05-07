@@ -143,7 +143,7 @@ const StudentDashboard = () => {
             </Card>
           </Col>
           <Col span={8}>
-            <Card title="Quick Access" bordered={false}>
+            <Card title="Мэдэгдэл" bordered={false}>
               {/* <Button
                 icon={<ScheduleOutlined />}
                 block

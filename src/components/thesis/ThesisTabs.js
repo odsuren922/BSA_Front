@@ -176,7 +176,7 @@ const AboutThesisTabs = ({
           key: "2",
           children: (
             <div>
-              7 хоногийн үйлчлэлсэн төлөвлөгөө
+              7 хоногийн үечилсэн төлөвлөгөө
               <Row>
                 {safeTasks.length > 0 ? (
                   <Col xl={24} style={{ marginBottom: "10px" }}>

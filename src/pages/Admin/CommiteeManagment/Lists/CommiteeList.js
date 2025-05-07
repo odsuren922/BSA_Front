@@ -118,7 +118,7 @@ const renderCommitteeStudentPrograms = (committee) => {
                   </Col>
                   <Col>
                     <Button type="primary" onClick={handleCreateCommittee}>
-                      Create Committee
+                      Комисс нэмэх
                     </Button>
                   </Col>
                 </Row>

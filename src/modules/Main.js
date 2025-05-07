@@ -44,6 +44,7 @@ import CommitteeScheduler from "../pages/Admin/CommiteeManagment/Scheduler";
 import Calendar from "../pages/Admin/NotUseful/Calendar";
 import ThesisDeadlinePage from "../pages/Admin/ThesisCycleManagement/ThesisDeadline";
 import ThesisCycleManagement from "../pages/Admin/ThesisCycleManagement/ThesisCycleManagement";
+// import Calendar from "../pages/Admin/NotUseful/Calendar.js"
 function Main({ setUser, logoutFunction }) {
   const { user } = useUser();
   const [menuCollapsed, setMenuCollapsed] = useState(false);
@@ -159,6 +160,9 @@ function Main({ setUser, logoutFunction }) {
             />
             <Route path="/committees" element={<CommitteePanel />} />
             <Route path="/thesis-deadlines" element={<ThesisDeadlinePage />} />
+
+            <Route path="/thesis-Calendar" element={<Calendar />} />
+
           </>
         );
       case "supervisor":

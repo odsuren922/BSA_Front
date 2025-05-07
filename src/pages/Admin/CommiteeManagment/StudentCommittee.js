@@ -47,7 +47,7 @@ const StudentCommittee = ({ cycleId, componentId,committees,setCommittees }) => 
         setTheses(thesesResponse.data);
         console.log("thesesResponse.data)", thesesResponse.data);
         // setCommittees(committeesRes.data.data);
-        toast.success(" амжилттай үүсгэсэн!");
+        // toast.success(" амжилттай үүсгэсэн!");
       } catch (e) {
         //toast.error("Мэдээлэл ачаалахад алдаа гарлаа");
       }

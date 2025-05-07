@@ -6,7 +6,6 @@ import OAuthCallback from "./auth/OAuthCallback";
 import { checkOAuthStatus, logoutOAuth } from "./oauth";
 import { UserProvider, useUser } from "./context/UserContext";
 import { fetchUserRole, mapGidToRole } from "./services/RoleService";
-import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function AppContent() {

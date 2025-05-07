@@ -69,7 +69,7 @@ const SchemaEditorModal = ({ open, onCancel, onSuccess, schema ,user}) => {
       title={
         <>
           <CalculatorOutlined className="me-2" />
-          {schema ? "Шалгалтын схемийг засах" : "Шинэ схем үүсгэх"}
+          {schema ? "Үнэлгээний задаргаа аргачлалг засах" : "Шинээр үнэлгээний задаргаа үүсгэх"}
         </>
       }
       open={open}

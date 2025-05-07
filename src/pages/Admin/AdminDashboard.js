@@ -151,7 +151,7 @@ const AdminDashboard = () => {
                   Reports
                 </button> */}
 
-<button
+{/* <button
   className="btn btn-sm"
   style={{ backgroundColor: "#fff3e0", color: "#fb8c00" }}
   onClick={(e) => {
@@ -160,7 +160,7 @@ const AdminDashboard = () => {
   }}
 >
   Эцсийн хугацаа товлох
-</button>
+</button> */}
 
             <a
               className="btn btn-sm"

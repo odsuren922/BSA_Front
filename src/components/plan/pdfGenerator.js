@@ -156,7 +156,7 @@ const generatePDF = (data, thesis, thesisCycle) => {
       { text: `${thesis.name_mongolian || ""}`, style: "header" },
       { text: `${thesis.name_english || ""}`, style: "header" },
       { text: `Сэдэвт бакалаврын судалгааны ажлын`, style: "subheader" },
-      { text: ` 7 хоногийн үйлчлэлсэн төлөвлөгөө`, style: "subheader" },
+      { text: ` 7 хоногийн үечилсэн төлөвлөгөө`, style: "subheader" },
       {
         text: `Хугацаа: ${thesis_cycle?.start_date || "-"} - ${thesis_cycle?.end_date || "-"} (${weeks_num} долоо хоног)`,
         style: "normal",
@@ -225,7 +225,7 @@ const generatePDF = (data, thesis, thesisCycle) => {
   previewContainer.style.overflow = "hidden";
 
   const downloadBtn = document.createElement("button");
-  downloadBtn.textContent = "Download PDF";
+  downloadBtn.textContent = "PDF татаж авах";
   downloadBtn.style.alignSelf = "flex-end";
   downloadBtn.style.padding = "10px 20px";
   downloadBtn.style.backgroundColor = "#007bff";

@@ -383,19 +383,7 @@ const TeacherCommittee = ({ cycleId, componentId ,committees, setCommittees}) =>
         {/* Left Column: Teacher List and Add to Committee */}
         <Col span={12}>
           <Row style={{ marginBottom: 16 }} gutter={8}>
-            {/* <Col span={8}>
-              <Select
-                style={{ width: "100%" }}
-                placeholder="Select role"
-                value={selectedRole}
-                onChange={(value) => setSelectedRole(value)}
-                options={[
-                  { value: "member", label: "Гишүүн" },
-                  { value: "secretary", label: "Нарийн бичиг" },
-                  { value: "leader", label: "Ахлах" },
-                ]}
-              />
-            </Col> */}
+        
 
             <Col span={24}>
               <Space direction="vertical" style={{ width: "100%" }}>
@@ -436,11 +424,11 @@ const TeacherCommittee = ({ cycleId, componentId ,committees, setCommittees}) =>
                   style={{ width: "80%" }}
                 >
                   {selectedCommitteeId
-                    ? `Add to ${
+                    ? ` ${
                         committees.find((c) => c.id === selectedCommitteeId)
                           ?.name
-                      }`
-                    : "Select Committee"}{" "}
+                      } -д хуваарилах`
+                    : "Хуваарилах"}{" "}
                   ({selectedTeacherIds.length})
                 </Button>
               </Space>
