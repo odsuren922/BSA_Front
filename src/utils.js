@@ -1,3 +1,5 @@
+// src/utils.js - Modified version with improved auth handling
+
 import authService from "./services/authService";
 import { notification } from "antd";
 
@@ -6,6 +8,9 @@ import { notification } from "antd";
  */
 export const fetchData = async (endpoint, params = {}) => {
   try {
+    // Ensure we have a fresh token before making the request
+    await authService.refreshTokenIfNeeded();
+    
     const response = await authService.api.get(`/api/${endpoint}`, { params });
     const responseData = response.data?.data ?? response.data;
     return responseData;
@@ -31,10 +36,16 @@ export const fetchData = async (endpoint, params = {}) => {
 };
 
 /**
- * POST/PUT/DELETE request — CSRF cookie-г заавал авна
+ * POST/PUT/DELETE request with CSRF protection
  */
 export const postData = async (endpoint, data = {}, method = "post") => {
   try {
+    // Ensure we have a fresh token
+    await authService.refreshTokenIfNeeded();
+    
+    // Get CSRF token before non-GET requests
+    await authService.getCsrfToken();
+    
     let response;
     
     if (method.toLowerCase() === "post") {

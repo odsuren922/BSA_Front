@@ -115,12 +115,7 @@ class AuthService {
      * @returns {boolean}
      */
     isAuthenticated() {
-        const authState = this.getAuthState();
-        const isAuth = !!authState;
-
-        console.debug('Authentication check:', isAuth);
-
-        return isAuth;
+        return !!this.getToken();
     }
 
     /**
@@ -142,8 +137,21 @@ class AuthService {
      * @returns {string|null}
      */
     getToken() {
+        // First try the direct token storage (primary method)
+        const directToken = localStorage.getItem('oauth_token');
+        if (directToken) {
+            return directToken;
+        }
+        
+        // Fallback to auth_state
         const authState = this.getAuthState();
-        return authState?.token || null;
+        if (authState && authState.token) {
+            // If token found in auth_state, store it for future use
+            localStorage.setItem('oauth_token', authState.token);
+            return authState.token;
+        }
+        
+        return null;
     }
 
     /**
@@ -163,6 +171,24 @@ class AuthService {
         console.debug('Setting auth state:', { ...authState, token: '***REDACTED***' });
 
         localStorage.setItem('auth_state', JSON.stringify(authState));
+        
+        // Store individual items for easy access
+        if (authState) {
+            if (authState.token) {
+                localStorage.setItem('oauth_token', authState.token);
+            }
+            
+            if (authState.refreshToken) {
+                localStorage.setItem('refresh_token', authState.refreshToken);
+            }
+            
+            // Store token expiry info
+            if (authState.tokenExpiry) {
+                const expiresIn = Math.floor((authState.tokenExpiry - Date.now()) / 1000);
+                localStorage.setItem('expires_in', expiresIn.toString());
+                localStorage.setItem('token_time', Math.floor(Date.now() / 1000).toString());
+            }
+        }
 
         // Dispatch event for any listeners
         window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }));
@@ -174,7 +200,12 @@ class AuthService {
     clearAuth() {
         console.debug('Clearing auth state');
 
+        // Clear all auth-related items
         localStorage.removeItem('auth_state');
+        localStorage.removeItem('oauth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('expires_in');
+        localStorage.removeItem('token_time');
 
         // Dispatch event for any listeners
         window.dispatchEvent(new CustomEvent('auth:changed', { detail: null }));
@@ -204,6 +235,9 @@ class AuthService {
         console.debug(`[Auth-${logId}] Exchanging code for token`);
 
         try {
+            // First, get CSRF cookie for the token exchange
+            await this.getCsrfToken();
+            
             const response = await axios.post(`${API_URL}/api/oauth/exchange-token`, {
                 code,
                 state,
@@ -230,7 +264,7 @@ class AuthService {
                 throw new Error('Invalid token response: missing access_token');
             }
 
-            // Store auth state
+            // Store auth state and individual tokens
             this.setAuthState({
                 token: response.data.access_token,
                 refreshToken: response.data.refresh_token,
@@ -258,6 +292,25 @@ class AuthService {
     }
 
     /**
+     * Get CSRF token
+     * @returns {Promise<boolean>}
+     */
+    async getCsrfToken() {
+        try {
+            await axios.get(`${API_URL}/sanctum/csrf-cookie`, { 
+                withCredentials: true,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            return true;
+        } catch (error) {
+            console.error('Error getting CSRF token:', error);
+            return false;
+        }
+    }
+
+    /**
      * Refresh the token
      * @returns {Promise<boolean>}
      */
@@ -265,8 +318,11 @@ class AuthService {
         console.debug('Attempting to refresh token');
 
         try {
-            const authState = this.getAuthState();
-            if (!authState?.refreshToken) {
+            // First get CSRF token
+            await this.getCsrfToken();
+            
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!refreshToken) {
                 console.debug('No refresh token available');
                 return false;
             }
@@ -274,7 +330,7 @@ class AuthService {
             console.debug('Sending refresh token request');
 
             const response = await axios.post(`${API_URL}/api/oauth/refresh-token`, {
-                refresh_token: authState.refreshToken,
+                refresh_token: refreshToken,
                 timestamp: new Date().toISOString() // Add timestamp to help debug timing issues
             }, {
                 withCredentials: true,
@@ -295,7 +351,14 @@ class AuthService {
                 return false;
             }
 
-            // Update auth state
+            // Get the current auth state
+            const authState = this.getAuthState();
+            if (!authState) {
+                console.error('No auth state found during token refresh');
+                return false;
+            }
+            
+            // Update token in auth state and individual storage
             this.setAuthState({
                 ...authState,
                 token: response.data.access_token,
@@ -403,12 +466,7 @@ class AuthService {
 
         try {
             // Get CSRF cookie
-            await axios.get(`${API_URL}/sanctum/csrf-cookie`, {
-                withCredentials: true,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
+            await this.getCsrfToken();
 
             console.debug('CSRF cookie obtained, redirecting to OAuth provider');
 
@@ -428,10 +486,22 @@ class AuthService {
         console.debug('Logging out user');
 
         try {
-            await this.api.post('/logout', {
-                timestamp: new Date().toISOString() // Help debug timing issues
-            });
-            console.debug('Logout API call successful');
+            await this.getCsrfToken();
+            
+            const token = this.getToken();
+            
+            if (token) {
+                await this.api.post('/logout', {
+                    timestamp: new Date().toISOString() // Help debug timing issues
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                console.debug('Logout API call successful');
+            } else {
+                console.warn('No token available for logout API call');
+            }
         } catch (error) {
             console.error('Logout API call failed:', error);
             // Continue with client-side logout even if API call fails

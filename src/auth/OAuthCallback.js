@@ -1,3 +1,5 @@
+// src/auth/OAuthCallback.js - Modified version with improved token handling
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { notification, Spin } from 'antd';
@@ -62,6 +64,14 @@ const OAuthCallback = () => {
         // Processing time metrics
         const tokenExchangeTime = Date.now() - processingTimestamp.current;
         console.log(`Token exchange completed in ${tokenExchangeTime}ms at ${new Date().toISOString()}`);
+        
+        // Log the token storage state
+        console.log('Auth state after token exchange:', {
+          hasAuthState: !!localStorage.getItem('auth_state'),
+          hasOAuthToken: !!localStorage.getItem('oauth_token'),
+          hasRefreshToken: !!localStorage.getItem('refresh_token'),
+          tokenTimeExists: !!localStorage.getItem('token_time')
+        });
         
         // Success path - get user data if not included in token response
         if (tokenData.user) {

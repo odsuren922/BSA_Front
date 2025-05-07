@@ -34,6 +34,10 @@ import CommitteeListPage from "../pages/Teacher/Committee/CommitteeList";
 import CommitteeDetailPage from "../pages/Teacher/Committee/CommitteeDetailPage";
 import CommitteeCalendarPage from "../pages/Teacher/Committee/CommitteeCalendarPage";
 
+
+import TestNotifications from "../TestNotification";
+
+
 // Department routes
 export const departmentRoutes = (
   <>
@@ -71,7 +75,8 @@ export const studentRoutes = (
     <Route path="/student/dashboard" element={<StudentDashboard />} />
     <Route path="/studentPlan/:id" element={<Plan />} />
     <Route path="/plan" element={<Plan />} />
-  </>
+    <Route path="/test-notifications" element={<TestNotifications />} />
+    </>
 );
 
 // Teacher routes
