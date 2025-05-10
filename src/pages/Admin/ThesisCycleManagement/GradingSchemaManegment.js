@@ -157,12 +157,19 @@ const GradingSchemaManagement = ({ refreshTrigger, user, schemas, setSchemas, fe
                     <p>
                       <strong>Хугацаа:</strong> {component.scheduled_week} -р долоо хоногт
                     </p>
+                
                     <p>
                       <strong>Дүгнэгч: </strong>
                       {component.by_who === "supervisor" && 'Удирдагч багш'}
                       {component.by_who === "committee" && 'Комисс'}
                       {component.by_who === "examiner" && 'Шүүмж багш'}
                     </p>
+                    {component.description && (
+                       <p>
+                      <strong>Тайлбар:</strong> {component.description} 
+                    </p>   
+                    )}
+                  
                     {component.grading_criteria?.length > 0 && (
                       <>
                         <h5>Шалгуур үзүүлэлтүүд:</h5>
@@ -175,6 +182,7 @@ const GradingSchemaManagement = ({ refreshTrigger, user, schemas, setSchemas, fe
                         </ul>
                       </>
                     )}
+
                   </Card>
                 ))}
               </Panel>

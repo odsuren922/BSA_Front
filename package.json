@@ -10,6 +10,7 @@
     "axios": "^0.24.0",
     "bootstrap": "^5.3.5",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
     "file-saver": "^2.0.5",
     "firebase": "^9.23.0",
     "frappe-gantt": "^1.0.3",

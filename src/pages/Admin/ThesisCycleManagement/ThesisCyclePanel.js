@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Tabs } from "antd";
 import GradingSchemaManagement from "./GradingSchemaManegment"; // Fixed the typo here
 import ThesisCycleManagement from "./ThesisCycleManagement";
+import Reminder from "./Reminder";
 import { useUser } from "../../../context/UserContext";
 import api from "../../../context/api_helper";
 import { toast } from "react-toastify";
@@ -47,6 +48,7 @@ const ThesisCyclePanel = () => {
            onDataChange={handleRefresh} 
            user={user} 
            schemas={schemas}
+           
            />
         </TabPane>
         <TabPane tab="Дүгнэх үе шат" key="grading">
@@ -59,6 +61,16 @@ const ThesisCyclePanel = () => {
             loading={loading}
           />
         </TabPane>
+
+        <TabPane tab="Мэдэгдэл" key="reminder">
+        <Reminder
+           onDataChange={handleRefresh} 
+           user={user} 
+           gradingSchemas={schemas}
+           
+           />
+        </TabPane>
+
       </Tabs>
     </div>
   );

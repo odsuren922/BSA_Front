@@ -252,7 +252,11 @@ const AdminDashboard = () => {
         <Col md={8} className="mb-4">
           <Card className="shadow-sm border-0 rounded-3">
             <Card.Header as="h5">Мэдээлэл</Card.Header>
-            <Card.Body></Card.Body>
+            <Card.Body>
+
+
+                
+            </Card.Body>
           </Card>
         </Col>
 

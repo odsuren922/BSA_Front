@@ -154,7 +154,7 @@ const SchemaEditorModal = ({ open, onCancel, onSuccess, schema ,user}) => {
                   <Option value="examiner">Шүүмж багш</Option>
                 </Select>
               </Col>
-              <Col span={4}>
+              <Col span={4}  style={{ marginTop: 16 }} >
                 <Input
                   placeholder="Долоо хоног"
                   value={component.scheduled_week}
@@ -164,6 +164,18 @@ const SchemaEditorModal = ({ open, onCancel, onSuccess, schema ,user}) => {
                     setComponents(updated);
                   }}
                 />
+              </Col>
+              <Col span={18}>
+                <TextArea
+                  placeholder="Тайлбар"
+                  value={component.description}
+                  onChange={(e) => {
+                    const updated = [...components];
+                    updated[compIndex].description = e.target.value;
+                    setComponents(updated);
+                  }}
+                />
+
               </Col>
               <Col span={2}>
                 <Button

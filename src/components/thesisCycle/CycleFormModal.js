@@ -1,272 +1,279 @@
 import React, { useState, useEffect } from "react";
-import { Button, Form, Modal, Row, Col, Alert } from "react-bootstrap";
-//TODO:: can create thesis Schema
+import {
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  DatePicker,
+  Select,
+  Button,
+  Alert,
+  Card,
+  Badge,
+  Row,
+  Col,
+} from "antd";
 
-import api from "../../context/api_helper";
-const CycleFormModal = ({ show, onHide, onSubmit, cycle,user,gradingSchemas }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    year: new Date().getFullYear(),
-    end_year:  new Date().getFullYear(),
-    semester: "Намар",
-    start_date: "",
-    end_date: "",
-    grading_schema_id: "",
-    status: "Идэвхитэй",
-    dep_id: user.dep_id,
-});
-  const [dateError, setDateError] = useState("");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // State for delete confirmation modal
+import { ConfigProvider } from "antd";
+import mnMN from "antd/es/locale/mn_MN";
+import "dayjs/locale/mn";
+import dayjs from "dayjs";
+
+dayjs.locale("mn");
+const { Option } = Select;
+
+const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas }) => {
+  const [form] = Form.useForm();
+  const [selectedSchema, setSelectedSchema] = useState(null);
+  const [deadlinesCom, setDeadlineCom] = useState(null);
+  const [statusWarning, setStatusWarning] = useState("");
+  const [componentDeadlines, setComponentDeadlines] = useState([]);
+
+ 
 
   useEffect(() => {
     if (cycle) {
-    
-      setFormData(cycle);
-    } else {
-      setFormData({
-        name: "",
-        year: new Date().getFullYear(),
-        end_year:  new Date().getFullYear()+1,
-        semester: "Намар",
-        start_date: "",
-        end_date: "",
-        grading_schema_id: "",
-        status: "Идэвхитэй",
-        dep_id: user.dep_id,
+      form.setFieldsValue({
+        ...cycle,
+        start_date: dayjs(cycle.start_date),
+        end_date: dayjs(cycle.end_date),
       });
+      const schema = gradingSchemas.find(s => s.id === parseInt(cycle.grading_schema_id));
+      setSelectedSchema(schema);
+
+      
+    } else {
+      form.resetFields();
     }
-  }, [cycle]);
+  }, [cycle, form, gradingSchemas]);
+  useEffect(() => {
+    if (cycle) {
+    const formStartDate = form.getFieldValue("start_date");
+    if (selectedSchema && formStartDate) {
+      const calculatedDeadlines = selectedSchema.grading_components.map((comp) => {
+        const week = parseInt(comp.scheduled_week);
+        const start = dayjs(formStartDate).add(week - 1, "week");
+        const end = start.add(6, "day");
+        return {
+          grading_component_id: comp.id,
+          start_date: start,
+          end_date: end,
+        };
+      });
+      setComponentDeadlines(calculatedDeadlines);
+    }
+}
+  }, [selectedSchema, form.getFieldValue("start_date")]);
+  
 
+  const handleFinish = (values) => {
+    const formattedValues = {
+      ...values,
+      start_date: values.start_date.format("YYYY-MM-DD"),
+      end_date: values.end_date.format("YYYY-MM-DD"),
+      dep_id: user.dep_id,
+      deadlines: componentDeadlines.map((d) => ({
+        grading_component_id: d.grading_component_id,
+        start_date: d.start_date?.format("YYYY-MM-DD"),
+        end_date: d.end_date?.format("YYYY-MM-DD"),
+      })),
+    };
+    console.log("formattedValues",componentDeadlines)
+    onSubmit(formattedValues);
+  };
 
-  const handleDateChange = (e) => {
-    const { name, value } = e.target;
-    const updatedFormData = { ...formData, [name]: value };
-    setFormData(updatedFormData);
-
-    if (updatedFormData.start_date && updatedFormData.end_date) {
-      if (updatedFormData.end_date < updatedFormData.start_date) {
-        setDateError("Дуусах өдөр эхлэх өдрөөс өмнө байж болохгүй.");
-      } else {
-        setDateError("");
-      }
+  const handleStatusChange = (value) => {
+    if (value === "Хаагдсан") {
+      setStatusWarning("Энэ циклийг 'Хаагдсан' төлөвт шилжүүлснээр бүх холбоотой дипломын ажлууд автоматаар хаагдах болно.");
+    } else {
+      setStatusWarning("");
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (dateError) return;
-    onSubmit(formData);
+  const handleSchemaChange = (value) => {
+    const schema = gradingSchemas.find((s) => s.id === parseInt(value));
+    setSelectedSchema(schema);
   };
+  const deadlines = ((comp) => {
+    const formStartDate = form.getFieldValue("start_date");
+    const week = parseInt(comp.scheduled_week);
+    let start = null;
+    let end = null;
+    if (!isNaN(week) && formStartDate) {
+      start = dayjs(formStartDate).add(week - 1, "week");
+      end = start.add(6, "day");
+    }
+    return {
+      grading_component_id: comp.id,
+      start_date: start,
+      end_date: end,
+    };
+  });
 
-  // Show confirmation modal before deleting
-  const confirmDelete = () => {
-    setShowDeleteConfirm(true);
+  const handleDeadlineChange = (idx, field, value) => {
+    const updated = [...componentDeadlines];
+    updated[idx][field] = value;
+    setComponentDeadlines(updated);
   };
+  
 
-  // Handle delete confirmation
-  const handleDeleteConfirmed = () => {
-    setShowDeleteConfirm(false);
-    const updatedData = { ...formData, status: "Устгах" };
-    onSubmit(updatedData);
-  };
-
-  const calculateDuration = (start, end) => {
-    if (!start || !end) return "";
-
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const diffTime = endDate - startDate;
-
-    if (diffTime < 0) return "Тохиромжгүй огноо";
-
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const weeks = Math.floor(diffDays / 7);
-    const days = diffDays % 7;
-
-    return `${weeks} долоо хоног ${days} өдөр`;
-  };
 
   return (
-    <>
-      <Modal show={show} onHide={onHide} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {cycle ? "Edit Cycle" : "Шинэ судалгааны ажлын цикл үүсгэх"}
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmit}>
-          <Modal.Body>
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group controlId="cycleName">
-                  <Form.Label>БСА нэр</Form.Label>
-                  <Form.Control
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col md={3}>
-                <Form.Group controlId="year">
-                  <Form.Label>Хичээлийн жил</Form.Label>
-                  <Form.Control
-                    type="number"
-                    required
-                    value={formData.year}
-                    onChange={(e) =>
-                      setFormData({ ...formData, year: e.target.value })
-                    }
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col md={3}>
-                <Form.Group controlId="end_year">
-                  <Form.Label>Хичээлийн жил</Form.Label>
-                  <Form.Control
-                    type="number"
-                    required
-                    value={formData.end_year}
-                    onChange={(e) =>
-                      setFormData({ ...formData, end_year: e.target.value })
-                    }
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col md={3}>
-                <Form.Group controlId="semester">
-                  <Form.Label>Улирал</Form.Label>
-                  <Form.Select
-                    value={formData.semester}
-                    onChange={(e) =>
-                      setFormData({ ...formData, semester: e.target.value })
-                    }
-                  >
-                    <option>Намар</option>
-                    <option>Хавар</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group controlId="start_date">
-                  <Form.Label>Эхлэх өдөр</Form.Label>
-                  <Form.Control
-                    type="date"
-                    name="start_date"
-                    required
-                    value={formData.start_date}
-                    onChange={handleDateChange}
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group controlId="end_date">
-                  <Form.Label>Дуусах өдөр</Form.Label>
-                  <Form.Control
-                    type="date"
-                    name="end_date"
-                    required
-                    value={formData.end_date}
-                    onChange={handleDateChange}
-                  />
-                  {dateError && <Alert variant="danger">{dateError}</Alert>}
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group controlId="grading_schema_id">
-                  <Form.Label>Дүгнэх аргачлал сонгох</Form.Label>
-                  <Form.Select
-                    value={formData.grading_schema_id}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        grading_schema_id: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="">Сонгох</option>
-                    {gradingSchemas.map((schema) => (
-                      <option key={schema.id} value={schema.id}>
-                        {schema.name}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group controlId="status">
-                  <Form.Label>Төлөв</Form.Label>
-                  <Form.Select
-                    value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
-                    }
-                  >
-                    <option value="Идэвхитэй">Идэвхитэй</option>
-                    <option value="Хаагдсан">Хаагдсан</option>
-                    <option value="Хүлээгдэж буй">Хүлээгдэж буй</option>
-                    <option value="Цуцлагдсан">Цуцлагдсан</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-          </Modal.Body>
-          {formData.start_date && formData.end_date && (
-            <Alert variant="info">
-              Хугацаа:{" "}
-              {calculateDuration(formData.start_date, formData.end_date)}
-            </Alert>
-          )}
-
-          <Modal.Footer>
-            <Button variant="secondary" onClick={onHide}>
-              Цуцлах
-            </Button>
-            {/* Delete Button (only for existing cycles) */}
-            {cycle && (
-              <Button variant="danger" onClick={confirmDelete}>
-                Устгах
-              </Button>
-            )}
-            <Button variant="primary" type="submit" disabled={!!dateError}>
-              {cycle ? "Хадгалах" : "Үүсгэх"}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        show={showDeleteConfirm}
-        onHide={() => setShowDeleteConfirm(false)}
+    <ConfigProvider locale={mnMN}>
+    <Modal
+      visible={show}
+      onCancel={onHide}
+      title={cycle ? "Циклийг засах" : "Шинэ судалгааны ажлын цикл үүсгэх"}
+      footer={null}
+      width={800}
+    >
+      <Form
+        layout="vertical"
+        form={form}
+        onFinish={handleFinish}
+        initialValues={{
+          year: new Date().getFullYear(),
+          end_year: new Date().getFullYear() + 1,
+          semester: "Намар",
+          status: "Идэвхитэй",
+        }}
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Баталгаажуулах</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Та энэ БСА-г устгахдаа итгэлтэй байна уу?</Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            Үгүй
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="name" label="БСА нэр" rules={[{ required: true }]}>
+              <Input />
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item name="year" label="Хичээлийн жил" rules={[{ required: true }]}>
+              <InputNumber min={2000} />
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item name="end_year" label="Дуусах жил" rules={[{ required: true }]}>
+              <InputNumber min={2000} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="semester" label="Улирал" rules={[{ required: true }]}>
+              <Select>
+                <Option value="Намар">Намар</Option>
+                <Option value="Хавар">Хавар</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="start_date" label="Эхлэх өдөр" rules={[{ required: true }]}>
+              <DatePicker style={{ width: "100%" }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="end_date" label="Дуусах өдөр" rules={[{ required: true }]}>
+              <DatePicker style={{ width: "100%" }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="grading_schema_id"
+              label="Дүгнэх аргачлал"
+              rules={[{ required: true }]}
+            >
+              <Select onChange={handleSchemaChange}>
+                {gradingSchemas.map((schema) => (
+                  <Option key={schema.id} value={schema.id}>
+                    {schema.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="status" label="Төлөв" rules={[{ required: true }]}>
+              <Select onChange={handleStatusChange}>
+                <Option value="Идэвхитэй">Идэвхитэй</Option>
+                <Option value="Хүлээгдэж буй">Хүлээгдэж буй</Option>
+                <Option value="Хаагдсан">Хаагдсан</Option>
+                <Option value="Цуцлагдсан">Цуцлагдсан</Option>
+              </Select>
+            </Form.Item>
+            {statusWarning && <Alert message={statusWarning} type="warning" showIcon />}
+          </Col>
+        </Row>
+
+        {/* {selectedSchema  && (
+          <>
+            <h5>{selectedSchema.name} ({selectedSchema.year})</h5>
+            <Badge count={selectedSchema.grading_components?.length || 0} color="blue" />
+            <div style={{ marginTop: 10 }}>
+              {selectedSchema.grading_components?.map((comp, idx) => (
+                <Card
+                  key={idx}
+                  title={`${comp.name} (${comp.score}%)`}
+                  size="small"
+                  style={{ marginBottom: 10 }}
+                >
+                     <p><strong>7 хоног</strong> {comp.scheduled_week}</p>
+
+
+     
+
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.Item label="Эхлэх өдөр" name="start_date" >
+                        <DatePicker
+                          style={{ width: "100%" }}
+                          value={componentDeadlines[idx]?.start_date}
+                          onChange={(value) => handleDeadlineChange(idx, "start_date", value)}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Дуусах өдөр" name="end_date" >
+                        <DatePicker
+                          style={{ width: "100%" }}
+                          value={componentDeadlines[idx]?.end_date}
+                          onChange={(value) => handleDeadlineChange(idx, "end_date", value)}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+        
+                  <p><strong>Дүгнэгч:</strong> {{
+                    supervisor: "Удирдагч багш",
+                    committee: "Комисс",
+                    examiner: "Шүүмж багш"
+                  }[comp.by_who]}</p>
+                  {comp.grading_criteria?.length > 0 && (
+                    <>
+                      <p><strong>Шалгуур үзүүлэлтүүд:</strong></p>
+                      <ul>
+                        {comp.grading_criteria.map((c, i) => (
+                          <li key={i}>{c.name} - {c.score} оноо</li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </>
+        )} */}
+
+
+
+
+        <div style={{ textAlign: "right", marginTop: 20 }}>
+          <Button onClick={onHide} style={{ marginRight: 8 }}>
+            Цуцлах
           </Button>
-          <Button variant="danger" onClick={handleDeleteConfirmed}>
-            Тийм, устгах
+          <Button type="primary" htmlType="submit">
+            {cycle ? "Хадгалах" : "Үүсгэх"}
           </Button>
-        </Modal.Footer>
-      </Modal>
-    </>
+        </div>
+      </Form>
+    </Modal>
+    </ConfigProvider>
   );
 };
 

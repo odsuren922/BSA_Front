@@ -12,8 +12,9 @@ import {
   Col,
   Space,
   Spin,
+  message
 } from "antd";
-import { PlusOutlined, EditOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined,ExclamationCircleOutlined ,DeleteOutlined} from "@ant-design/icons";
 import api from "../../../context/api_helper";
 
 
@@ -24,6 +25,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 const { TabPane } = Tabs;
 const { Option } = Select;
+const { confirm } = Modal;
 
 const ThesisCycleManagement = ({ onDataChange , user, schemas}) => {
 
@@ -36,6 +38,7 @@ const ThesisCycleManagement = ({ onDataChange , user, schemas}) => {
   const [key, setKey] = useState("cycles");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     fetchThesisCycle();
@@ -79,6 +82,31 @@ const ThesisCycleManagement = ({ onDataChange , user, schemas}) => {
       setShowModal(false);
       setEditCycle(null);
     }
+  };
+
+  const handleDelete = (schemaId) => {
+    confirm({
+      title: "Баталгаажуулах",
+      icon: <ExclamationCircleOutlined />,
+      content: "Та энэ БСА-г устгахдаа итгэлтэй байна уу?",
+      okText: "Тийм, устгах",
+      okType: "danger",
+      cancelText: "Үгүй",
+      onOk: async () => {
+        setDeletingId(schemaId);
+        try {
+          await api.delete(`/thesis-cycles/${schemaId}`);
+          setCycles(cycles.filter((c) => c.id !== schemaId));
+          message.success("Амжилттай устгалаа!");
+        } catch (error) {
+          console.error("Error deleting cycle:", error);
+          message.error("Устгаж чадсангүй!");
+        } finally {
+          setDeletingId(null);
+        }
+      }
+      
+    });
   };
 
   const columns = [
@@ -139,13 +167,24 @@ const ThesisCycleManagement = ({ onDataChange , user, schemas}) => {
     {
       title: "Засах",
       render: (_, record) => (
-        <Button
-          icon={<EditOutlined />}
-          onClick={() => {
-            setEditCycle(record);
-            setShowModal(true);
-          }}
-        />
+          <Space>
+
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setEditCycle(record);
+                  setShowModal(true);
+                }}
+              />
+ <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            loading={deletingId === record.id}
+            onClick={() => handleDelete(record.id)}
+          />
+
+          </Space>
       ),
     },
     {
