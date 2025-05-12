@@ -1,8 +1,13 @@
 import React, { useState } from "react";
 import { Table } from "reactstrap";
 import { Trash } from "lucide-react";
-import DeleteConfirmModal from "../Common/DeleteConfirmModal";
 
+import { DatePicker ,ConfigProvider} from "antd";
+import dayjs from "dayjs";
+import mnMN from "antd/es/locale/mn_MN";
+import "dayjs/locale/mn";
+dayjs.locale("mn");
+const { RangePicker } = DatePicker;
 const PlanTable = ({
   data = [],
   handleInputChange,
@@ -12,13 +17,13 @@ const PlanTable = ({
   handleDeleteRow,
   isEditable = true,
 }) => {
-  const [deleteRowIndex, setDeleteRowIndex] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
 
   return (
+    <ConfigProvider locale={mnMN}>
     <div className="table-container">
       {Array.isArray(data) && data.length > 0 ? (
-        <Table className="table mb-0 font">
+        <Table className="table mb-2 font">
           <thead className="table-light">
             <tr>
               <th>#</th>
@@ -54,7 +59,7 @@ const PlanTable = ({
                       <input
                         type="text"
                         className="form-control font"
-                        style={{ fontSize: "12px" }}
+                        style={{ fontSize: "14px" }}
                         value={item.name}
                         onChange={(e) =>
                           handleInputChange(rowIndex, "name", e.target.value)
@@ -74,7 +79,7 @@ const PlanTable = ({
                           key={`sub-${rowIndex}-${subIndex}`}
                           type="text"
                           className="form-control mb-1 font"
-                          style={{ fontSize: "12px" }}
+                          style={{ fontSize: "14px" }}
                           value={sub.name}
                           onChange={(e) =>
                             handleSubProjectChange(
@@ -115,58 +120,36 @@ const PlanTable = ({
                   </td>
 
                   {/* Start Date */}
-                  <td>
-                    {subtasks.map((sub, subIndex) =>
-                      isEditable ? (
-                        <input
-                          key={`start-${rowIndex}-${subIndex}`}
-                          type="date"
-                          className="form-control mb-1"
-                          style={{ fontSize: "11px" }}
-                          value={sub.start_date}
-                          onChange={(e) =>
-                            handleSubProjectChange(
-                              rowIndex,
-                              subIndex,
-                              "start_date",
-                              e.target.value
-                            )
-                          }
-                        />
-                      ) : (
-                        <div key={`start-${rowIndex}-${subIndex}`} className="mb-1">
-                          {sub.start_date || "-"}
-                        </div>
-                      )
-                    )}
-                  </td>
+                  <td colSpan={2}>
+  {subtasks.map((sub, subIndex) =>
+    isEditable ? (
+      <RangePicker
+        key={`range-${rowIndex}-${subIndex}`}
+        size="small"
+        style={{ width: "100%", height: "32px"  }}
+        value={
+          sub.start_date && sub.end_date
+            ? [dayjs(sub.start_date), dayjs(sub.end_date)]
+            : null
+        }
+        onChange={(dates) => {
+          const [start, end] = dates || [];
+          handleSubProjectChange(rowIndex, subIndex, "start_date", start?.format("YYYY-MM-DD"));
+          handleSubProjectChange(rowIndex, subIndex, "end_date", end?.format("YYYY-MM-DD"));
+        }}
+        format="YYYY-MM-DD"
+        allowClear
+      />
+    ) : (
+      <div key={`range-${rowIndex}-${subIndex}`} className="mb-1">
+        {sub.start_date && sub.end_date
+          ? `${sub.start_date} → ${sub.end_date}`
+          : "-"}
+      </div>
+    )
+  )}
+</td>
 
-                  {/* End Date */}
-                  <td>
-                    {subtasks.map((sub, subIndex) =>
-                      isEditable ? (
-                        <input
-                          key={`end-${rowIndex}-${subIndex}`}
-                          type="date"
-                          className="form-control mb-1"
-                          style={{ fontSize: "11px" }}
-                          value={sub.end_date}
-                          onChange={(e) =>
-                            handleSubProjectChange(
-                              rowIndex,
-                              subIndex,
-                              "end_date",
-                              e.target.value
-                            )
-                          }
-                        />
-                      ) : (
-                        <div key={`end-${rowIndex}-${subIndex}`} className="mb-1">
-                          {sub.end_date || "-"}
-                        </div>
-                      )
-                    )}
-                  </td>
 
                   {/* Description */}
                   <td>
@@ -175,7 +158,7 @@ const PlanTable = ({
                         <textarea
                           key={`desc-${rowIndex}-${subIndex}`}
                           className="form-control mb-1"
-                          style={{ fontSize: "11px" }}
+                          style={{ fontSize: "14px" }}
                           value={sub.description}
                           onChange={(e) =>
                             handleSubProjectChange(
@@ -206,8 +189,8 @@ const PlanTable = ({
                         className="btn btn-danger btn-sm font"
                         style={{ fontSize: "10px" }}
                         onClick={() => {
-                          setDeleteRowIndex(rowIndex);
-                          setShowDeleteModal(true);
+                         
+                          handleDeleteRow(rowIndex);
                         }}
                         title="Ажил устгах"
                       >
@@ -224,20 +207,9 @@ const PlanTable = ({
         <p className="text-danger">Төлөвлөгөө үүсээгүй байна.</p>
       )}
 
-      <DeleteConfirmModal
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
-        onConfirm={() => {
-          handleDeleteRow(deleteRowIndex);
-          setDeleteRowIndex(null);
-          setShowDeleteModal(false);
-        }}
-        title="Устгах баталгаажуулалт"
-        message="Та энэ ажлыг устгахдаа итгэлтэй байна уу?"
-        confirmText="Тийм, устгах"
-        cancelText="Болих"
-      />
+      
     </div>
+     </ConfigProvider>
   );
 };
 

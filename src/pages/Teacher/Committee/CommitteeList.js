@@ -16,13 +16,8 @@ const CommitteeListPage = () => {
    const { user } = useUser();
   const navigate = useNavigate();
 
-  const programColors = {
-    CS: "geekblue",
-    IT: "green",
-    SE: "volcano",
-    Тодорхойгүй: "default",
-  };
 
+//TODO
   useEffect(() => {
     const fetchData = async () => {
       try {

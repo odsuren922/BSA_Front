@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Row, Col, Card, CardBody } from "reactstrap";
+import { Modal } from "antd";
+
 import PlanTable from "../../components/plan/PlanTable";
 // import GanttChart from "../../components/plan/GanttChart";
 import { useParams, useNavigate } from "react-router-dom";
@@ -16,6 +18,7 @@ import "./Plan.css";
 import generatePDF from "../../components/plan/pdfGenerator";
 const TableComponent = () => {
     //const { id } = useParams();
+    const { confirm } = Modal;
     const [data, setData] = useState([]); //Tasks and subtasks data
     const [thesis, setThesis] = useState(null);
     const [thesisCycle, setThesisCycle] = useState(null);
@@ -196,25 +199,41 @@ const TableComponent = () => {
     //     updated.splice(index, 1);
     //     setData(updated);
     //   };
-    const handleDeleteRow = async (index) => {
-        try {
-            // Хэрвээ тухайн мөр temp- гэсэн ID-тай байвал зөвхөн локалаас устгана
-            if (String(data[index].id).startsWith("temp-")) {
-                const updated = [...data];
-                updated.splice(index, 1);
-                setData(updated);
-                return;
-            }
+    const handleDeleteRow = (index) => {
+        confirm({
+            title: "Баталгаажуулалт",
+            content: "Энэ мөрийг устгахдаа итгэлтэй байна уу?",
+            okText: "Тийм",
+            okType: "danger",
+            cancelText: "Үгүй",
+            onOk: async () => {
+                try {
+                    const row = data[index];
 
-            // Хэрвээ хадгалагдсан ID бол backend руу устгах хүсэлт илгээнэ
-            const response = await api.delete(`/tasks/${data[index].id}`);
-            toast.success("Мөр амжилттай устлаа");
+                    // temp- ID бол зөвхөн локал талаас
+                    if (String(row.id).startsWith("temp-")) {
+                        const updated = [...data];
+                        updated.splice(index, 1);
+                        setData(updated);
+                        toast.success("Түр мөр амжилттай устлаа");
+                        return;
+                    }
 
-            setData(data.filter((_, i) => i !== index)); // UI талаас ч бас хасна
-        } catch (error) {
-            console.error("Error deleting project:", error);
-        }
+                    // backend-ээс устгах
+                    await api.delete(`/tasks/${row.id}`);
+                    toast.success("Мөр амжилттай устлаа");
+                    setData(data.filter((_, i) => i !== index));
+                } catch (error) {
+                    console.error("Error deleting project:", error);
+                    toast.error("Устгах үед алдаа гарлаа");
+                }
+            },
+            onCancel() {
+                // Хэрэглэгч цуцалсан
+            },
+        });
     };
+
     // Delete a subproject
     const handleDeleteSubProject = (rowIndex) => {
         const updatedData = [...data];
@@ -344,23 +363,19 @@ const TableComponent = () => {
             setPdfLoading(false);
         }
     };
-    const formatToMongoliaTime = (utcDateStr) => {
-        return new Date(utcDateStr).toLocaleString("mn-MN", {
-            timeZone: "Asia/Ulaanbaatar",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
+
     const isEditable = true;
     // (user.role === "student" && planStatus?.teacher_status !== "approved") ||
     // user.role === "teacher";
 
     const renderPlanStatus = () => {
         console.log("planStatus", !planStatus);
-        if (!planStatus) return <div>Төлөв: Статусын мэдээлэл алга байна</div>;
+        if (!planStatus)
+            return (
+                <div>
+                    <Tag color="orange">Төлөвлөгөө илгээгүй байна</Tag>
+                </div>
+            );
 
         const {
             student_sent,
@@ -453,7 +468,7 @@ const TableComponent = () => {
                         </h4>
                     </div>
 
-                    <Col xl={8} style={{ marginBottom: "10px" }}>
+                    <Col xl={10} style={{ marginBottom: "10px" }}>
                         <Card>
                             <CardBody>
                                 {thesisCycle ? (
@@ -471,17 +486,17 @@ const TableComponent = () => {
                                     >
                                         <div>
                                             <strong>Эхлэх өдөр:</strong>{" "}
-                                            <Tag color="blue">
+                                     
                                                 {thesisCycle?.start_date}
-                                            </Tag>
+                                      
                                         </div>
                                         <div>
                                             <strong>Дуусах өдөр:</strong>{" "}
-                                            <Tag color="red">
+                                         
                                                 {thesisCycle?.end_date}
-                                            </Tag>
+                                       
                                         </div>
-                                        <div style={{ flex: 1 }}>
+                                        <div style={{ flex: 1  }}>
                                             {renderPlanStatus()}
                                         </div>
                                     </div>
@@ -493,7 +508,7 @@ const TableComponent = () => {
                     </Col>
                     {/* <Split className="split" sizes={[40, 60]} minSize={200} gutterSize={10}> */}
 
-                    <Col xl={8} style={{ marginBottom: "10px" }}>
+                    <Col xl={10} style={{ marginBottom: "10px" }}>
                         <Card>
                             <CardBody>
                                 <div
@@ -506,7 +521,7 @@ const TableComponent = () => {
                                     {isEditable &&
                                         (data.length > 0 ? (
                                             <Button
-                                                type="primary"
+                                               color="primary" variant="filled"
                                                 icon={<PlusOutlined />}
                                                 loading={btnLoading}
                                                 onClick={handleAddRow}
@@ -556,14 +571,80 @@ const TableComponent = () => {
                                     isEditable={isEditable}
                                 />
 
-                                <Button
-                                    type="primary"
-                                    onClick={handleSaveAll}
-                                    loading={saveLoading}
-                                    style={{ marginBottom: 10 }}
-                                >
-                                    хадгалах
-                                </Button>
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 8,
+    flexWrap: "wrap",
+  }}
+>
+  {/* LEFT SIDE BUTTONS */}
+  <div>
+    <Button
+      type="primary" 
+      onClick={handleSaveAll}
+      loading={saveLoading}
+    >
+      Хадгалах
+    </Button>
+  </div>
+  
+
+  {/* RIGHT SIDE BUTTON */}
+  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+    {user.role === "student" && (
+      <>
+        <Button
+          type="primary"
+          onClick={() => confirmAndExecute("submit")}
+          loading={sendBtnLoading}
+          disabled={
+            planStatus?.student_sent ||
+            planStatus?.teacher_status === "approved"
+          }
+        >
+          Хөтөлбөр илгээх
+        </Button>
+
+        <Button
+          danger
+          onClick={() => confirmAndExecute("unsubmit")}
+          loading={UnsendBtnLoading}
+          disabled={
+            !planStatus?.student_sent ||
+            planStatus?.teacher_status === "approved"
+          }
+        >
+          Илгээсэн төлөвлөгөөг буцаах
+        </Button>
+      </>
+    )}
+
+    {user.role === "teacher" && (
+      <>
+        <Button
+          type="primary"
+          onClick={() => confirmAndExecute("approve")}
+          disabled={planStatus?.teacher_status === "approved"}
+        >
+          Зөвшөөрөх
+        </Button>
+        <Button
+          danger
+          onClick={() => confirmAndExecute("return")}
+          disabled={planStatus?.teacher_status !== "approved"}
+        >
+          Татгалзах
+        </Button>
+      </>
+    )}
+  </div>
+
+</div>
+
                             </CardBody>
                         </Card>
                     </Col>
@@ -585,53 +666,7 @@ const TableComponent = () => {
                     gap: "10px",
                 }}
             >
-                {user.role === "student" && (
-                    <Button
-                        type="primary"
-                        onClick={() => confirmAndExecute("submit")}
-                        loading={sendBtnLoading}
-                        disabled={
-                            planStatus?.student_sent ||
-                            planStatus?.teacher_status === "approved"
-                        }
-                    >
-                        Хөтөлбөр илгээх
-                    </Button>
-                )}
-
-                {user.role === "student" && (
-                    <Button
-                        danger
-                        //onClick={handleUnsubmit}
-                        onClick={() => confirmAndExecute("unsubmit")}
-                        loading={UnsendBtnLoading} // Show loading spinner while unsubmitting
-                        disabled={
-                            !planStatus?.student_sent ||
-                            planStatus?.teacher_status === "approved"
-                        }
-                    >
-                        Илгээсэн төлөвлөгөөг буцаах
-                    </Button>
-                )}
-
-                {user.role === "teacher" && (
-                    <>
-                        <Button
-                            type="primary"
-                            onClick={() => confirmAndExecute("approve")}
-                            disabled={planStatus?.teacher_status === "approved"}
-                        >
-                            Зөвшөөрөх
-                        </Button>
-                        <Button
-                            danger
-                            onClick={() => confirmAndExecute("return")}
-                            disabled={planStatus?.teacher_status !== "approved"}
-                        >
-                            Татгалзах
-                        </Button>
-                    </>
-                )}
+                
                 <ConfirmModal
                     open={isConfirmOpen}
                     onOk={handleConfirmedAction}

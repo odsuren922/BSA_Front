@@ -13,7 +13,9 @@ import {
   Button,
   Modal,
   Steps,
-  Spin
+  Spin,
+  InputNumber,
+  message
 } from "antd";
 import { useUser } from "../../../context/UserContext";
 import { useParams, useLocation } from "react-router-dom";
@@ -57,7 +59,9 @@ const CommitteeDetailsPage = () => {
   const { grading_component, thesis_cycle } = location.state || {};
   const [assignedLoading, setAssignedLoading] = useState(false);
    const { user } = useUser();
-
+   const [editableScores, setEditableScores] = useState({});
+   const [editableExternalScores, setEditableExternalScores] = useState({});
+      const [editMode, setEditMode] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [open, setOpen] = useState(false);
   const [stepNum, setStepNum] = useState(1);
@@ -104,6 +108,7 @@ const CommitteeDetailsPage = () => {
         );
   
         const data = response.data.data;
+        console.log("committee data",data )
         setGradingComponents(gradingSchema.data[0].grading_components);
         setCommittee(data);
       } catch (err) {
@@ -181,92 +186,262 @@ const CommitteeDetailsPage = () => {
         <a href={`/aboutthesis/${record.student.thesis.id}`}>Дэлгэрэнгүй</a>
       ),
     },
-    {
-        title: "Томилогдсон багш",
-        dataIndex: "student",
-        render: (student) => {
-          const assigned = assignedData.find((a) => a.student_id === student.id);
-          const teacher = committee.members.find(
-            (m) => m.teacher?.id === assigned?.assigned_by_id
-          );
-      
-          return assigned ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Tag color="green">
-                {teacher
-                  ? `${teacher.teacher.lastname} ${teacher.teacher.firstname}`
-                  : "Багш"}
-              </Tag>
-              <Button
-                danger
-                size="small"
-                onClick={() => handleDeleteAssignedGrading(assigned.id)}
-              >
-                X
-              </Button>
-            </div>
-          ) : (
-            <Text type="secondary">-</Text>
-          );
-        },
-      }
-      
-  ];
-  const getStudentTableColumns2 = () => [
-    {
-      title: "№",
-      render: (_, __, index) => index + 1,
-      width: 50,
-      align: "center",
-    },
-    {
-      title: "Mэргэжил",
-      dataIndex: ["student", "program"],
-      render: (program) => (
-        <Tag color={programColors[program]}>{program || "Тодорхойгүй"}</Tag>
-      ),
-    },
-    {
-      title: "ID",
-      dataIndex: ["student", "sisi_id"],
-    },
-    {
-      title: "Нэр.Овог",
-      dataIndex: "student",
-      render: (student) => (
-        <Text strong>{`${student?.lastname || ""} ${
-          student?.firstname || ""
-        }`}</Text>
-      ),
-    },
-    {
-      title: "Удирдагч",
+ {
+      title: "Томилогдсон багш",
       dataIndex: "student",
       render: (student) => {
-        const supervisor = student?.thesis?.supervisor;
-        return supervisor
-          ? `${supervisor.lastname} ${supervisor.firstname}`
-          : "-";
-      },
-    },
-    {
-      title: "Судалгааны сэдэв",
-      render: (record) => (
-        <Text>{`${record.student.thesis.name_mongolian}`}</Text>
-      ),
-    },
+        const assigned = assignedData.find((a) => a.student_id === student.id);
+        const teacher = committee.members.find(
+          (m) => m.teacher?.id === assigned?.assigned_by_id
+        );
 
-    ...(user.role !== "student"
-        ? [
-            {
-              title: "Дэлгэрэнгүй",
-              render: (text, record) => (
-                <a href={`/aboutthesis/${record.student.thesis.id}`}>Дэлгэрэнгүй</a>
-              ),
-            },
-          ]
-        : []),
+        return assigned ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Tag color="green">
+              {teacher
+                ? `${teacher.teacher.lastname} ${teacher.teacher.firstname}`
+                : "Багш"}
+            </Tag>
+            <Button
+              danger
+              size="small"
+              onClick={() => handleDeleteAssignedGrading(assigned.id)}
+            >
+              X
+            </Button>
+          </div>
+        ) : (
+          <Text type="secondary">-</Text>
+        );
+      },
+      width: 200,
+    }
+
+
+      
   ];
+  const getStudentTableColumns2 = (graders = [], committee = null) => {
+    const baseColumns =[
+
+        {
+          title: "№",
+          render: (_, __, index) => index + 1,
+          width: 50,
+          align: "center",
+        },
+        {
+          title: "Mэргэжил",
+          dataIndex: ["student", "program"],
+          render: (program) => (
+            <Tag color={programColors[program]}>{program || "Тодорхойгүй"}</Tag>
+          ),
+        },
+        {
+          title: "ID",
+          dataIndex: ["student", "sisi_id"],
+        },
+        {
+          title: "Нэр.Овог",
+          dataIndex: "student",
+          render: (student) => (
+            <Text strong>{`${student?.lastname || ""} ${
+              student?.firstname || ""
+            }`}</Text>
+          ),
+           fixed: "left"
+        },
+        {
+          title: "Удирдагч",
+          dataIndex: "student",
+          render: (student) => {
+            const supervisor = student?.thesis?.supervisor;
+            return supervisor
+              ? `${supervisor.lastname} ${supervisor.firstname}`
+              : "-";
+          },
+        },
+        {
+          title: "Судалгааны сэдэв",
+          render: (record) => (
+            <Text>{`${record.student.thesis.name_mongolian}`}</Text>
+          ),
+        },
+    
+        {
+          title: "Дэлгэрэнгүй",
+          render: (text, record) => (
+            <a href={`/aboutthesis/${record.student.thesis.id}`}>Дэлгэрэнгүй</a>
+          ),
+        },
+        // {
+        //     title: "Шүүмжлэгч багш",
+        //     dataIndex: "student",
+        //     render: (student) => {
+        //       const assigned = assignedData.find((a) => a.student_id === student.id);
+        //       const teacher = committee.members.find(
+        //         (m) => m.teacher?.id === assigned?.assigned_by_id
+        //       );
+          
+        //       return assigned ? (
+        //         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        //           <Tag color="green">
+        //             {teacher
+        //               ? `${teacher.teacher.lastname} ${teacher.teacher.firstname}`
+        //               : "Багш"}
+        //           </Tag>
+        //           <Button
+        //             danger
+        //             size="small"
+        //             onClick={() => handleDeleteAssignedGrading(assigned.id)}
+        //           >
+        //             X
+        //           </Button>
+        //         </div>
+        //       ) : (
+        //         <Text type="secondary">-</Text>
+        //       );
+        //     },
+        //   }
+    ];
+    const teacherScoreColumns = graders.map((grader) => ({
+        title: (
+          <div style={{ textAlign: "center" }}>
+            <div>{`${grader.teacher?.lastname || ""}`}</div>
+            <div>{`${grader.teacher?.firstname || ""}`}</div>
+          </div>
+        ),
+        key: `score-${grader.id}`,
+        render: (_, record) => {
+          const studentId = record.student.id;
+          const key = `${studentId}-${grader.id}`;
+          const currentScore = editableScores[key] ?? grader.committeeScores?.find(
+            (cs) => cs.student?.id === studentId
+          )?.score;
+      
+          return editMode  ?  (
+            <InputNumber
+              min={0}
+              max={100}
+              value={currentScore}
+              onChange={(value) => {
+                setEditableScores((prev) => ({
+                  ...prev,
+                  [key]: value,
+                }));
+              }}
+              style={{ width: "100%" }}
+            />
+        ):(
+            <span >
+              {currentScore ?? " "}
+           </span>
+         );
+        },
+        width: 120,
+        align: "center",
+      }));
+      
+      const externalReviewerScoreColumns = (committee?.externalReviewers || []).map((rev) => ({
+        title: (
+          <div style={{ textAlign: "center" }}>
+
+
+            <div style={{ textAlign: "center" }}>
+            <div>{`${rev?.lastname || ""}`}</div>
+            <div>{`${rev?.firstname || ""}`}</div>
+          </div>
+
+          </div>
+        ),
+        key: `external-${rev.id}`,
+        render: (_, record) => {
+          const studentId = record.student.id;
+          const reviewerId = rev.id;
+          const key = `external-${studentId}-${reviewerId}`;
+      
+          const existingScore = rev.scores?.find(s => s.student_id === studentId)?.score;
+          const score = editableExternalScores[key] ?? existingScore;
+      
+          return editMode  ?  (
+            <InputNumber
+              min={0}
+              max={100}
+              value={score}
+              onChange={(value) => {
+                setEditableExternalScores((prev) => ({
+                  ...prev,
+                  [key]: value,
+                }));
+              }}
+              style={{ width: "100%" }}
+            />
+        ):(
+            <span >
+            {score ?? " "}
+           </span>
+          );
+        },
+        width: 140,
+        align: "center"
+      }));
+      
+    
+            const scoreColumns = [
+                {
+                    title: "Нийт",
+                    key: "totalScore",
+                    render: (_, record) => {
+                        const studentId = record.student.id;
+    
+                        // Committee teacher scores
+                        const teacherScores = graders
+                            .map(
+                                (grader) =>
+                                    grader.committeeScores?.find(
+                                        (cs) => cs.student?.id === studentId
+                                    )?.score
+                            )
+                            .filter((s) => s !== undefined && !isNaN(parseFloat(s)))
+                            .map((s) => parseFloat(s));
+    
+                        // External reviewer scores
+                        const externalScores = (
+                            committee?.externalReviewers || []
+                        )
+                            .flatMap((rev) => rev?.scores || [])
+                            .filter((s) => s.student_id === studentId)
+                            .map((s) => parseFloat(s.score))
+                            .filter((s) => !isNaN(s));
+    
+                        // Combine all scores
+                        const allScores = [...teacherScores, ...externalScores];
+    
+                        const avg =
+                            allScores.length > 0
+                                ? (
+                                      allScores.reduce((sum, s) => sum + s, 0) /
+                                      allScores.length
+                                  ).toFixed(2)
+                                : "-";
+    
+                        return (
+                            <Text strong style={{ fontSize: 14 }}>
+                                {avg}
+                            </Text>
+                        );
+                    },
+                    width: 80,
+                    align: "center",
+                },
+            ];
+            return [
+                ...baseColumns,
+                ...teacherScoreColumns,
+                ...externalReviewerScoreColumns,
+                ...scoreColumns,
+            ];
+      
+        };
   const handleDeleteAssignedGrading = async (assignedId) => {
     Modal.confirm({
       title: "Та энэ томилгоог устгахдаа итгэлтэй байна уу?",
@@ -328,6 +503,65 @@ const CommitteeDetailsPage = () => {
       });
     }
   };
+  const handleSubmitScores = async () => {
+    const scores = Object.entries(editableScores).map(([key, score]) => {
+      const [studentId, graderId] = key.split("-").map(Number);
+      const committeeMember = committee.members.find(m => m.id === graderId);
+      return {
+        student_id: studentId,
+        committee_member_id: graderId,
+        score: parseFloat(score),
+      };
+    });
+    const externalScores = Object.entries(editableExternalScores).map(([key, score]) => {
+        const [, studentIdStr, reviewerIdStr] = key.split("-");
+        return {
+          student_id: parseInt(studentIdStr),
+          external_reviewer_id: parseInt(reviewerIdStr),
+          score: parseFloat(score),
+        };
+      });
+      
+      
+      
+      // Илгээх payload жишээ:
+      const payload = {
+     
+        grading_component_id: committee.grading_component.id,
+        external_scores: externalScores
+      };
+      console.log("payload",payload)
+
+    try {
+        if (!scores.length && !payload.external_scores.length) {
+            message.warning("Оноо хадгалагдсан байна!");
+            return;
+          }
+          
+
+
+         if(scores.length>0){
+                 const res = await api.post("/committee-scores/save-editable-scores", {
+              committee_id: committee.id,
+              component_id: committee.grading_component.id, // componentId нь prop эсвэл state-оос ирнэ
+              scores,
+            });
+            message.success("Оноо амжилттай шинэчлэгдлээ!");
+            setEditableScores({});
+              }
+
+              if(payload.external_scores.length>0){
+                await api.post("/committee/external-reviewer-scores/batch", payload);
+                message.success("Оноо амжилттай шинэчлэгдлээ!");
+                setEditableExternalScores({});
+              }
+      toast.success("Оноо амжилттай хадгалагдлаа!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Оноо хадгалах үед алдаа гарлаа.");
+    }
+  };
+  
  // if (loading) return <Spin size="large" style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
 
  if (loading) {
@@ -355,13 +589,38 @@ const CommitteeDetailsPage = () => {
 
           <Col xs={24} md={14} lg={24}>
             <Card  loading={loading}>
+
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <Text strong style={{ fontSize: 14 }}>
+  {committee.grading_component.name} — {committee.grading_component.score} оноо
+</Text>
+  {editMode ? (
+    <>
+      <Button color="purple" variant="outlined" onClick={() => setEditMode(false)} style={{ marginRight: 8 }}>
+        Болих
+      </Button>
+      <Button color="purple" variant="filled" onClick={handleSubmitScores}>
+        Оноо хадгалах
+      </Button>
+    </>
+  ) : (
+    <Button  color="purple" variant="outlined" onClick={() => setEditMode(true)}>Засах</Button>
+  )}
+</div>
+
               <Table
                 dataSource={committee.students}
-                columns={getStudentTableColumns2()}
+                columns={getStudentTableColumns2(committee?.members || [], committee)}
                 rowKey={(record) => record.student.id} // эсвэл record.id
                 pagination={false}
+                scroll={{ x: "max-content" }} 
                 // rowSelection={rowSelection}
               />
+
+
+
+
             </Card>
           </Col>
    

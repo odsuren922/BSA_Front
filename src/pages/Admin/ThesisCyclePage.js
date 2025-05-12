@@ -13,6 +13,7 @@ import {
   Skeleton
 } from "antd";
 import GradingSchemaTable from "../../components/grading/GradingSchemaTable";
+import StudentCount from "../../components/Common/StudentCount";
 import api from "../../context/api_helper";
 import {
   TeamOutlined,
@@ -360,18 +361,7 @@ const ThesisCyclePage = () => {
 
 <Spin spinning={loadingStudentCounts}>
         <Row gutter={[16, 16]} className="mb-4">
-          {studentCounts.map((item, index) => (
-            <Col key={index} xs={24} sm={12} md={8} lg={6}>
-              <Card hoverable>
-                <Statistic
-                  title={item.program}
-                  value={item.student_count}
-                  prefix={<TeamOutlined />}
-                  valueStyle={{ color: "#1890ff" }}
-                />
-              </Card>
-            </Col>
-          ))}
+              <StudentCount studentCounts ={studentCounts}/>
         </Row>
       </Spin>
 

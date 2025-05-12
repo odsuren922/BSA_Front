@@ -24,41 +24,43 @@ const CommitteePanel = () => {
       
     //  console.log({ cycleId, schemaId, componentId });
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [ committeesRes] = await Promise.all([
-          api.get(
-            `/thesis-cycles/${cycleId}/grading-components/${componentId}/committees`
-          ),
-        ]);
-        console.log("committeesRes", committeesRes.data.data);
-        const roleOrder = {
-            leader: 1,
-            secretary: 2,
-            member: 3,
-          };
-          
-          const sortedCommittees = committeesRes.data.data.map((committee) => {
-            const sortedMembers = [...(committee.members || [])].sort((a, b) => {
-              return roleOrder[a.role] - roleOrder[b.role];
-            });
-            return {
-              ...committee,
-              members: sortedMembers,
-            };
-          });
-          
-          setCommittees(sortedCommittees);
-          
-      } catch (error) {
-        toast.error("Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    };
+  
     fetchData();
   }, []);
+  
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [ committeesRes] = await Promise.all([
+        api.get(
+          `/thesis-cycles/${cycleId}/grading-components/${componentId}/committees`
+        ),
+      ]);
+      console.log("committeesRes", committeesRes.data.data);
+      const roleOrder = {
+          leader: 1,
+          secretary: 2,
+          member: 3,
+        };
+        
+        const sortedCommittees = committeesRes.data.data.map((committee) => {
+          const sortedMembers = [...(committee.members || [])].sort((a, b) => {
+            return roleOrder[a.role] - roleOrder[b.role];
+          });
+          return {
+            ...committee,
+            members: sortedMembers,
+          };
+        });
+        
+        setCommittees(sortedCommittees);
+        
+    } catch (error) {
+      toast.error("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
     const navigate = useNavigate();
 
@@ -75,7 +77,8 @@ const CommitteePanel = () => {
     
     <Tabs defaultActiveKey="committee">
     <Tabs.TabPane tab="Комисс" key="committee">
-      <Calculator cycleId={cycleId} componentId={componentId}  committees={committees} setCommittees={setCommittees}   user={user}/>
+
+      <Calculator cycleId={cycleId} componentId={componentId}  committees={committees} setCommittees={setCommittees}  user={user}  fetchDatacom={fetchData} loadingData={loading}/>
       </Tabs.TabPane>
 
       <Tabs.TabPane tab="Багш" key="teachers" >

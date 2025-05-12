@@ -20,7 +20,7 @@ import {
     Radio,
     Select,
     Popover,
-    message
+    message,
 } from "antd";
 import {
     CalculatorOutlined,
@@ -32,14 +32,21 @@ import CommitteeCalculator from "../../../components/committee/CommitteeCalculat
 import api from "../../../context/api_helper";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import StudentCount from "../../../components/Common/StudentCount";
+import CommitteeMemberItem from "../../../components/committee/CommitteeMemberList";
+import CommitteeScoreModal from "../../../components/committee/CommitteScoreSaveModal";
+import TeacherStudentConfirmModal from "../../../components/committee/TeacherStudentConfirmModal";
+import CommitteeDisplay from "../../../components/committee/CommitteeDisplay";
 const { Title, Text } = Typography;
-
+const { Panel } = Collapse;
 const CommitteeManagement = ({
     cycleId,
     componentId,
     committees,
     setCommittees,
     user,
+    fetchDatacom,
+    loadingData,
 }) => {
     const gradingComponent = committees.grading_component;
     const [showCalculator, setShowCalculator] = useState(false);
@@ -49,7 +56,6 @@ const CommitteeManagement = ({
     const [customStudentCount, setCustomStudentCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const [selectedCommittee, setSelectedCommittee] = useState(null);
     const [scoreForm] = Form.useForm();
     const [addOutsiderModalVisible, setAddOutsiderModalVisible] =
         useState(false);
@@ -65,10 +71,9 @@ const CommitteeManagement = ({
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [counts] = await Promise.all([
+            const [counts, externalScore] = await Promise.all([
                 api.get(`/thesis-cycles/${cycleId}/counts`),
             ]);
-            console.log("count data.", counts.data);
 
             setCustomTeacherCount(counts.data.teacher_count);
             setCustomStudentCount(
@@ -85,14 +90,6 @@ const CommitteeManagement = ({
         }
     };
 
-    const handleOpenScoreModal = (committee) => {
-        setSelectedCommittee(committee);
-        setTimeout(() => {
-            scoreForm.resetFields();
-            const initialValues = getInitialFormValues(committee);
-            scoreForm.setFieldsValue(initialValues);
-        }, 0);
-    };
     const roleColorMap = {
         member: "blue",
         secretary: "orange",
@@ -139,6 +136,7 @@ const CommitteeManagement = ({
                 ...res.data,
                 members: [],
                 students: [],
+                externalReviewers: [],
             }));
 
             setCommittees([...committees, ...savedCommittees]);
@@ -150,103 +148,17 @@ const CommitteeManagement = ({
         }
     };
 
-    const handleSubmitScores = async (values) => {
-        const payload = [];
-
-        Object.entries(values).forEach(([studentKey, teachers]) => {
-            const student = selectedCommittee.students.find(
-                (s) => s.id.toString() === studentKey.toString()
-            );
-
-            Object.entries(teachers).forEach(([teacherKey, score]) => {
-                const teacher = selectedCommittee.members.find(
-                    (t) =>
-                        t.teacher &&
-                        t.teacher.id.toString() === teacherKey.toString()
-                );
-                //TODO::
-
-                if (teacher && score !== undefined && score !== null) {
-                    console.log("student.thesis.id", student.student.thesis.id);
-                    payload.push({
-                        student_id: student.student.id,
-                        thesis_id: student.student.thesis.id,
-                        committee_member_id: teacher.id,
-                        component_id: componentId,
-                        committee_id: selectedCommittee.id,
-                        score,
-                    });
-                }
-            });
-        });
-        try {
-            console.log("payload:", payload);
-
-            await api.post("/committee-scores/batch", payload);
-
-            toast.success("Оноо амжилттай хадгалагдлаа");
-            setSelectedCommittee(null);
-            fetchData();
-        } catch (error) {
-            console.error("Error submitting scores:", error);
-            toast.error("Алдаа гарлаа");
-        }
-    };
-
-    const getInitialFormValues = (committee) => {
-        if (!committee) return {};
-
-        const initialValues = {};
-
-        committee.students?.forEach((student) => {
-            initialValues[student.id] = {};
-            (student.scores || []).forEach((grade) => {
-                initialValues[student.id][grade.teacher_id] = grade.score;
-            });
-        });
-
-        return initialValues;
-    };
-    const isCommitteeReadyToFinalize = (committee) => {
-        const totalMembers = committee?.members.length;
-        const totalStudents = committee?.students.length;
-
-        // Check if every member has given score to every student
-        return committee?.students.every((student) =>
-            committee?.members.every((member) =>
-                member.committeeScores?.some(
-                    (cs) => cs.student?.id === student.student?.id
-                )
-            )
-        );
-    };
-
-    const handleFinalizeCommittee = async (committee) => {
-        try {
-            const res = await api.post(
-                "/committee-scores/batch-finalize-by-committee",
-                {
-                    committee_id: committee.id,
-                }
-            );
-            console.log("res", res);
-            toast.success("Оноо амжилттай илгээгдлээ!");
-            fetchData(); // Refresh after finalize
-        } catch (error) {
-            console.error(error);
-            toast.error("Оноо илгээхэд алдаа гарлаа!");
-        }
-    };
     const isCommitteeFinalized = (committee, componentId) => {
         if (!committee?.scores || committee.scores.length === 0) return false;
 
         const graders = committee?.members || [];
         const students = committee?.students || [];
+        const externalReviewers = committee?.externalReviewers || [];
 
         return students.every((student) => {
             const studentId = student.student?.id;
 
-            // Finalized score from `scores` table
+            // Find saved final score from `committee.scores`
             const finalScoreObj = committee.scores.find(
                 (s) =>
                     s.student_id === studentId &&
@@ -255,8 +167,8 @@ const CommitteeManagement = ({
                     s.given_by_id === committee.id
             );
 
-            // Дундаж тооцоолох
-            const scoresFromGraders = graders
+            // Teacher (committee member) scores
+            const teacherScores = graders
                 .map(
                     (grader) =>
                         grader.committeeScores?.find(
@@ -268,20 +180,37 @@ const CommitteeManagement = ({
                 .filter((s) => s !== undefined && !isNaN(parseFloat(s)))
                 .map((s) => parseFloat(s));
 
-            const avgScore =
-                scoresFromGraders.length > 0
+            // External reviewer scores
+            const externalScores = externalReviewers
+                .flatMap((rev) => rev?.scores || [])
+                .filter(
+                    (s) =>
+                        s.student_id === studentId &&
+                        (s.component_id === componentId ||
+                            s.grading_component_id === componentId)
+                )
+                .map((s) => parseFloat(s.score))
+                .filter((s) => !isNaN(s));
+
+            // Combine scores
+            const allScores = [...teacherScores, ...externalScores];
+
+            // Calculate average
+            const avg =
+                allScores.length > 0
                     ? parseFloat(
                           (
-                              scoresFromGraders.reduce(
-                                  (sum, val) => sum + val,
-                                  0
-                              ) / scoresFromGraders.length
+                              allScores.reduce((sum, s) => sum + s, 0) /
+                              allScores.length
                           ).toFixed(2)
                       )
                     : null;
 
+            // Final check: must have saved score, and it must match avg
             return (
-                finalScoreObj && parseFloat(finalScoreObj.score) === avgScore
+                finalScoreObj &&
+                avg !== null &&
+                parseFloat(finalScoreObj.score) === avg
             );
         });
     };
@@ -291,15 +220,14 @@ const CommitteeManagement = ({
         setAddOutsiderModalVisible(true);
         setIsCreatingNew(true);
         try {
-          const res = await api.get("/external-reviewers");
-          console.log()
-          const fetchedReviewers = res.data?.data || [];
-          setExistingReviewers(fetchedReviewers);
+            const res = await api.get("/external-reviewers");
+
+            const fetchedReviewers = res.data?.data || [];
+            setExistingReviewers(fetchedReviewers);
         } catch (err) {
             toast.error("Гадны үнэлгээч авахад алдаа гарлаа");
-          }
-        };
-      
+        }
+    };
 
     const handleSubmitOutsider = async (values) => {
         try {
@@ -307,28 +235,28 @@ const CommitteeManagement = ({
                 ...values,
                 committee_id: currentCommittee.id,
             };
-            console.log("payload", payload);
+            // console.log("payload", payload);
             const res = await api.post(`/external-reviewers`, payload);
             const reviewer = res.data.data;
 
-
             setCommittees((prev) =>
                 prev.map((c) => {
-                  if (c.id === currentCommittee.id) {
-                    return {
-                      ...c,
-                      externalReviewers: [...(c.externalReviewers || []), reviewer],
-                    };
-                  }
-                  return c;
+                    if (c.id === currentCommittee.id) {
+                        return {
+                            ...c,
+                            externalReviewers: [
+                                ...(c.externalReviewers || []),
+                                reviewer,
+                            ],
+                        };
+                    }
+                    return c;
                 })
-              );
-              
-        
+            );
+
             toast.success("Гадны үнэлгээч амжилттай нэмэгдлээ");
             setAddOutsiderModalVisible(false);
             outsiderForm.resetFields();
-  
         } catch (error) {
             toast.error("Алдаа гарлаа");
             console.error(error);
@@ -338,96 +266,25 @@ const CommitteeManagement = ({
     const handleDeleteExternal = async (member) => {
         try {
             const committeeId = member.committee_id;
-          await api.delete(`/external-reviewers/${member.id}`);
-          setCommittees((prev) =>
-            prev.map((committee) => {
-              if (committee.id === committeeId) {
-                return {
-                  ...committee,
-                  externalReviewers: committee.externalReviewers.filter((m) => m.id !== member.id),
-                };
-              }
-              return committee;
-            })
-          );
-          toast.success("Гишүүнийг амжилттай хаслаа");
+            await api.delete(`/external-reviewers/${member.id}`);
+            setCommittees((prev) =>
+                prev.map((committee) => {
+                    if (committee.id === committeeId) {
+                        return {
+                            ...committee,
+                            externalReviewers:
+                                committee.externalReviewers.filter(
+                                    (m) => m.id !== member.id
+                                ),
+                        };
+                    }
+                    return committee;
+                })
+            );
+            toast.success("Гишүүнийг амжилттай хаслаа");
         } catch (error) {
-          message.error("Гишүүн хасах үед алдаа гарлаа");
+            message.error("Гишүүн хасах үед алдаа гарлаа");
         }
-      };
-
-    const renderCommitteeMemberItem = (member) => {
-        var firstName = "";
-        var firstLetter = "";
-
-        if (member.teacher) {
-            firstName = member.teacher?.firstname || "";
-            firstLetter = member.teacher?.lastname || "";
-        } else {
-            firstName = member.firstname || "";
-            firstLetter = member.lastname || "";
-        }
-
-        const roleLabels = {
-            member: "Гишүүн",
-            secretary: "Нарийн бичиг",
-            leader: "Ахлах багш",
-            external: "Гадны гишүүн",
-        };
-        const popoverContent = !member.teacher ? (
-            <div style={{ fontSize: 12 }}>
-                <div>
-                    <strong>Имэйл:</strong> {member?.email || "-"}
-                </div>
-                <div>
-                    <strong>Утас:</strong> {member?.phone || "-"}
-                </div>
-                <div>
-                    <strong>Байгууллага:</strong> {member?.organization || "-"}
-                </div>
-                <div>
-                    <strong>Албан тушаал:</strong> {member?.position || "-"}
-                </div>
-               <Button
-                     
-                           danger
-                           onClick={() => handleDeleteExternal(member)}
-                           style={{ padding: 0 }}
-                         >
-                           <DeleteOutlined style={{ fontSize: "16px" }} />
-                         </Button>
-            </div>
-        ) : (
-            <div style={{ fontSize: 12 }}>
-                <div>
-                    {member.teacher?.lastname} овогтой{" "}
-                    {member.teacher?.firstname}{" "}
-                </div>
-                <div>
-                    <strong>Имэйл:</strong> {member.teacher?.email || "-"}
-                </div>
-            </div>
-        );
-//TODO
-        return (
-            <Popover content={popoverContent} trigger="hover">
-                <List.Item
-                    key={member.id}
-                    actions={[
-                        <Tag
-                            color={roleColorMap[member.role]}
-                            key={member.role}
-                        >
-                            {roleLabels[member.role]}
-                        </Tag>,
-                        
-                    ]}
-                >
-                    <List.Item.Meta title={`${firstLetter} ${firstName}`} /> 
-                    
-                </List.Item>
-            </Popover>
-        );
     };
 
     const renderCommitteeStudentPrograms = (committee) => {
@@ -451,152 +308,10 @@ const CommitteeManagement = ({
         ));
     };
 
-    const getStudentTableColumns = (graders = []) => {
-        const baseColumns = [
-            {
-                title: "№",
-                dataIndex: "index",
-                key: "index",
-                render: (_, __, index) => index + 1,
-                width: 50,
-                align: "center",
-            },
-            {
-                title: "Ангилал",
-                dataIndex: ["student", "program"],
-                key: "program",
-                width: 100,
-            },
-            {
-                title: "ID",
-                dataIndex: ["student", "sisi_id"],
-                key: "sisi_id",
-                width: 80,
-            },
-            {
-                title: "Нэр.Овог",
-                dataIndex: "student",
-                key: "fullname",
-                render: (student) => (
-                    <Text strong>{`${student?.lastname || ""}.${
-                        student?.firstname || ""
-                    }`}</Text>
-                ),
-                width: 150,
-            },
-            {
-                title: "Удирдагч",
-                dataIndex: "student",
-                key: "supervisor",
-                render: (student) => {
-                    const thesis = student.thesis;
-                    console.log(student);
-                    const supervisor = thesis?.supervisor;
-                    return supervisor
-                        ? `${supervisor.lastname?.charAt(0) || ""}. ${
-                              supervisor.firstname || ""
-                          }`
-                        : "-";
-                },
-                width: 120,
-            },
-        ];
-
-        const teacherScoreColumns = graders.map((grader) => ({
-            title: (
-                <div style={{ textAlign: "center" }}>
-                    <div>{`${grader.teacher?.lastname || ""}`}</div>
-                    <div>{`${grader.teacher?.firstname || ""}`}</div>
-                </div>
-            ),
-            key: `score-${grader.id}`,
-            render: (_, record) => {
-                const studentId = record.student.id;
-
-                const scoreObj = grader.committeeScores?.find(
-                    (cs) => cs.student?.id === studentId
-                );
-
-                const score = parseFloat(scoreObj?.score);
-
-                return (
-                    <div style={{ textAlign: "center" }}>
-                        {scoreObj ? (
-                            <Tag
-                                style={{
-                                    fontSize: 14,
-                                    padding: "4px 8px",
-                                    minWidth: 40,
-                                }}
-                            >
-                                {score}
-                            </Tag>
-                        ) : (
-                            <Tag color="default" style={{ opacity: 0.6 }}>
-                                -
-                            </Tag>
-                        )}
-                    </div>
-                );
-            },
-            width: 120,
-            align: "center",
-        }));
-        const scoreColumns = [
-            {
-                title: "Нийт",
-                key: "totalScore",
-                render: (_, record) => {
-                    const studentId = record.student.id;
-
-                    // Collect all scores for this student from all graders
-                    const scores = graders
-                        .map(
-                            (grader) =>
-                                grader.committeeScores?.find(
-                                    (cs) => cs.student?.id === studentId
-                                )?.score
-                        )
-                        .filter((s) => s !== undefined && !isNaN(parseFloat(s)))
-                        .map((s) => parseFloat(s));
-
-                    const avg =
-                        scores.length > 0
-                            ? (
-                                  scores.reduce((sum, s) => sum + s, 0) /
-                                  scores.length
-                              ).toFixed(2)
-                            : "-";
-
-                    return (
-                        <Text strong style={{ fontSize: 14 }}>
-                            {avg}
-                        </Text>
-                    );
-                },
-                width: 80,
-                align: "center",
-            },
-        ];
-
-        return [...baseColumns, ...teacherScoreColumns, ...scoreColumns];
-    };
-
     return (
         <div style={{ padding: "24px" }}>
             <Row gutter={[16, 16]} className="mb-4">
-                {studentCounts.map((item, index) => (
-                    <Col key={index} xs={24} sm={12} md={8} lg={6}>
-                        <Card hoverable>
-                            <Statistic
-                                title={item.program}
-                                value={item.student_count}
-                                prefix={<TeamOutlined />}
-                                valueStyle={{ color: "#1890ff" }}
-                            />
-                        </Card>
-                    </Col>
-                ))}
+                <StudentCount studentCounts={studentCounts} />
 
                 <Col xs={24} sm={12} md={8} lg={6}>
                     <Card hoverable>
@@ -626,7 +341,7 @@ const CommitteeManagement = ({
                     </Button>
                 </Col>
             </Row>
-            {loading ? (
+            {loading || loadingData ? (
                 <Spin tip="Ачааллаж байна..." />
             ) : committees.length === 0 ? (
                 <Alert
@@ -640,13 +355,11 @@ const CommitteeManagement = ({
                     accordion
                     style={{
                         background: "#ffffff",
-                        // border: "1px solid rgb(70, 159, 203)",
                         borderRadius: 8,
-                        marginBottom: 24,
                     }}
                 >
                     {committees.map((committee, index) => (
-                        <Collapse.Panel
+                        <Panel
                             key={committee.id || index}
                             header={
                                 <div>
@@ -654,12 +367,6 @@ const CommitteeManagement = ({
                                         {committee.name ||
                                             `Комисс ${index + 1}`}
                                     </strong>{" "}
-                                    <Tag
-                                        color="processing"
-                                        style={{ marginLeft: 8 }}
-                                    >
-                                        {committee.students?.length} оюутан
-                                    </Tag>
                                     {isCommitteeFinalized(committee) ? (
                                         <Tag
                                             color="green"
@@ -678,216 +385,33 @@ const CommitteeManagement = ({
                                 </div>
                             }
                         >
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} md={10} lg={8}>
-                                    <Card
-                                        title="Багш нар"
-                                        bordered={false}
-                                        size="small"
-                                    >
-                                        <List
-                                            dataSource={
-                                                committee?.members || []
-                                            }
-                                            renderItem={
-                                                renderCommitteeMemberItem
-                                            }
-                                            locale={{
-                                                emptyText:
-                                                    "Багш нэмэгдээгүй байна",
-                                            }}
-                                        />
-                                       { committee?.externalReviewers.length>0 && (
-                                        <List
-                                            dataSource={
-                                                committee?.externalReviewers ||
-                                                []
-                                            }
-                                            renderItem={
-                                                renderCommitteeMemberItem
-                                            }
-                                          
-                                        />
-                                       )}
-                                        
-                                        <div style={{ marginTop: 16 }}>
-                                            <Text strong>Хөтөлбөрүүд:</Text>
-                                            <div style={{ marginTop: 8 }}>
-                                                {renderCommitteeStudentPrograms(
-                                                    committee
-                                                )}
-                                            </div>
-                                        </div>
-                                    </Card>
-                                    <Button
-                                        type="dashed"
-                                        style={{
-                                            marginLeft: 8,
-                                            marginBottom: 10,
-                                        }}
-                                        onClick={() =>
-                                            handleAddOutsider(committee)
-                                        }
-                                    >
-                                        Гадны Гишүүн нэмэх
-                                    </Button>
-                                </Col>
-
-                                <Col xs={24} md={14} lg={24}>
-                                    <Button
-                                        type="primary"
-                                        style={{ marginBottom: 10 }}
-                                        onClick={() =>
-                                            handleOpenScoreModal(committee)
-                                        }
-                                    >
-                                        Оноо оруулах
-                                    </Button>
-
-                                    <Button
-                                        type="primary"
-                                        disabled={
-                                            !isCommitteeReadyToFinalize(
-                                                committee
-                                            )
-                                        }
-                                        onClick={() =>
-                                            handleFinalizeCommittee(committee)
-                                        }
-                                    >
-                                        Оноог илгээх
-                                    </Button>
-
-                                    <Table
-                                        dataSource={committee.students || []}
-                                        columns={getStudentTableColumns(
-                                            committee?.members || []
-                                        )}
-                                        rowKey={(record) => record.id}
-                                        pagination={10}
-                                        bordered
-                                        style={{ fontSize: "9px" }}
-                                    />
-                                </Col>
-                            </Row>
-                        </Collapse.Panel>
+                            <CommitteeDisplay
+                                committees={committees}
+                                committee={committee}
+                                setCommittees={setCommittees}
+                                index={index}
+                                isCommitteeFinalized={isCommitteeFinalized}
+                                componentId={componentId}
+                                handleDeleteExternal={handleDeleteExternal}
+                                handleAddOutsider={handleAddOutsider}
+                                renderCommitteeStudentPrograms={
+                                    renderCommitteeStudentPrograms
+                                }
+                            />
+                        </Panel>
                     ))}
                 </Collapse>
             )}
 
-            <Modal
-                title="Багш, оюутны тоог шалгах"
+            <TeacherStudentConfirmModal
                 visible={showConfirmModal}
                 onCancel={() => setShowConfirmModal(false)}
-                footer={[
-                    <Button
-                        key="back"
-                        onClick={() => setShowConfirmModal(false)}
-                    >
-                        Болих
-                    </Button>,
-                    <Button
-                        key="submit"
-                        type="primary"
-                        onClick={() => {
-                            setShowConfirmModal(false);
-                            setShowCalculator(true);
-                        }}
-                    >
-                        Үргэлжлүүлэх
-                    </Button>,
-                ]}
-            >
-                <Form layout="vertical">
-                    <Form.Item label="Багш нарын тоо">
-                        <InputNumber
-                            style={{ width: "100%" }}
-                            value={customTeacherCount}
-                            onChange={setCustomTeacherCount}
-                        />
-                    </Form.Item>
-                    <Form.Item label="Оюутнуудын тоо">
-                        <InputNumber
-                            style={{ width: "100%" }}
-                            value={customStudentCount}
-                            onChange={setCustomStudentCount}
-                        />
-                    </Form.Item>
-                </Form>
-            </Modal>
-
-            <Modal
-                title="Оноо оруулах"
-                open={!!selectedCommittee}
-                onCancel={() => setSelectedCommittee(null)}
-                onOk={() => scoreForm.submit()}
-                width={800}
-            >
-                <Form
-                    form={scoreForm}
-                    onFinish={handleSubmitScores}
-                    initialValues={getInitialFormValues(selectedCommittee)}
-                >
-                    {selectedCommittee?.students?.map((student) => (
-                        <Card
-                            key={`student-${student.id}`}
-                            size="small"
-                            title={`${student.student?.lastname || ""}.${
-                                student.student?.firstname || ""
-                            }`}
-                            style={{ marginBottom: 16 }}
-                        >
-                            <Row gutter={[8, 8]} style={{ marginBottom: 10 }}>
-                                {selectedCommittee?.members?.map((teacher) => {
-                                    const grade = teacher.committeeScores?.find(
-                                        (cs) =>
-                                            cs.student?.id ===
-                                            student.student?.id
-                                    );
-
-                                    return (
-                                        <Col
-                                            span={8}
-                                            key={`score-${student.id}-${teacher.id}`}
-                                        >
-                                            <div style={{ marginBottom: 4 }}>
-                                                {grade?.score === undefined && (
-                                                    <Tag color="green">
-                                                        Хоосон
-                                                    </Tag>
-                                                )}
-                                            </div>
-
-                                            <Form.Item
-                                                label={`${
-                                                    teacher.teacher?.lastname ||
-                                                    ""
-                                                } ${
-                                                    teacher.teacher
-                                                        ?.firstname || ""
-                                                }`}
-                                                name={[
-                                                    student.id.toString(),
-                                                    teacher.teacher?.id?.toString(),
-                                                ]}
-                                                initialValue={
-                                                    grade?.score || null
-                                                }
-                                            >
-                                                <InputNumber
-                                                    min={0}
-                                                    max={100}
-                                                    style={{ width: "100%" }}
-                                                />
-                                            </Form.Item>
-                                        </Col>
-                                    );
-                                })}
-                            </Row>
-                        </Card>
-                    ))}
-                </Form>
-            </Modal>
+                onConfirm={() => setShowCalculator(true)}
+                customTeacherCount={customTeacherCount}
+                setCustomTeacherCount={setCustomTeacherCount}
+                customStudentCount={customStudentCount}
+                setCustomStudentCount={setCustomStudentCount}
+            />
 
             <CommitteeCalculator
                 show={showCalculator}
