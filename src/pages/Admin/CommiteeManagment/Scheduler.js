@@ -1,10 +1,12 @@
 // CommitteeScheduler.js
 import React, { useState, useEffect, useMemo } from "react";
+import moment from "moment";
+import "moment/locale/mn";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Calendar, momentLocalizer } from "react-big-calendar";
+
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
-import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import {
@@ -21,11 +23,28 @@ import {
   Space,
   Popover,
   Collapse,
-  message
+  message,
+  ConfigProvider,
+  Spin,
+  TimePicker
 } from "antd";
+
 import api from "../../../context/api_helper";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import mnMN from "antd/es/locale/mn_MN";
+import "dayjs/locale/mn";
+import dayjs from "dayjs";
+
+import 'dayjs/locale/mn';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.locale('mn');
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+
 
 moment.locale("mn");
 const localizer = momentLocalizer(moment);
@@ -56,7 +75,9 @@ const CommitteeScheduler = () => {
       setLoading(true);
       const committeesData = await api.get(`/committees/active-cycle`);
       setCommittees(committeesData.data.data);
+      console.log("committeesData.data.data", committeesData.data.data)
       updateEvents(committeesData.data.data);
+  
     } catch (error) {
       toast.error("Комиссийн мэдээлэл авахад алдаа гарлаа");
     } finally {
@@ -69,28 +90,44 @@ const CommitteeScheduler = () => {
       committee.schedules.map((schedule) => ({
         id: schedule.id,
         title: `${committee.name}: ${schedule.notes || ""}`,
-        start: new Date(schedule.start_datetime),
-        end: new Date(schedule.end_datetime),
+        start: dayjs.utc(schedule.start_datetime).tz("Asia/Ulaanbaatar").toDate(), // Convert to local
+        end: dayjs.utc(schedule.end_datetime).tz("Asia/Ulaanbaatar").toDate(),
         committee: committee.id,
         location: schedule.location,
-        room: schedule.room,
+        room: schedule.room || null,
       }))
     );
     setEvents(allEvents);
   };
+  
 
   const handleEventDrop = async ({ event, start, end }) => {
+    // 1. Optimistically update the calendar UI
+    setEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === event.id
+          ? { ...e, start: new Date(start), end: new Date(end) }
+          : e
+      )
+    );
+  
+    // 2. Save to backend in background
     try {
       await api.patch(`/schedules/${event.id}`, {
         start_datetime: start.toISOString(),
         end_datetime: end.toISOString(),
       });
       message.success("Хуваарь амжилттай шинэчлэгдлээ");
-      fetchData();
+      // Optional: refetch data to stay 100% synced
+      // await fetchData();
     } catch (error) {
       toast.error("Хуваарь шинэчлэхэд алдаа гарлаа");
+  
+      // 3. Optional: revert UI if saving fails
+      fetchData(); // revert to server state
     }
   };
+  
 
   const handleAddMeeting = (committee) => {
     setSelectedCommittee(committee);
@@ -128,26 +165,26 @@ const CommitteeScheduler = () => {
     try {
       const values = await form.validateFields();
 
-      const startDateTime = moment(values.start_date)
-        .set({
-          hour: values.start_time.hour(),
-          minute: values.start_time.minute(),
-        })
-        .toISOString();
+      console.log("hello", values.start_date?.format(), values.start_time?.format());
+      const startDateTime = dayjs
+      .tz(`${values.start_date.format("YYYY-MM-DD")} ${values.start_time.format("HH:mm")}`, "Asia/Ulaanbaatar")
+      .utc()
+      .format() // ISO string in UTC
+      
+      const endDateTime = dayjs
+      .tz(`${values.end_date.format("YYYY-MM-DD")} ${values.end_time.format("HH:mm")}`, "Asia/Ulaanbaatar")
+      .utc()
+      .format()
+      
+console.log(startDateTime ,endDateTime);
 
-      const endDateTime = moment(values.end_date)
-        .set({
-          hour: values.end_time.hour(),
-          minute: values.end_time.minute(),
-        })
-        .toISOString();
 
       const payload = {
         notes: values.notes,
         location: values.location,
         event_type: "Комисс",
         start_datetime: startDateTime,
-        end_datetime: endDateTime,
+        end_datetime:endDateTime,
         room: values.room,
       };
 
@@ -239,15 +276,19 @@ const CommitteeScheduler = () => {
   const handleEditMeeting = (event) => {
     setSelectedEvent(event);
     setIsEditMode(true);
+    const start = moment(event.start);
+    const end = moment(event.end);
+    
     form.setFieldsValue({
-      notes: event.notes,
+        start_date: dayjs.utc(event.start).tz("Asia/Ulaanbaatar"),
+        end_date: dayjs.utc(event.end).tz("Asia/Ulaanbaatar"),
+        start_time: dayjs.utc(event.start).tz("Asia/Ulaanbaatar"),
+        end_time: dayjs.utc(event.end).tz("Asia/Ulaanbaatar"),
+        notes: event.notes,
       location: event.location,
       room: event.room,
-      start_date: moment(event.start),
-      start_time: moment(event.start),
-      end_date: moment(event.end),
-      end_time: moment(event.end),
     });
+    
     setModalVisible(true);
   };
 
@@ -258,8 +299,26 @@ const CommitteeScheduler = () => {
     return acc;
   }, {});
 
+  const calendarMessages = {
+    today: "Өнөөдөр",
+    previous: "Өмнөх",
+    next: "Дараах",
+    month: "Сар",
+    week: "7 хоног",
+    day: "Өдөр",
+    agenda: "Тов",
+    date: "Огноо",
+    time: "Цаг",
+    event: "Уулзалт",
+    showMore: (total) => `+ ${total} илүү`,
+  };
+  
+
   return (
     <div className="container mt-4">
+          <ConfigProvider locale={mnMN}> 
+          <Spin spinning={loading} tip="Ачааллаж байна...">
+
       <DndProvider backend={HTML5Backend}>
         <Row gutter={24}>
           <Col xs={24} md={6}>
@@ -267,55 +326,71 @@ const CommitteeScheduler = () => {
               <Typography.Title level={4}>Комиссийн жагсаалт</Typography.Title>
               <Collapse accordion>
                 {Object.entries(groupedCommittees).map(([componentName, group]) => (
-                  <Collapse.Panel header={componentName} key={componentName}>
-                    <List
-                      bordered
-                      dataSource={group}
-                      renderItem={(committee) => {
-                        const latestSchedule = committee.schedules?.[committee.schedules.length - 1];
-                        return (
-                          <List.Item
-                            style={{
-                              borderLeft: `5px solid ${committeeColorMap[committee.id]}`,
-                              padding: "12px",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
-                            <div>
-                              <Typography.Text strong>{committee.name}</Typography.Text>
-                              <br />
-                              <Typography.Text>{committee.schedules.length} хуваарь</Typography.Text>
-                              {latestSchedule && (
-                                <>
-                                  <br />
-                                  <Typography.Text
-                                    type="secondary"
-                                    style={{ cursor: "pointer", color: "#1890ff" }}
-                                    onClick={() => {
-                                      const calendarEvent = events.find(e => e.id === latestSchedule.id);
-                                      if (calendarEvent) {
-                                        setCalendarDate(new Date(calendarEvent.start));
-                                        setSelectedEvent(calendarEvent);
-                                      }
-                                    }}
-                                  >
-                                    🗓 {moment(latestSchedule.start_datetime).format("YYYY-MM-DD HH:mm")}
-                                  </Typography.Text>
-                                  <br />
-                                  <Typography.Text italic>{latestSchedule.notes}</Typography.Text>
-                                </>
-                              )}
-                            </div>
-                            <Button size="small" onClick={() => handleAddMeeting(committee)}>
-                              Нэмэх
-                            </Button>
-                          </List.Item>
-                        );
-                      }}
-                    />
-                  </Collapse.Panel>
+               <Collapse.Panel header={componentName} key={componentName}>
+               <List
+                 bordered
+                 dataSource={group}
+                 renderItem={(committee) => {
+                   const schedules = committee.schedules || [];
+                   return (
+                     <List.Item
+                       style={{
+                         borderLeft: `5px solid ${committeeColorMap[committee.id]}`,
+                         padding: "12px",
+                         display: "block",
+                       }}
+                     >
+                       <div>
+                         <Typography.Text strong>{committee.name}</Typography.Text>
+                         <br />
+                         <Typography.Text>{schedules.length} хуваарь</Typography.Text>
+             
+                         {schedules.map((schedule) => (
+                           <div key={schedule.id} style={{ marginTop: "8px", padding: "8px", border: "1px dashed #ccc", borderRadius: "4px" }}>
+                             <Typography.Text
+                               type="secondary"
+                               style={{ cursor: "pointer", color: "#1890ff" }}
+                               onClick={() => {
+                                 const calendarEvent = events.find(e => e.id === schedule.id);
+                                 if (calendarEvent) {
+                                   setCalendarDate(new Date(calendarEvent.start));
+                                   setSelectedEvent(calendarEvent);
+                                 }
+                               }}
+                             >
+                             {dayjs.utc(schedule.start_datetime).tz("Asia/Ulaanbaatar").format("YYYY-MM-DD HH:mm")}
+                             </Typography.Text>
+                             <br />
+                             <Typography.Text italic>{schedule.notes}</Typography.Text>   <Button
+                               size="small"
+                               onClick={() => handleEditMeeting({
+                                 ...schedule,
+                                 start: dayjs.utc(schedule.start_datetime).tz("Asia/Ulaanbaatar").toDate(),
+                                 end: dayjs.utc(schedule.end_datetime).tz("Asia/Ulaanbaatar").toDate(),
+                                 committee: committee.id,
+                                 location: schedule.location,
+                                 notes: schedule.notes,
+                                 room: schedule.room,
+                               })}
+                             >
+                               Засах
+                             </Button>
+                             <br />
+                           
+                           </div>
+                         ))}
+                       </div>
+                       <div style={{ marginTop: "12px" }}>
+                         <Button size="small" onClick={() => handleAddMeeting(committee)}>
+                           Нэмэх
+                         </Button>
+                       </div>
+                     </List.Item>
+                   );
+                 }}
+               />
+             </Collapse.Panel>
+             
                 ))}
               </Collapse>
             </Card>
@@ -326,7 +401,7 @@ const CommitteeScheduler = () => {
               <Space style={{ marginBottom: 8, justifyContent: "space-between" }}>
                 <DatePicker
                   onChange={(date) => date && setCalendarDate(date.toDate())}
-                  format="YYYY-MM-DD"
+                 format="YYYY-MM-DD dddd"
                 />
                 {selectedEvent && (
                   <Button danger onClick={handleDeleteMeeting}>
@@ -334,7 +409,9 @@ const CommitteeScheduler = () => {
                   </Button>
                 )}
               </Space>
+              <div style={{ padding: "2px", cursor: "pointer", fontSize: "12px" }}>
               <DragAndDropCalendar
+                           messages={calendarMessages} 
                 localizer={localizer}
                 events={events}
                 startAccessor="start"
@@ -350,6 +427,7 @@ const CommitteeScheduler = () => {
                 min={new Date(1970, 1, 1, 6, 0)}
                 onSelectEvent={handleEditMeeting}
               />
+              </div>
             </Card>
           </Col>
         </Row>
@@ -366,13 +444,13 @@ const CommitteeScheduler = () => {
           }}
         >
           <Form layout="vertical" form={form}>
-            <Form.Item name="notes" label="Хэлэлцэх асуудал">
+            <Form.Item name="notes" label="Хэлэлцэх асуудал" >
               <Input />
             </Form.Item>
             <Form.Item name="location" label="Байршил" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="room" label="Өрөө" rules={[{ required: true }]}>
+            <Form.Item name="room" label="Өрөө" >
               <Input />
             </Form.Item>
 
@@ -383,24 +461,18 @@ const CommitteeScheduler = () => {
                   label="Эхлэх огноо"
                   rules={[{ required: true, message: "Эхлэх огноо сонгоно уу" }]}
                 >
-                  <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
+                  <DatePicker     format="YYYY-MM-DD" style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item
-                  name="start_time"
-                  label="Эхлэх цаг"
-                  rules={[{ required: true, message: "Эхлэх цаг оруулна уу" }]}
-                >
-                  <DatePicker
-                    picker="time"
-                    format="HH:mm"
-                    showTime={{ format: "HH:mm" }}
-                    showNow={false}
-                    showOk
-                    style={{ width: "100%" }}
-                  />
-                </Form.Item>
+              <Form.Item
+  name="start_time"
+  label="Эхлэх цаг"
+  rules={[{ required: true, message: "Эхлэх цаг оруулна уу" }]}
+>
+  <TimePicker format="HH:mm" style={{ width: "100%" }} />
+</Form.Item>
+
               </Col>
             </Row>
 
@@ -415,25 +487,20 @@ const CommitteeScheduler = () => {
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item
-                  name="end_time"
-                  label="Дуусах цаг"
-                  rules={[{ required: true, message: "Дуусах цаг оруулна уу" }]}
-                >
-                  <DatePicker
-                    picker="time"
-                    format="HH:mm"
-                    showTime={{ format: "HH:mm" }}
-                    showNow={false}
-                    showOk
-                    style={{ width: "100%" }}
-                  />
-                </Form.Item>
+              <Form.Item
+  name="end_time"
+  label="Дуусах цаг"
+  rules={[{ required: true, message: "Дуусах цаг оруулна уу" }]}
+>
+  <TimePicker format="HH:mm" style={{ width: "100%" }} />
+</Form.Item>
               </Col>
             </Row>
           </Form>
         </Modal>
       </DndProvider>
+      </Spin>
+      </ConfigProvider>
     </div>
   );
 };

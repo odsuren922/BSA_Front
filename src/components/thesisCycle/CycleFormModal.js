@@ -47,22 +47,24 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
     }
   }, [cycle, form, gradingSchemas]);
   useEffect(() => {
-    if (cycle) {
+
     const formStartDate = form.getFieldValue("start_date");
     if (selectedSchema && formStartDate) {
       const calculatedDeadlines = selectedSchema.grading_components.map((comp) => {
         const week = parseInt(comp.scheduled_week);
         const start = dayjs(formStartDate).add(week - 1, "week");
-        const end = start.add(6, "day");
+        const end = start.add(4, "day");
         return {
           grading_component_id: comp.id,
           start_date: start,
           end_date: end,
         };
       });
+      console.log('calculatedDeadlines',calculatedDeadlines)
+
       setComponentDeadlines(calculatedDeadlines);
     }
-}
+
   }, [selectedSchema, form.getFieldValue("start_date")]);
   
 
@@ -94,21 +96,7 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
     const schema = gradingSchemas.find((s) => s.id === parseInt(value));
     setSelectedSchema(schema);
   };
-  const deadlines = ((comp) => {
-    const formStartDate = form.getFieldValue("start_date");
-    const week = parseInt(comp.scheduled_week);
-    let start = null;
-    let end = null;
-    if (!isNaN(week) && formStartDate) {
-      start = dayjs(formStartDate).add(week - 1, "week");
-      end = start.add(6, "day");
-    }
-    return {
-      grading_component_id: comp.id,
-      start_date: start,
-      end_date: end,
-    };
-  });
+
 
   const handleDeadlineChange = (idx, field, value) => {
     const updated = [...componentDeadlines];
@@ -164,12 +152,12 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
           </Col>
           <Col span={8}>
             <Form.Item name="start_date" label="Эхлэх өдөр" rules={[{ required: true }]}>
-              <DatePicker style={{ width: "100%" }} />
+              <DatePicker style={{ width: "100%" }}     format="YYYY-MM-DD dddd" />
             </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item name="end_date" label="Дуусах өдөр" rules={[{ required: true }]}>
-              <DatePicker style={{ width: "100%" }} />
+              <DatePicker style={{ width: "100%" }}     format="YYYY-MM-DD dddd" />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -200,7 +188,7 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
           </Col>
         </Row>
 
-        {/* {selectedSchema  && (
+        {selectedSchema  && (
           <>
             <h5>{selectedSchema.name} ({selectedSchema.year})</h5>
             <Badge count={selectedSchema.grading_components?.length || 0} color="blue" />
@@ -217,26 +205,29 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
 
      
 
-                  <Row gutter={12}>
-                    <Col span={12}>
-                      <Form.Item label="Эхлэх өдөр" name="start_date" >
-                        <DatePicker
-                          style={{ width: "100%" }}
-                          value={componentDeadlines[idx]?.start_date}
-                          onChange={(value) => handleDeadlineChange(idx, "start_date", value)}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item label="Дуусах өдөр" name="end_date" >
-                        <DatePicker
-                          style={{ width: "100%" }}
-                          value={componentDeadlines[idx]?.end_date}
-                          onChange={(value) => handleDeadlineChange(idx, "end_date", value)}
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                     <Row gutter={12}>
+  <Col span={12}>
+    <Form.Item label="Эхлэх өдөр">
+      <DatePicker
+        style={{ width: "100%" }}
+            format="YYYY-MM-DD dddd"
+        value={componentDeadlines[idx]?.start_date}
+        onChange={(value) => handleDeadlineChange(idx, "start_date", value)}
+      />
+    </Form.Item>
+  </Col>
+  <Col span={12}>
+    <Form.Item label="Дуусах өдөр">
+      <DatePicker
+        style={{ width: "100%" }}
+            format="YYYY-MM-DD dddd"
+        value={componentDeadlines[idx]?.end_date}
+        onChange={(value) => handleDeadlineChange(idx, "end_date", value)}
+      />
+    </Form.Item>
+  </Col>
+</Row>
+
 
         
                   <p><strong>Дүгнэгч:</strong> {{
@@ -258,7 +249,7 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
               ))}
             </div>
           </>
-        )} */}
+        )}
 
 
 

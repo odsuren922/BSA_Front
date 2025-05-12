@@ -503,7 +503,7 @@ const CycleFormPage = ({ onSubmit, user, gradingSchemas }) => {
                                     Өмнөх
                                 </Button>
                             )}
-                            {currentStep < 3 && (
+                            {currentStep < 3 && currentStep > 0 && (
                                 <Button
                                     type="primary"
                                     onClick={() =>

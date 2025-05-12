@@ -1,20 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Container } from "reactstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import api from "../../context/api_helper.js";
 import { useUser } from "../../context/UserContext";
-import Breadcrumbs from "../../components/Common/Breadcrumb.js";
 import ThesisCard from "./ThesisCard.js";
 import { Spinner } from "reactstrap";
 import { Alert } from "reactstrap";
-import { Tabs, Button, Col, Card, Row, Layout, Typography } from "antd";
+import { Typography } from "antd";
 
-const { Content } = Layout;
+
 const { Title } = Typography;
 
 const App = () => {
   const [data, setData] = useState([]);
-  const [gradingTheses, SetGradingTheses] = useState([]);
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

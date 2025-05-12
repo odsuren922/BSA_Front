@@ -143,17 +143,13 @@ const CommitteeCalculator = ({
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>Хаах</Button>
         <Button 
-          variant="primary" 
-          onClick={() =>onCreate({
-            committees: Array.from({ length: numCommittees }, (_, i) => ({
-              name: `Комисс ${i + 1}`,
-            }))
-            })}
-          
-          disabled={!isValid}
-        >
-          Комисс үүсгэх
-        </Button>
+  variant="primary" 
+  onClick={() => onCreate(numCommittees)}
+  disabled={!isValid}
+>
+  Комисс үүсгэх
+</Button>
+
       </Modal.Footer>
     </Modal>
   );

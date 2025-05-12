@@ -40,19 +40,36 @@ const SchemaEditorModal = ({ open, onCancel, onSuccess, schema ,user}) => {
 
   const handleSubmit = async () => {
     try {
-        console.log("user", user.dep_id)
       const values = await form.validateFields();
-      const formData = {
+  
+      // Check if any component is incomplete
+      for (let i = 0; i < components.length; i++) {
+        const comp = components[i];
+        if (!comp.name || !comp.score || !comp.by_who || !comp.scheduled_week) {
+          toast.error(`Үнэлгээний задаргаа #${i + 1} дутуу байна. Бүх талбарыг бөглөнө үү.`);
+          return;
+        }
+      }
+  
+    //   const formData = {
+    //     ...values,
+    //     grading_components: components,
+    //     dep_id: user.dep_id,
+    //   };
+    const formData = {
         ...values,
-        grading_components: components,
-        dep_id: user.dep_id // 👈 Add department ID here
+        grading_components: components.map((comp) => ({
+          ...comp,
+          description: comp.description?.trim() === "" ? null : comp.description,
+        })),
+        dep_id: user.dep_id,
       };
-      console.log("form", formData);
+      
   
       if (schema) {
         await api.put(`/grading-schemas/${schema.id}`, formData);
       } else {
-        await api.post("/grading-schemas", formData); // user.dep_id is now included
+        await api.post("/grading-schemas", formData);
       }
   
       onSuccess();
@@ -62,6 +79,7 @@ const SchemaEditorModal = ({ open, onCancel, onSuccess, schema ,user}) => {
       console.error(error);
     }
   };
+  
   
 
   return (

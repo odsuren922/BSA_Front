@@ -69,7 +69,7 @@ const TeacherCommittee = ({ cycleId, componentId ,committees, setCommittees}) =>
   const getTeacherCommittees = (teacherId) => {
     return committees
       .filter((committee) =>
-        (committee.members || []).some(
+        (committee?.members || []).some(
           (member) => member.teacher?.id === teacherId
         )
       )
@@ -131,7 +131,7 @@ const TeacherCommittee = ({ cycleId, componentId ,committees, setCommittees}) =>
           if (committee.id === selectedCommitteeId) {
             return {
               ...committee,
-              members: [...(committee.members || []), ...res.data.data],
+              members: [...(committee?.members || []), ...res.data.data],
             };
           }
           return committee;
@@ -193,7 +193,7 @@ const TeacherCommittee = ({ cycleId, componentId ,committees, setCommittees}) =>
       key: "name",
       render: (_, record) => {
         const teacherCommittees = committees.filter((committee) =>
-          (committee.members || []).some(
+          (committee?.members || []).some(
             (member) => member.teacher?.id === record.id
           )
         );

@@ -33,8 +33,24 @@ const CommitteePanel = () => {
           ),
         ]);
         console.log("committeesRes", committeesRes.data.data);
-
-        setCommittees(committeesRes.data.data);
+        const roleOrder = {
+            leader: 1,
+            secretary: 2,
+            member: 3,
+          };
+          
+          const sortedCommittees = committeesRes.data.data.map((committee) => {
+            const sortedMembers = [...(committee.members || [])].sort((a, b) => {
+              return roleOrder[a.role] - roleOrder[b.role];
+            });
+            return {
+              ...committee,
+              members: sortedMembers,
+            };
+          });
+          
+          setCommittees(sortedCommittees);
+          
       } catch (error) {
         toast.error("Failed to load data");
       } finally {
@@ -46,9 +62,7 @@ const CommitteePanel = () => {
 
     const navigate = useNavigate();
 
-const handleBack = () => {
-  navigate(-1); 
-};
+
 
   return (
     <>
@@ -61,7 +75,7 @@ const handleBack = () => {
     
     <Tabs defaultActiveKey="committee">
     <Tabs.TabPane tab="Комисс" key="committee">
-      <Calculator cycleId={cycleId} componentId={componentId}  user={user}/>
+      <Calculator cycleId={cycleId} componentId={componentId}  committees={committees} setCommittees={setCommittees}   user={user}/>
       </Tabs.TabPane>
 
       <Tabs.TabPane tab="Багш" key="teachers" >
