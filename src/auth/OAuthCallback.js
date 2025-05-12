@@ -1,61 +1,177 @@
-// src/auth/OAuthCallback.js
-import React, { useEffect, useState } from 'react';
+// src/auth/OAuthCallback.js - Modified version with improved token handling
+
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { exchangeCodeForToken, fetchUserData } from '../oauth';
-import { useUser } from '../context/UserContext';
+import { notification, Spin } from 'antd';
+import authService from '../services/authService';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser } = useUser();
   const [status, setStatus] = useState('Processing authentication...');
   const [error, setError] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const processingTimestamp = useRef(Date.now());
+  const exchangeRequestSent = useRef(false); // Flag to prevent duplicate requests
 
   useEffect(() => {
     const processCallback = async () => {
+      // Prevent duplicate processing
+      if (isProcessing || exchangeRequestSent.current) return;
+      
+      setIsProcessing(true);
+      exchangeRequestSent.current = true; // Set flag to prevent duplicate calls
+      processingTimestamp.current = Date.now();
+      
+      const requestId = Math.random().toString(36).substring(2, 10);
+      console.log(`[Auth-${requestId}] Starting OAuth callback processing at ${new Date().toISOString()}`);
+      
       try {
         // Get the authorization code and state from URL
         const params = new URLSearchParams(location.search);
         const code = params.get('code');
         const state = params.get('state');
-        
-        console.log('Authorization callback received with code:', code ? 'present' : 'missing');
+        const redirectPath = params.get('redirect') || '/';
         
         if (!code) {
-          setError('No authorization code found in URL');
-          setStatus('Authorization failed. Redirecting to login...');
-          setTimeout(() => navigate('/login'), 3000);
+          setError('Authorization code not found in URL');
+          setStatus('Authentication failed. Redirecting to login page...');
+          
+          notification.error({
+            message: 'Authentication Error',
+            description: 'Missing authorization code. Please try logging in again.',
+            duration: 5
+          });
+          
+          setTimeout(() => navigate('/login', { 
+            state: { error: 'Missing authorization code' }
+          }), 3000);
           return;
         }
         
         // Exchange authorization code for tokens
-        setStatus('Exchanging code for tokens...');
-        const tokenData = await exchangeCodeForToken(code, state);
+        setStatus('Exchanging code for token...');
+        console.log(`[Auth-${requestId}] Exchanging code for token at ${new Date().toISOString()}`);
         
-        if (!tokenData || !tokenData.access_token) {
-          throw new Error('Failed to obtain access token');
+        // Add the requestId to the exchange request
+        const tokenData = await authService.exchangeCodeForToken(
+          code, 
+          state, 
+          window.location.origin + '/auth',
+          requestId // Pass requestId for correlation
+        );
+        
+        // Processing time metrics
+        const tokenExchangeTime = Date.now() - processingTimestamp.current;
+        console.log(`Token exchange completed in ${tokenExchangeTime}ms at ${new Date().toISOString()}`);
+        
+        // Log the token storage state
+        console.log('Auth state after token exchange:', {
+          hasAuthState: !!localStorage.getItem('auth_state'),
+          hasOAuthToken: !!localStorage.getItem('oauth_token'),
+          hasRefreshToken: !!localStorage.getItem('refresh_token'),
+          tokenTimeExists: !!localStorage.getItem('token_time')
+        });
+        
+        // Success path - get user data if not included in token response
+        if (tokenData.user) {
+          setStatus('Authentication successful! Redirecting...');
+          
+          notification.success({
+            message: 'Authentication Successful',
+            description: 'You have been successfully authenticated',
+            duration: 3
+          });
+          
+          // Get intended URL from localStorage or params, or default to home
+          let intendedUrl = localStorage.getItem('intended_url') || redirectPath || '/';
+          localStorage.removeItem('intended_url'); // Clear intended URL
+          
+          // Redirect to intended URL
+          console.log(`Redirecting to ${intendedUrl} at ${new Date().toISOString()}`);
+          setTimeout(() => navigate(intendedUrl), 1000);
+        } else {
+          setStatus('Fetching user information...');
+          console.log(`Fetching user data at ${new Date().toISOString()}`);
+          
+          // Try to get user data
+          try {
+            await authService.fetchUserData();
+            
+            notification.success({
+              message: 'Authentication Successful',
+              description: 'You have been successfully authenticated',
+              duration: 3
+            });
+            
+            // Get intended URL from localStorage or params, or default to home
+            let intendedUrl = localStorage.getItem('intended_url') || redirectPath || '/';
+            localStorage.removeItem('intended_url'); // Clear intended URL
+            
+            setStatus('Authentication successful! Redirecting...');
+            console.log(`Redirecting to ${intendedUrl} at ${new Date().toISOString()}`);
+            setTimeout(() => navigate(intendedUrl), 1000);
+          } catch (userDataError) {
+            console.error('Error fetching user data:', userDataError);
+            
+            // Try one more time after a short delay
+            setStatus('Retrying user data fetch...');
+            console.log(`Retrying user data fetch at ${new Date().toISOString()}`);
+            
+            setTimeout(async () => {
+              try {
+                await authService.fetchUserData();
+                
+                let intendedUrl = localStorage.getItem('intended_url') || redirectPath || '/';
+                localStorage.removeItem('intended_url');
+                
+                setStatus('Authentication successful! Redirecting...');
+                console.log(`Redirecting to ${intendedUrl} after retry at ${new Date().toISOString()}`);
+                setTimeout(() => navigate(intendedUrl), 1000);
+              } catch (retryError) {
+                console.error('Error on retry fetch user data:', retryError);
+                setError(`Failed to fetch user data: ${retryError.message}`);
+                setStatus('Authentication failed. Redirecting to login page...');
+                setTimeout(() => navigate('/login', { 
+                  state: { error: 'Failed to fetch user data' }
+                }), 3000);
+              }
+            }, 2000);
+          }
         }
-        
-        // Fetch user data with the new token
-        setStatus('Fetching user information...');
-        const userData = await fetchUserData();
-        
-        // Update global user state
-        setUser(userData);
-        
-        // Success, redirect to home
-        setStatus('Authentication successful! Redirecting...');
-        setTimeout(() => navigate('/'), 1000);
       } catch (error) {
         console.error('Error in OAuth callback:', error);
         setError(`Authentication error: ${error.message}`);
-        setStatus('Authentication failed. Redirecting to login...');
-        setTimeout(() => navigate('/login'), 3000);
+        setStatus('Authentication failed. Redirecting to login page...');
+        
+        notification.error({
+          message: 'Authentication Error',
+          description: `An error occurred during authentication: ${error.message}`,
+          duration: 5
+        });
+        
+        setTimeout(() => navigate('/login', { 
+          state: { error: error.message }
+        }), 3000);
+      } finally {
+        setIsProcessing(false);
+        console.log(`[Auth-${requestId}] OAuth callback processing completed at ${new Date().toISOString()}`);
       }
     };
 
     processCallback();
-  }, [navigate, location, setUser]);
+  }, [navigate, location, isProcessing]);
+
+  // Store intended URL when component mounts
+  useEffect(() => {
+    // Check for redirect parameter in query
+    const params = new URLSearchParams(location.search);
+    const redirectPath = params.get('redirect');
+    
+    if (redirectPath) {
+      localStorage.setItem('intended_url', redirectPath);
+    }
+  }, [location]);
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -73,7 +189,7 @@ const OAuthCallback = () => {
         </div>
         
         <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-violet-500"></div>
+          <Spin size="large" tip="Please wait..." />
         </div>
       </div>
     </div>
