@@ -346,10 +346,10 @@ const CommitteeDetailsPage = () => {
           <div style={{ textAlign: "center" }}>
 
 
-            <div style={{ textAlign: "center" }}>
+           
             <div>{`${rev?.lastname || ""}`}</div>
             <div>{`${rev?.firstname || ""}`}</div>
-          </div>
+ 
 
           </div>
         ),
@@ -540,20 +540,33 @@ const CommitteeDetailsPage = () => {
           
 
 
-         if(scores.length>0){
-                 const res = await api.post("/committee-scores/save-editable-scores", {
+          if (scores.length > 0) {
+            const res = await api.post("/committee-scores/save-editable-scores", {
               committee_id: committee.id,
-              component_id: committee.grading_component.id, // componentId нь prop эсвэл state-оос ирнэ
+              component_id: committee.grading_component.id,
               scores,
             });
-            message.success("Оноо амжилттай шинэчлэгдлээ!");
-            setEditableScores({});
-              }
+          
+            toast.success("Оноо амжилттай шинэчлэгдлээ!");
+          
+
+            const updatedEditableScores = scores.reduce((acc, item) => {
+              const key = `${item.student_id}-${item.committee_member_id}`;
+              acc[key] = item.score;
+              return acc;
+            }, {});
+            
+            setEditableScores(updatedEditableScores); 
+          }
 
               if(payload.external_scores.length>0){
                 await api.post("/committee/external-reviewer-scores/batch", payload);
                 message.success("Оноо амжилттай шинэчлэгдлээ!");
-                setEditableExternalScores({});
+                setEditableExternalScores(payload.external_scores.reduce((acc, score) => {
+                    const key = `external-${score.student_id}-${score.external_reviewer_id}`;
+                    acc[key] = score.score;
+                    return acc;
+                  }, {}));
               }
       toast.success("Оноо амжилттай хадгалагдлаа!");
     } catch (err) {
@@ -707,13 +720,13 @@ const CommitteeDetailsPage = () => {
                     grid={{ gutter: 12, column: 3 }}
                     dataSource={committee.members}
                     renderItem={(member) => {
-                      const isSelected = selectedMemberId === member.id;
+                      const isSelected = selectedMemberId === member.teacher.id;
 
                       return (
                         <List.Item>
                           <Card
                             hoverable
-                            onClick={() => setSelectedMemberId(member.id)}
+                            onClick={() => setSelectedMemberId(member.teacher.id)}
                             style={{
                               borderColor: isSelected ? "#1890ff" : "#f0f0f0",
                               backgroundColor: isSelected ? "#e6f7ff" : "#fff",
@@ -787,8 +800,8 @@ const CommitteeDetailsPage = () => {
         </p>
         <p>
           <strong>Багш:</strong>{" "}
-          {selectedTeacher?.teacher
-            ? `${selectedTeacher.teacher.lastname} ${selectedTeacher.teacher.firstname}`
+          {selectedTeacher
+            ? `${selectedTeacher.lastname} ${selectedTeacher.firstname}`
             : "—"}
         </p>
 

@@ -56,6 +56,7 @@ const CycleStep2_ComponentsAndReminders = ({
         updated[idx][field] = value;
         setComponentDeadlines(updated);
     };
+  
 
     const saveDeadlineComponent = async (comp, idx) => {
         try {
@@ -67,12 +68,27 @@ const CycleStep2_ComponentsAndReminders = ({
 
             setEditMode(false);
             console.log('related_id',comp)
-            await api.post("/thesiscycle/component/deadline", {
-                thesis_cycle_id: cycle.id,
-                related_id: comp.id,
-                start_date:   componentDeadlines[idx].start_date.format("YYYY-MM-DD"),
-                end_date: componentDeadlines[idx].end_date?.format("YYYY-MM-DD"),
-            });
+
+            const startDateTime = componentDeadlines[idx].start_date
+            .hour(componentDeadlines[idx].start_time?.hour() || 0)
+            .minute(componentDeadlines[idx].start_time?.minute() || 0)
+            .second(0);
+          
+          const endDateTime = componentDeadlines[idx].end_date
+            .hour(componentDeadlines[idx].end_time?.hour() || 0)
+            .minute(componentDeadlines[idx].end_time?.minute() || 0)
+            .second(0);
+            console.log('startDateTime', startDateTime.toISOString())
+
+          
+          await api.post("/thesiscycle/component/deadline", {
+            thesis_cycle_id: cycle.id,
+            related_id: comp.id,
+            start_date: startDateTime.toISOString(),
+            end_date: endDateTime.toISOString(),
+            type: "grading_component",
+          });
+          
 
             message.success("Огноо амжилттай хадгалагдлаа");
         } catch (error) {
@@ -155,12 +171,6 @@ const CycleStep2_ComponentsAndReminders = ({
         if (!scheduleDate || !deadlineDate) return null;
         return dayjs(deadlineDate).diff(dayjs(scheduleDate), "day");
       };
-      
-      
-
-     
-      
-      
 
     return (
         <ConfigProvider locale={mnMN}>
@@ -192,64 +202,95 @@ const CycleStep2_ComponentsAndReminders = ({
                                 headStyle={{ backgroundColor: "#fafafa" }}
                             >
                                 <Row gutter={16} align="middle">
-                                    <Col xs={24} md={8}>
-                                        <Form.Item label="Эхлэх өдөр" required>
-                                            {editMode ? (
-                                                <DatePicker
-                                                    style={{ width: "100%" }}
-                                                    format="YYYY-MM-DD dddd"
-                                                    value={
-                                                        componentDeadlines[idx]
-                                                            ?.start_date
-                                                    }
-                                                    onChange={(v) =>
-                                                        handleDeadlineChange(
-                                                            idx,
-                                                            "start_date",
-                                                            v
-                                                        )
-                                                    }
-                                                />
-                                            ) : (
-                                                <div className="ant-input-disabled">
-                                                    {componentDeadlines[
-                                                        idx
-                                                    ]?.start_date?.format(
-                                                        "YYYY-MM-DD (dddd)"
-                                                    ) || "-"}
-                                                </div>
-                                            )}
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={8}>
-                                        <Form.Item label="Дуусах өдөр" required>
-                                            {editMode ? (
-                                                <DatePicker
-                                                    style={{ width: "100%" }}
-                                                    format="YYYY-MM-DD dddd"
-                                                    value={
-                                                        componentDeadlines[idx]
-                                                            ?.end_date
-                                                    }
-                                                    onChange={(v) =>
-                                                        handleDeadlineChange(
-                                                            idx,
-                                                            "end_date",
-                                                            v
-                                                        )
-                                                    }
-                                                />
-                                            ) : (
-                                                <div className="ant-input-disabled">
-                                                    {componentDeadlines[
-                                                        idx
-                                                    ]?.end_date?.format(
-                                                        "YYYY-MM-DD (dddd)"
-                                                    ) || "-"}
-                                                </div>
-                                            )}
-                                        </Form.Item>
-                                    </Col>
+                                <Row gutter={16} align="middle">
+  <Col xs={12}>
+    <Form.Item label="Эхлэх өдөр">
+      {editMode ? (
+        <DatePicker
+          style={{ width: "100%" }}
+          format="YYYY-MM-DD dddd"
+          value={
+            componentDeadlines.find((d) => d.related_id === comp.id)?.start_date || null
+          }
+          onChange={(v) =>
+            handleDeadlineChange(idx, "start_date", v)
+          }
+        />
+      ) : (
+        <div className="ant-input-disabled">
+          {componentDeadlines[idx]?.start_date?.format("YYYY-MM-DD (dddd)") || "-"}
+        </div>
+      )}
+    </Form.Item>
+  </Col>
+  <Col xs={12}>
+    <Form.Item label="Эхлэх цаг">
+      {editMode ? (
+        <TimePicker
+          style={{ width: "100%" }}
+          format="HH:mm"
+
+          value={
+            componentDeadlines.find((d) => d.related_id === comp.id)?.start_time || null
+          }
+          onChange={(v) =>
+            handleDeadlineChange(idx, "start_time", v)
+          }
+        />
+      ) : (
+        <div className="ant-input-disabled">
+          {componentDeadlines[idx]?.start_time?.format("HH:mm") || "-"}
+        </div>
+      )}
+    </Form.Item>
+  </Col>
+</Row>
+
+<Row gutter={16}>
+  <Col xs={12}>
+    <Form.Item label="Дуусах өдөр">
+      {editMode ? (
+        <DatePicker
+          style={{ width: "100%" }}
+          format="YYYY-MM-DD dddd"
+
+          value={
+            componentDeadlines.find((d) => d.related_id === comp.id)?.end_date || null
+          }
+          onChange={(v) =>
+            handleDeadlineChange(idx, "end_date", v)
+          }
+        />
+      ) : (
+        <div className="ant-input-disabled">
+          {componentDeadlines[idx]?.end_date?.format("YYYY-MM-DD (dddd)") || "-"}
+        </div>
+      )}
+    </Form.Item>
+  </Col>
+  <Col xs={12}>
+    <Form.Item label="Дуусах цаг">
+      {editMode ? (
+        <TimePicker
+          style={{ width: "100%" }}
+          format="HH:mm"
+
+          value={
+            componentDeadlines.find((d) => d.related_id === comp.id)?.end_time || null
+          }
+          onChange={(v) =>
+            handleDeadlineChange(idx, "end_time", v)
+          }
+        />
+      ) : (
+        <div className="ant-input-disabled">
+          {componentDeadlines[idx]?.end_time?.format("HH:mm") || "-"}
+        </div>
+      )}
+    </Form.Item>
+  </Col>
+</Row>
+
                                     <Col
                                         xs={24}
                                         md={8}

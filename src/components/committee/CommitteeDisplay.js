@@ -128,7 +128,9 @@ const CommitteeDisplay = ({
          const externalReviewerScoreColumns = (committee?.externalReviewers || []).map((rev) => ({
            title: (
              <div style={{ textAlign: "center" }}>
-               <div>{rev.name || `Шүүгч ${rev.id}`}</div>
+            
+            <div>{`${rev?.lastname || ""}`}</div>
+            <div>{`${rev?.firstname || ""}`}</div>
              </div>
            ),
            key: `external-${rev.id}`,
@@ -431,21 +433,37 @@ const CommitteeDisplay = ({
               }
               
       
-              if(scores.length>0){
-                 const res = await api.post("/committee-scores/save-editable-scores", {
-              committee_id: committee.id,
-              component_id: committee.grading_component.id, // componentId нь prop эсвэл state-оос ирнэ
-              scores,
-            });
-            toast.success("Оноо амжилттай шинэчлэгдлээ!");
-            setEditableScores({});
+              if (scores.length > 0) {
+                const res = await api.post("/committee-scores/save-editable-scores", {
+                  committee_id: committee.id,
+                  component_id: committee.grading_component.id,
+                  scores,
+                });
+              
+                toast.success("Оноо амжилттай шинэчлэгдлээ!");
+              
+ 
+                const updatedEditableScores = scores.reduce((acc, item) => {
+                  const key = `${item.student_id}-${item.committee_member_id}`;
+                  acc[key] = item.score;
+                  return acc;
+                }, {});
+                
+                setEditableScores(updatedEditableScores); 
               }
               
               if(payload.external_scores.length>0){
-                await api.post("/committee/external-reviewer-scores/batch", payload);
+              const  response=  await api.post("/committee/external-reviewer-scores/batch", payload);
                 toast.success("Оноо амжилттай шинэчлэгдлээ!");
-                setEditableExternalScores({});
+                setEditableExternalScores(payload.external_scores.reduce((acc, score) => {
+                    const key = `external-${score.student_id}-${score.external_reviewer_id}`;
+                    acc[key] = score.score;
+                    return acc;
+                  }, {}));
+                  
+
               }
+           
               
            
       
@@ -453,6 +471,8 @@ const CommitteeDisplay = ({
           } catch (err) {
             console.error(err);
             message.error("Оноо хадгалах үед алдаа гарлаа.");
+          }finally{
+            setEditMode(false)
           }
       };
     const getInitialFormValues = (committee) => {

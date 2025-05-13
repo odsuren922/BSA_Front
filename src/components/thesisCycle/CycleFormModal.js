@@ -19,7 +19,13 @@ import mnMN from "antd/es/locale/mn_MN";
 import "dayjs/locale/mn";
 import dayjs from "dayjs";
 
+
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 dayjs.locale("mn");
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 const { Option } = Select;
 
 const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas }) => {
@@ -74,11 +80,14 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
       start_date: values.start_date.format("YYYY-MM-DD"),
       end_date: values.end_date.format("YYYY-MM-DD"),
       dep_id: user.dep_id,
-      deadlines: componentDeadlines.map((d) => ({
+
+    deadlines: componentDeadlines.map((d) => ({
         grading_component_id: d.grading_component_id,
-        start_date: d.start_date?.format("YYYY-MM-DD"),
-        end_date: d.end_date?.format("YYYY-MM-DD"),
-      })),
+        start_date: d.start_date?.hour(9).minute(0).second(0).utc().toISOString(),   
+        end_date: d.end_date?.hour(23).minute(59).second(0).utc().toISOString(),  
+      }))
+      
+      
     };
     console.log("formattedValues",componentDeadlines)
     onSubmit(formattedValues);

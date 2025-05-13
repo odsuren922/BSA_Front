@@ -167,36 +167,46 @@ const CycleFormPage = ({ onSubmit, user, gradingSchemas }) => {
             );
             setSelectedSchema(schema);
             setStartDate(dayjs(cycle.start_date));
-
-            if (cycle.deadlines) {
-                console.log("he")
-                const deadlines = cycle.deadlines.map((d) => ({
-                    ...d,
-                    start_date: d.start_date ? dayjs(d.start_date) : null,
-                    end_date: d.end_date ? dayjs(d.end_date) : null,
-                }));
-    console.log(deadlines)
-                setComponentDeadlines(deadlines);
-            } else {
+console.log("asdfghjkl;", cycle.deadlines)
+if (cycle.deadlines) {
+    const fixedDeadlines = cycle.deadlines.map(deadline => {
+      const start = dayjs.utc(deadline.start_date).tz("Asia/Ulaanbaatar");
+      const end = dayjs.utc(deadline.end_date).tz("Asia/Ulaanbaatar");
+  
+      return {
+        ...deadline,
+        start_date: start.startOf('day'), // 2025-05-20 00:00:00
+        start_time: dayjs(start.format("HH:mm"), "HH:mm"), 
+        end_date: end.startOf('day'),
+        end_time: dayjs(end.format("HH:mm"), "HH:mm"), 
+      };
+    });
+  
+    setComponentDeadlines(fixedDeadlines);
+    console.log('🕓 fixedDeadlines', fixedDeadlines);
+  }
+  
+              else {
                 const calculated =
-                    schema?.grading_components?.map((comp) => {
-                        const week = parseInt(comp.scheduled_week);
-                        const start = dayjs(cycle.start_date).add(
-                            week - 1,
-                            "week"
-                        );
-                        const end =
-                            start.day() === 1
-                                ? start.add(4, "day")
-                                : start.add(6, "day");
-                        return {
-                            grading_component_id: comp.id,
-                            start_date: start,
-                            end_date: end,
-                        };
-                    }) || [];
+                  schema?.grading_components?.map((comp) => {
+                    const week = parseInt(comp.scheduled_week);
+                    const start = dayjs(cycle.start_date).add(week - 1, "week");
+                    const end = start.day() === 1
+                      ? start.add(4, "day")
+                      : start.add(6, "day");
+              
+                    return {
+                      grading_component_id: comp.id,
+                      start_date: start,
+                      end_date: end,
+                      start_time: start,  // ⬅️ цаг нэмэх
+                      end_time: end,
+                    };
+                  }) || [];
+              
                 setComponentDeadlines(calculated);
-            }
+              }
+              
         } else {
             form.resetFields();
             setComponentDeadlines([]);
@@ -376,7 +386,7 @@ const CycleFormPage = ({ onSubmit, user, gradingSchemas }) => {
                    <Steps current={currentStep} style={{ marginBottom: 32 }}>
   <Step title="Улирал сонгох" />
   <Step title="Улирлын мэдээлэл" />
-  <Step title="Компонентууд ба заавар" />
+  <Step title="Үнэлгээ өгөх үе шат ба заавар" />
   <Step title="Мэдэгдэлүүд" />
 </Steps>
 

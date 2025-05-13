@@ -85,6 +85,7 @@ const ThesisCyclePage = () => {
 
       setCycle(cycleResponse.data);
       setTheses(thesesResponse.data);
+    
       console.log("these", thesesResponse.data);
       setStudentCounts(studentCountByProgram.data);
       setFilteredTheses(thesesResponse.data);

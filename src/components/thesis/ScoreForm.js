@@ -46,24 +46,24 @@ const ScoreForm = ({
         // setHasPermission(user.id === Supervisorid && user.role === "teacher");
       } else if (selectedComponent?.by_who === "committee") {
         setHasPermission(false);
-        // try {
-        //   const res = await api.post("/committees/check-assignment", {
-        //     thesis_cycle_id: thesisCycleId,
-        //     grading_component_id: selectedComponent.id,
-        //     student_id: Studentid,
-        //     teacher_id: user.id,
-        //   });
+        try {
+          const res = await api.post("/committees/check-assignment", {
+            thesis_cycle_id: thesisCycleId,
+            grading_component_id: selectedComponent.id,
+            student_id: Studentid,
+            teacher_id: user.id,
+          });
 
-        //   setHasPermission(res.data.match);
-        //   if (!res.data.match) {
-        //     toast.error(
-        //       "Та энэ оюутныг үнэлэх эрхгүй байна. Та энэ хороонд хамаарахгүй байна."
-        //     );
-        //   }
-        // } catch (e) {
-        //   toast.error("Шалгах явцад алдаа гарлаа.");
-        //   setHasPermission(false);
-        // }
+          setHasPermission(res.data.match);
+          if (!res.data.match) {
+            toast.error(
+              "Та энэ оюутныг үнэлэх эрхгүй байна. Та энэ хороонд хамаарахгүй байна."
+            );
+          }
+        } catch (e) {
+          toast.error("Шалгах явцад алдаа гарлаа.");
+          setHasPermission(false);
+        }
       } else if (selectedComponent?.by_who === "examiner") {
         try {
           const res = await api.post("/assigned-grading/check-assignment", {

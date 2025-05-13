@@ -26,7 +26,9 @@ import {
   message,
   ConfigProvider,
   Spin,
-  TimePicker
+  TimePicker,
+  Checkbox,
+  Switch
 } from "antd";
 
 import api from "../../../context/api_helper";
@@ -60,6 +62,7 @@ const CommitteeScheduler = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [addDeadline, setAddDeadline] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -84,6 +87,22 @@ const CommitteeScheduler = () => {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    if (addDeadline) {
+      const startDate = form.getFieldValue("start_date");
+      const startTime = form.getFieldValue("start_time");
+      const endDate = form.getFieldValue("end_date");
+  
+      if (startDate && startTime && endDate) {
+        form.setFieldsValue({
+          deadline_start_date: startDate,
+          deadline_start_time: startTime,
+          deadline_end_date: endDate,
+          deadline_end_time: dayjs("23:00", "HH:mm")
+        });
+      }
+    }
+  }, [addDeadline]);
 
   const updateEvents = (committeesData) => {
     const allEvents = committeesData.flatMap((committee) =>
@@ -164,42 +183,51 @@ const CommitteeScheduler = () => {
   const handleSaveMeeting = async () => {
     try {
       const values = await form.validateFields();
-
-      console.log("hello", values.start_date?.format(), values.start_time?.format());
+  
       const startDateTime = dayjs
-      .tz(`${values.start_date.format("YYYY-MM-DD")} ${values.start_time.format("HH:mm")}`, "Asia/Ulaanbaatar")
-      .utc()
-      .format() // ISO string in UTC
-      
+        .tz(`${values.start_date.format("YYYY-MM-DD")} ${values.start_time.format("HH:mm")}`, "Asia/Ulaanbaatar")
+        .utc()
+        .format();
+  
       const endDateTime = dayjs
-      .tz(`${values.end_date.format("YYYY-MM-DD")} ${values.end_time.format("HH:mm")}`, "Asia/Ulaanbaatar")
-      .utc()
-      .format()
-      
-console.log(startDateTime ,endDateTime);
-
-
+        .tz(`${values.end_date.format("YYYY-MM-DD")} ${values.end_time.format("HH:mm")}`, "Asia/Ulaanbaatar")
+        .utc()
+        .format();
+  
       const payload = {
         notes: values.notes,
         location: values.location,
         event_type: "Комисс",
         start_datetime: startDateTime,
-        end_datetime:endDateTime,
+        end_datetime: endDateTime,
         room: values.room,
       };
-
+  
+      // Хэрэв оноо өгөх хугацаа асаалттай бол
+      if (addDeadline) {
+        const deadlineStart = dayjs
+          .tz(`${values.deadline_start_date.format("YYYY-MM-DD")} ${values.deadline_start_time.format("HH:mm")}`, "Asia/Ulaanbaatar")
+          .utc()
+          .format();
+  
+        const deadlineEnd = dayjs
+          .tz(`${values.deadline_end_date.format("YYYY-MM-DD")} ${values.deadline_end_time.format("HH:mm")}`, "Asia/Ulaanbaatar")
+          .utc()
+          .format();
+  
+        payload.deadline_start = deadlineStart;
+        payload.deadline_end = deadlineEnd;
+      }
+  
       if (isEditMode && selectedEvent) {
         await api.patch(`/schedules/${selectedEvent.id}`, payload);
         message.success("Хуваарь амжилттай засагдлаа");
       } else {
         payload.committee_id = selectedCommittee.id;
-        await api.post(
-          `/committees/${selectedCommittee.id}/schedules`,
-          payload
-        );
+        await api.post(`/committees/${selectedCommittee.id}/schedules`, payload);
         message.success("Шинэ уулзалт үүсгэлээ");
       }
-
+  
       fetchData();
       setModalVisible(false);
       setIsEditMode(false);
@@ -209,6 +237,7 @@ console.log(startDateTime ,endDateTime);
       toast.error("Хуваарь хадгалах үед алдаа гарлаа");
     }
   };
+  
 
   const strongColors = ["#0050b3", "#389e0d", "#531dab", "#003a8c", "#08979c"];
   const committeeColorMap = useMemo(() => {
@@ -235,26 +264,26 @@ console.log(startDateTime ,endDateTime);
       <div style={{ padding: "8px" }}>
         {event.location && (
           <div>
-            📍 <strong>Байршил:</strong> {event.location}
+         <strong>Байршил:</strong> {event.location}
           </div>
         )}
         {event.room && (
           <div>
-            🏢 <strong>Өрөө:</strong> {event.room}
+             <strong>Өрөө:</strong> {event.room}
           </div>
         )}
         {event.notes && (
           <div>
-            📝 <strong>Тэмдэглэл:</strong> {event.notes}
+             <strong>Тэмдэглэл:</strong> {event.notes}
           </div>
         )}
         {committee && (
           <div>
-            🏛 <strong>Комисс:</strong> {committee.name}
+             <strong>Комисс:</strong> {committee.name}
           </div>
         )}
         <div>
-          ⏱ <strong>Цаг:</strong>{" "}
+         <strong>Цаг:</strong>{" "}
           {moment(event.start).format("HH:mm")} - {moment(event.end).format("HH:mm")}
         </div>
       </div>
@@ -265,8 +294,8 @@ console.log(startDateTime ,endDateTime);
         <div style={{ padding: "2px", cursor: "pointer" }}>
           <div style={{ fontSize: "12px" }}>
             {committee && <div>{committee.name}</div>}
-            {event.location && <div>{event.location} - {event.room} тоот</div>}
-            {event.notes && <div>📝 {event.notes}</div>}
+            {/* {event.location && <div>{event.location} - {event.room} тоот</div>}
+            {event.notes && <div>📝 {event.notes}</div>} */}
           </div>
         </div>
       </Popover>
@@ -276,21 +305,40 @@ console.log(startDateTime ,endDateTime);
   const handleEditMeeting = (event) => {
     setSelectedEvent(event);
     setIsEditMode(true);
-    const start = moment(event.start);
-    const end = moment(event.end);
-    
+  
+    const committee = committees.find((c) => c.id === event.committee);
+  
     form.setFieldsValue({
-        start_date: dayjs.utc(event.start).tz("Asia/Ulaanbaatar"),
-        end_date: dayjs.utc(event.end).tz("Asia/Ulaanbaatar"),
-        start_time: dayjs.utc(event.start).tz("Asia/Ulaanbaatar"),
-        end_time: dayjs.utc(event.end).tz("Asia/Ulaanbaatar"),
-        notes: event.notes,
+      start_date: dayjs.utc(event.start).tz("Asia/Ulaanbaatar"),
+      end_date: dayjs.utc(event.end).tz("Asia/Ulaanbaatar"),
+      start_time: dayjs.utc(event.start).tz("Asia/Ulaanbaatar"),
+      end_time: dayjs.utc(event.end).tz("Asia/Ulaanbaatar"),
+      notes: event.notes,
       location: event.location,
       room: event.room,
     });
-    
+  
+    // 🎯 Онооны хугацааг Committee-ийн thesis_cycle_deadlines-аас олох
+    const deadline = committee?.thesis_cycle_deadlines?.find(
+      (d) => d.type === "committee" && d.related_id === committee.id
+    );
+  
+    if (deadline) {
+      setAddDeadline(true);
+      form.setFieldsValue({
+        deadline_start_date: dayjs.utc(deadline.start_date).tz("Asia/Ulaanbaatar"),
+        deadline_start_time: dayjs.utc(deadline.start_date).tz("Asia/Ulaanbaatar"),
+        deadline_end_date: dayjs.utc(deadline.end_date).tz("Asia/Ulaanbaatar"),
+        deadline_end_time: dayjs.utc(deadline.end_date).tz("Asia/Ulaanbaatar"),
+      });
+    } else {
+      setAddDeadline(false);
+    }
+  
     setModalVisible(true);
   };
+  
+  
 
   const groupedCommittees = committees.reduce((acc, committee) => {
     const key = committee.grading_component.name;
@@ -495,7 +543,60 @@ console.log(startDateTime ,endDateTime);
   <TimePicker format="HH:mm" style={{ width: "100%" }} />
 </Form.Item>
               </Col>
+
+
+
             </Row>
+<Form.Item label="Оноо илгээх хугацаа?">
+  <Switch checked={addDeadline} onChange={setAddDeadline} />
+</Form.Item>
+{addDeadline && (
+  <>
+    <Row gutter={16}>
+      <Col span={12}>
+        <Form.Item
+          name="deadline_start_date"
+          label="Оноо эхлэх огноо"
+          rules={[{ required: true, message: "Оноо эхлэх огноо сонгоно уу" }]}
+        >
+          <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
+        </Form.Item>
+      </Col>
+      <Col span={12}>
+        <Form.Item
+          name="deadline_start_time"
+          label="Оноо эхлэх цаг"
+          rules={[{ required: true, message: "Оноо эхлэх цаг оруулна уу" }]}
+        >
+          <TimePicker format="HH:mm" style={{ width: "100%" }} />
+        </Form.Item>
+      </Col>
+    </Row>
+
+    <Row gutter={16}>
+      <Col span={12}>
+        <Form.Item
+          name="deadline_end_date"
+          label="Оноо дуусах огноо"
+          rules={[{ required: true, message: "Оноо дуусах огноо сонгоно уу" }]}
+        >
+          <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
+        </Form.Item>
+      </Col>
+      <Col span={12}>
+        <Form.Item
+          name="deadline_end_time"
+          label="Оноо дуусах цаг"
+          rules={[{ required: true, message: "Оноо дуусах цаг оруулна уу" }]}
+        >
+          <TimePicker format="HH:mm" style={{ width: "100%" }} />
+        </Form.Item>
+      </Col>
+    </Row>
+  </>
+)}
+
+
           </Form>
         </Modal>
       </DndProvider>

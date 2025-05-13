@@ -25,7 +25,7 @@ const ThesisScores = ({
   const { user } = useUser();
   const [form] = Form.useForm();
   const [assignments, setAssignments] = useState([]);
-
+const[componentsDeadlines, setComponetsDeadlines]= useState([]);
 useEffect(() => {
   const fetchAssignments = async () => {
     try {
@@ -42,12 +42,27 @@ useEffect(() => {
     }
   };
 
+
   if (gradingSchema?.id && thesis?.student.id) {
     fetchAssignments();
   }
   console.log(thesis)
 }, [gradingSchema?.id, thesis?.student_id]);
 
+useEffect(() => {
+    fetchComponentsDeadline()
+    
+  }, [gradingSchema?.id, thesisCycle?.id]);
+
+const fetchComponentsDeadline = async () => {
+    try {
+      const response = await api.get(`/cycle-deadlines/by-schema?thesis_cycle_id=${thesisCycle.id}&grading_schema_id=${gradingSchema.id}`,);
+      console.log("deadlines", response.data)
+      setComponetsDeadlines(response.data.deadlines);
+    } catch (error) {
+      toast.error("Оноо өгсөн багшийн мэдээллийг авч чадсангүй");
+    }
+  };
 
   const calScheduleWeek = (week) => {
 
@@ -61,17 +76,21 @@ useEffect(() => {
 
   const columns = [
     {
-      title: "Үнэлгээний хэсэг",
-      dataIndex: ["component", "name"],
-    },
+        title: "Үнэлгээний хэсэг",
+        dataIndex: ["component", "name"],
+        fixed: "left", 
+        width: 180,    
+      }
+,     
+{
+    title: "Үнэлгээ өгөх",
+    dataIndex: ["component", "by_who_label"],
+  }, 
     {
       title: "Нийт боломжит оноо",
       dataIndex: ["component", "score"],
     },
-    {
-        title: "Үнэлгээ өгөх хүн",
-        dataIndex: ["component", "by_who_label"],
-      },
+  
       {
         title: "Оноо өгөх",
         dataIndex: "scoreGiver",
@@ -91,29 +110,33 @@ useEffect(() => {
       },
     },
     {
-      title: "7 хоногийн хугацаа өдрөөр",
-      render: (_, record) => {
-        const week = parseInt(record.component?.scheduled_week);
-        if (!isNaN(week)) {
-          const { start, end } = calScheduleWeek(week);
-          return `${start
-            .toISOString()
-            .split("T")[0]
-            .replace(/-/g, ".")} – ${end
-            .toISOString()
-            .split("T")[0]
-            .replace(/-/g, ".")}`;
-        }
-        return "-";
+        title: "7 хоногийн хугацаа",
+        render: (_, record) => {
+          const deadline = componentsDeadlines.find(
+            (d) => d.related_id === record.component?.id && d.type === "grading_component"
+          );
+      
+          if (deadline?.start_date && deadline?.end_date) {
+            return (
+              <div style={{ fontSize: 13 }}>
+                {dayjs(deadline.start_date).format("YYYY-MM-DD ") + "-"}
+                {dayjs(deadline.end_date).format("MM-DD")}
+              </div>
+            );
+          }
+      
+          // If not found or incomplete
+          return "-";
+        },
       },
-    },
+      
     {
       title: "7 хоног",
       dataIndex: ["component", "scheduled_week"],
       render: (week) => {
         if (!week) return "-";
         return (
-          <Tag color="blue" style={{ fontSize: "14px", padding: "2px 8px" }}>
+          <Tag color="blue" style={{ fontSize: "12px", padding: "2px 8px" }}>
             {week}-р 7 хоног
           </Tag>
         );
@@ -166,6 +189,7 @@ useEffect(() => {
           dataSource={computedData}
           rowKey={(record) => record.id}
           pagination={false}
+          scroll={{ x: "max-content" }} 
         />
       )}
     </Card>

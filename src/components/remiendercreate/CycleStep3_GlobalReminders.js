@@ -71,7 +71,7 @@ const CycleStep3_GlobalReminders = ({
 
     return (
         <Card
-            title="Циклийн нэмэлт мэдэгдэл (Reminder)"
+            title="Нэмэлт мэдэгдэл"
             size="small"
             bordered={false}
             headStyle={{ backgroundColor: "#fafafa" }}
