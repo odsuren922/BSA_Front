@@ -13,7 +13,10 @@ import {
 } from "antd";
 import api from "../../../context/api_helper";
 import { useUser } from "../../../context/UserContext";
-
+import {
+    FileMarkdownOutlined
+      } from "@ant-design/icons";
+import { exportAssignedGradingToExcel } from "../../../components/export/exportAssignedGradingToExcel";
 const AllThesisAssignedGradingPage = () => {
   const { Title } = Typography;
   const { search } = useLocation();
@@ -77,6 +80,7 @@ const AllThesisAssignedGradingPage = () => {
           supervisor_id: supervisor?.id,
           assigned_teacher_id: match?.assigned_by?.id,
           student_name: `${student.lastname} ${student.firstname}`,
+          
           supervisor_name: `${supervisor.lastname} ${supervisor.firstname}`,
           teacher_name: match?.assigned_by
             ? `${match.assigned_by.lastname} ${match.assigned_by.firstname}`
@@ -304,6 +308,13 @@ const AllThesisAssignedGradingPage = () => {
         </div>
 
         <div>
+        <Button 
+         color="cyan" variant="outlined"
+        onClick={() => exportAssignedGradingToExcel(filteredScores)} style={{ marginLeft: 8 }}   icon={<FileMarkdownOutlined />}>
+ Excel татах
+</Button>
+
+            
           {!editMode ? (
             <Button type="default" onClick={() => setEditMode(true)}>
               Засварлах
@@ -315,11 +326,15 @@ const AllThesisAssignedGradingPage = () => {
             
           )}
 
+
+
 {editMode && (
   <Button type="default" onClick={handleSaveAssignedTeachers}>
     Шүүмж багш оноох
   </Button>
 )}
+
+
 
         </div>
         

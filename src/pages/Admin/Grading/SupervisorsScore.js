@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useLocation , useNavigate} from "react-router-dom";
 import { Table, Button, message, Space, InputNumber ,Typography,Tooltip} from "antd";
+import {
+FileMarkdownOutlined
+  } from "@ant-design/icons";
 import api from "../../../context/api_helper";
-
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 const SupervisorGradingPage = () => {
     const { Title, Text } = Typography;
 
@@ -122,7 +126,29 @@ const SupervisorGradingPage = () => {
         ),
     },
   ];
-
+  const exportSupervisorScoresToExcel = () => {
+    const data = scores.map((row, index) => ({
+      "№": index + 1,
+      "Төгсөлтийн ажлын сэдэв": row.thesis_title,
+      "Оюутан": row.student_name,
+      "Удирдагч багш": row.teacher_name,
+      "Оноо": formatScore(row.score),
+    }));
+  
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Supervisor Scores");
+  
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const fileData = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(fileData, `supervisor_scores_${Date.now()}.xlsx`);
+  };
+  
+  const formatScore = (score) => {
+    const parsed = parseFloat(score);
+    return isNaN(parsed) ? "-" : parsed % 1 === 0 ? parsed.toFixed(0) : parsed.toString();
+  };
+  
   return (
     <div>
 <div className="flex items-center justify-between mb-4 mt-4">
@@ -152,6 +178,10 @@ const SupervisorGradingPage = () => {
         Бүгдийг хадгалах
       </Button>
     )}
+
+<Button color="cyan" variant="outlined" onClick={exportSupervisorScoresToExcel} style={{ marginLeft: 8 }}>
+ <FileMarkdownOutlined /> Excel татах
+</Button>
   </div>
 </div>
 

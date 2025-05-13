@@ -10,18 +10,18 @@ import {
   Select,
   Table,
   Spin,
-  Skeleton
+  Skeleton,Tooltip
 } from "antd";
 import GradingSchemaTable from "../../components/grading/GradingSchemaTable";
 import StudentCount from "../../components/Common/StudentCount";
 import api from "../../context/api_helper";
 import {
-  TeamOutlined,
+  TeamOutlined,FileMarkdownOutlined
 } from "@ant-design/icons";
 import { Container } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { exportThesisToExcel } from "../../components/thesis/ExportThesisScoreExcel";
+
 
 const { Search } = Input;
 const { Option } = Select;
@@ -103,7 +103,7 @@ const ThesisCyclePage = () => {
     try {
         setLoadingGradingSchema(true);
       const response = await api.get(`/thesis-cycles/${id}/grading-schema`);
-    //   console.log("grading schema", response.data);
+      console.log("grading schema", response.data);
       setGradingSchema(response.data); // Set the grading schema response
     } catch (error) {
       console.error("Error fetching grading schema:", error);
@@ -155,19 +155,112 @@ const ThesisCyclePage = () => {
     //   setTableLoading(false);
     }
   };
+  const totalScoreColumn = {
+    title: "Нийт оноо",
+    key: "total_score",
+    render: (_, record) => {
+      const total = record.scores?.reduce((sum, s) => {
+        return sum + parseFloat(s.score || 0);
+      }, 0);
+      return <strong>{total.toFixed(2)}</strong>;
+    },
+  };
+  
+//   const gradingComponentColumns = Array.isArray(gradingSchema) && gradingSchema.length > 0
+//   ? [
+//       ...gradingSchema[0].grading_components.map((component) => ({
+//         title: component.name,
+//         key: `component_${component.id}`,
+//         render: (_, record) => {
+//           const scoreObj = record.scores?.find((s) => s.component_id === component.id);
+//           return <span>{scoreObj ? scoreObj.score : "-"}</span>;
+//         },
+//       })),
+//       {
+//         title: "Нийт оноо",
+//         key: "total_score",
+//         render: (_, record) => {
+//           const total = record.scores?.reduce((sum, s) => {
+//             return sum + parseFloat(s.score || 0);
+//           }, 0);
+//           return <strong>{total.toFixed(2)}</strong>;
+//         },
+//       },
+//     ]
+//   : [];
+const gradingComponentColumns = Array.isArray(gradingSchema) && gradingSchema.length > 0
+  ? [
+      ...gradingSchema[0].grading_components.flatMap((component) => {
+        const columns = [
+          {
+            title: component.name,
+            key: `component_${component.id}`,
+            render: (_, record) => {
+              const scoreObj = record.scores?.find(
+                (s) => s.component_id === component.id
+              );
+              return <span>{scoreObj ? scoreObj.score : "-"}</span>;
+            },
+          },
+        ];
 
+        if (component.by_who === "examiner") {
+          columns.push({
+            title: `${component.name} (Шүүмж багш)`,
+            key: `assigned_teacher_${component.id}`,
+            render: (_, record) => {
+              const assigned = record.assigned_gradings?.find(
+                (g) => g.component_id === component.id
+              );
+              const teacher = assigned?.assigned_by;
+              return teacher
+                ? `${teacher.lastname.charAt(0)}.${teacher.firstname}`
+                : "—";
+            },
+          });
+        }
+
+        return columns; // always return an array
+      }),
+      {
+        title: "Нийт оноо",
+        key: "total_score",
+        render: (_, record) => {
+          const total = record.scores?.reduce((sum, s) => {
+            return sum + parseFloat(s.score || 0);
+          }, 0);
+          return <strong>{total.toFixed(2)}</strong>;
+        },
+      },
+    ]
+  : [];
+
+
+
+
+  
   const columns = [
     {
-      title: "БСА Нэр",
-      dataIndex: "name_mongolian",
-      key: "name_mongolian",
-    },
+        title: "БСА Нэр",
+        dataIndex: "name_mongolian",
+        key: "name_mongolian",
+        fixed: "left", 
+        render: (text) => (
+          <Tooltip title={text}>
+            <div style={{ minWidth: 200 }}>
+  {text}
+</div>
+
+          </Tooltip>
+        ),
+      },
     {
       title: "Суралцагч",
       key: "student_info",
+      fixed: "left", 
       render: (_, record) => (
         <div>
-          <div>
+          <div  style={{ minWidth: 180 }}> 
             {record.student_info.lastname} {record.student_info.firstname}
           </div>
           <div className="text-muted">{record.student_info.program}</div>
@@ -175,14 +268,26 @@ const ThesisCyclePage = () => {
       ),
     },
     {
+        title: "SISI ID",
+        key: "student_info",
+        // fixed: "left", 
+        render: (_, record) => (
+          <div>
+
+              {record.student_info.sisi_id}
+
+          </div>
+        ),
+      },
+    {
       title: "Удирдагч багш",
       key: "supervisor_info",
       render: (_, record) => (
-        <div>
+        <div  style={{ minWidth: 180 }}> 
           {record.supervisor_info.lastname} {record.supervisor_info.firstname}
         </div>
       ),
-    },
+    },    
     {
       title: "Тэнхим",
       dataIndex: "department",
@@ -193,7 +298,7 @@ const ThesisCyclePage = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => (
-        <Tag color={status === "Completed" ? "blue" : "green"}>
+        <Tag color={status === "active" ? "green" : "orange"}>
           {status.toUpperCase()}
         </Tag>
       ),
@@ -224,31 +329,37 @@ const ThesisCyclePage = () => {
         </div>
       ),
     },
+    
+      ...gradingComponentColumns,
+
+    //schema info with student scores
+
+    
   ];
   const getPlanStatusMessage = (planStatus) => {
-    if (!planStatus) return "Статусын мэдээлэл алга байна";
+    if (!planStatus) return "Mэдээлэл алга";
 
     const { student_sent, teacher_status, department_status } = planStatus;
 
     if (!student_sent && teacher_status === "returned") {
-      return "Төлөвлөгөөг буцаагдсан.";
+      return "Буцаагдсан";
     } else if (!student_sent && teacher_status === "pending") {
-      return "Төлөвлөгөөг илгээгүй байна.";
+      return "Илгээгүй байна";
     } else if (student_sent && teacher_status === "pending") {
       return "Төлөвлөгөөг илгээсэн.";
     } else if (
       teacher_status === "approved" &&
       department_status !== "approved"
     ) {
-      return "Удирдагч багш төлөвлөгөөг баталсан.";
+      return "Удирдагч багш баталсан.";
     } else if (
       teacher_status === "approved" &&
       department_status === "approved"
     ) {
-      return "Төлөвлөгөөг тэнхим бүрэн баталсан.";
+      return "Тэнхим бүрэн баталсан.";
     }
 
-    return "Тодорхойгүй төлөв.";
+    return "Тодорхойгүй төлөв";
   };
 
   const getPlanTagColor = (planStatus) => {
@@ -431,6 +542,11 @@ const ThesisCyclePage = () => {
       {/* Table */}
       <Card>
   <Spin spinning={tableLoading}>
+
+
+  <Button  color="cyan" variant="outlined" onClick={() => exportThesisToExcel(filteredTheses, gradingSchema, thesisCycle)} className="mb-3">
+  <FileMarkdownOutlined /> Excel татах
+</Button>
     <Table
       columns={columns}
       dataSource={tableLoading ? [] : filteredTheses} // Show empty during load

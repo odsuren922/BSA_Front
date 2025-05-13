@@ -13,11 +13,15 @@ import {
     message,
     InputNumber
 } from "antd";
+import {
+FileMarkdownOutlined
+  } from "@ant-design/icons";
 import CommitteeMemberItem from "./CommitteeMemberList";
 import CommitteeScoreModal from "./CommitteScoreSaveModal";
 import api from "../../context/api_helper";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { exportCommitteeToExcel } from "../export/exportCommitteeToExcel";
 const { Text } = Typography;
 
 const CommitteeDisplay = ({
@@ -632,21 +636,38 @@ const CommitteeDisplay = ({
             </Col>
 
             <Col xs={24} md={14} lg={24}>
-                <Button
-                    type="primary"
-                    style={{ marginBottom: 10 }}
-                    onClick={() => handleOpenScoreModal(committee)}
-                >
-                    Оноо оруулах
-                </Button>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+  <div>
+    <Button
+      type="primary"
+      style={{ marginRight: 8 }}
+      onClick={() => handleOpenScoreModal(committee)}
+    >
+      Оноо оруулах
+    </Button>
 
-                <Button
-                    type="primary"
-                    disabled={!isCommitteeReadyToFinalize(committee)}
-                    onClick={() => handleFinalizeCommittee(committee)}
-                >
-                    Оноог илгээх
-                </Button>
+    <Button
+      type="primary"
+      disabled={!isCommitteeReadyToFinalize(committee)}
+      onClick={() => handleFinalizeCommittee(committee)}
+    >
+      Оноог илгээх
+    </Button>
+  </div>
+
+  <div>
+    <Button
+      onClick={() => exportCommitteeToExcel(committee)}
+ color="cyan" variant="outlined"
+      icon={<FileMarkdownOutlined />}
+    >
+      Excel татах
+    </Button>
+  </div>
+</div>
+
+
+
 
                 <Table
                     dataSource={committee.students || []}
