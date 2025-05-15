@@ -60,7 +60,7 @@ const SchemaEditorModal = ({ open, onCancel, onSuccess, schema ,user}) => {
         ...values,
         grading_components: components.map((comp) => ({
           ...comp,
-          description: comp.description?.trim() === "" ? null : comp.description,
+          description: comp.description?.trim() === undefined ? null : comp.description,
         })),
         dep_id: user.dep_id,
       };

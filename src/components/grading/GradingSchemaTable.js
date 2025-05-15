@@ -70,19 +70,19 @@ const GradingSchemaTable = ({ gradingSchema, thesisCycle, cycleId }) => {
       
           buttonRow[`component_${index + 1}`] = component.by_who;
       
-          if (thesisCycle?.start_date) {
-            const week = parseInt(component.scheduled_week);
-            if (!isNaN(week)) {
-              const { start, end } = calScheduleWeek(week);
-              weekRow[`component_${index + 1}`] = `${start
-                .toISOString()
-                .split("T")[0]
-                .replace(/-/g, ".")} – ${end
-                .toISOString()
-                .split("T")[0]
-                .replace(/-/g, ".")}`;
-            }
-          }
+        //   if (thesisCycle?.start_date) {
+        //     const week = parseInt(component.scheduled_week);
+        //     if (!isNaN(week)) {
+        //       const { start, end } = calScheduleWeek(week);
+        //       weekRow[`component_${index + 1}`] = `${start
+        //         .toISOString()
+        //         .split("T")[0]
+        //         .replace(/-/g, ".")} – ${end
+        //         .toISOString()
+        //         .split("T")[0]
+        //         .replace(/-/g, ".")}`;
+        //     }
+        //   }
         });
       
         return [scoreRow, weekRow, byWhoRow, buttonRow];

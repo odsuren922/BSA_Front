@@ -40,11 +40,11 @@ const AdminDashboard = () => {
     console.log(user);
     try {
       //   const response = await api.get(`/active-cycles`);
-      console.log(user.dep_id);
+      console.log("dep_id",user.dep_id);
       const response = await api.get("/active-cycles", {
         params: { dep_id: user.dep_id },
       });
-      console.log(response);
+      console.log('response', response.data);
 
       if (response.data && response.data.id) {
         setThesisCycle(response.data);
@@ -66,6 +66,7 @@ const AdminDashboard = () => {
       const response = await api.get(
         `/thesis-cycles/${thesisCycle.id}/grading-schema`
       );
+      console.log("Grading schema response:", response.data);
       setGradingSchema(response.data);
     } catch (error) {
       console.error("Error fetching grading schema:", error);
@@ -87,94 +88,9 @@ const AdminDashboard = () => {
     },
   ];
 
-  const ThesisCycleCard = () => (
-    <Card
-      className="shadow-sm border-0 rounded-3"
-      onClick={() => setShowOptions(!showOptions)}
-      style={{ cursor: "pointer" }}
-    >
-      <Card.Body className="mt-2 ms-3">
-        <div className="d-flex justify-content-between align-items-center">
-          {/* <h5>Идэвхтэй БСА</h5> */}
-        </div>
-        <Card.Title>
-          {thesisCycle.name} <span>{showOptions ? "▲" : "▼"}</span>
-        </Card.Title>
 
-        <p>
-          <strong>Он:</strong> {thesisCycle.year}
-        </p>
-        <p>
-          <strong>Семестр:</strong> {thesisCycle.semester}
-        </p>
-        <p>
-          <strong>Эхлэх огноо:</strong> {thesisCycle.start_date}
-        </p>
-        <p>
-          <strong>Дуусах огноо:</strong> {thesisCycle.end_date}
-        </p>
-        <p>
-          <strong>Харьяалагдах БСА-ын тоо:</strong> {thesisCycle.totalTheses}
-        </p>
-
-        {showOptions && (
-          <div className="mt-3 d-flex flex-wrap gap-2">
-            <button
-              className="btn btn-sm"
-              style={{ backgroundColor: "#e3f2fd", color: "#1976d2" }}
-              onClick={async (e) => {
-                e.stopPropagation();
-                await fetchGradingSchema(); // <-- Fetch the grading schema
-                setShowGradingModal(true); // Then open modal
-              }}
-            >
-              Үнэлгээний схем харах
-            </button>
-
-            {/* <button 
-                  className="btn btn-sm" 
-                  style={{ backgroundColor: '#e8f5e9', color: '#388e3c' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
-                  Grades
-                </button> */}
-            {/* <button 
-                  className="btn btn-sm" 
-                  style={{ backgroundColor: '#f3e5f5', color: '#8e24aa' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle reports action
-                  }}
-                >
-                  Reports
-                </button> */}
-
-{/* <button
-  className="btn btn-sm"
-  style={{ backgroundColor: "#fff3e0", color: "#fb8c00" }}
-  onClick={(e) => {
-    e.stopPropagation();
-    navigate(`/thesis-deadlines?cycleId=${thesisCycle.id}`);
-  }}
->
-  Эцсийн хугацаа товлох
-</button> */}
-
-            <a
-              className="btn btn-sm"
-              href={`/allthesis/${thesisCycle.id}`}
-              onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: "#e3f2fd", color: "#1976d2" }}
-            >
-              Дэлгэрэнгүй харах
-            </a>
-          </div>
-        )}
-      </Card.Body>
-    </Card>
-  );
+  
+  
 
   return (
     <Container fluid className="p-4">
@@ -191,7 +107,56 @@ const AdminDashboard = () => {
                 <Skeleton active />
               </Card.Body>
             ) : thesisCycle ? (
-              <ThesisCycleCard />
+            //     <ThesisCycleCard
+            //     thesisCycle={thesisCycle}
+            //     fetchGradingSchema={fetchGradingSchema}
+            //     setShowGradingModal={setShowGradingModal}
+            //     navigate={navigate}
+            //   />
+            <Card
+            className="shadow-sm border-0 rounded-3"
+            onClick={() => {
+              console.log("Card clicked");
+              // optionally toggle something
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            <Card.Body className="mt-2 ms-3">
+              <p><strong>Он:</strong> {thesisCycle.year}</p>
+              <p><strong>Семестр:</strong> {thesisCycle.semester}</p>
+              <p><strong>Эхлэх огноо:</strong> {thesisCycle.start_date}</p>
+              <p><strong>Дуусах огноо:</strong> {thesisCycle.end_date}</p>
+              <p><strong>Харьяалагдах БСА-ын тоо:</strong> {thesisCycle.totalTheses}</p>
+        
+              <div className="mt-3 d-flex flex-wrap gap-2">
+                <button
+                  className="btn btn-sm"
+                  style={{ backgroundColor: "#e3f2fd", color: "#1976d2" }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    console.log("Үнэлгээний схем товч дарагдлаа");
+                    await fetchGradingSchema();
+                    setShowGradingModal(true);
+                  }}
+                >
+                  Үнэлгээний схем харах
+                </button>
+        
+                <button
+                  className="btn btn-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log("Дэлгэрэнгүй товч дарагдлаа");
+                    navigate(`/allthesis/${thesisCycle.id}`);
+                  }}
+                  style={{ backgroundColor: "#e3f2fd", color: "#1976d2" }}
+                >
+                  Дэлгэрэнгүй харах
+                </button>
+              </div>
+            </Card.Body>
+          </Card>
+              
             ) : (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
