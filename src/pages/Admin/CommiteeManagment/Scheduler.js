@@ -76,10 +76,9 @@ const CommitteeScheduler = () => {
     }
   }, [selectedEvent]);
   useEffect(() => {
-    if (committees.length > 0 && componentsDeadline.length > 0) {
-      updateEvents(committees);
-    }
+    updateEvents(committees); // үргэлж дууд
   }, [componentsDeadline, committees]);
+  
   
 
   const fetchData = async () => {
