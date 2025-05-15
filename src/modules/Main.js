@@ -1,219 +1,126 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
-import { Spin, notification } from "antd";
-import { fetchUserRole, mapGidToRole } from "../services/RoleService";
-import "./Main.css";
+import { Spin, notification, Modal } from "antd";
+import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 // Import components
-import DeFormSet from "./department/DeFormSet";
-import StudentList from "./department/StudentList";
-import ConfirmedTopicStud from "./student/ConfirmedTopiclist";
-import ProposeTopicStud from "./student/ProposeTopicStud";
-import TopicListStud from "./student/TopicListStud";
-import ApprovedTopics from "./supervisor/ApprovedTopics";
-import ProposedTopics from "./supervisor/ProposedTopics";
-import ConfirmedTopics from "./teacher/ConfirmedTopics";
-import ProposeTopic from "./teacher/ProposeTopic";
-import TopicList from "./teacher/TopicList";
 import SideBar from "../components/navbar/SideBar";
 import CustomNavBar from "../components/navbar/CustomNavBar";
-import NotificationDashboard from "./department/notifications/NotificationDashboard";
 
-// Student Pages
-import Plan from "../pages/Plan/Plan";
-import StudentDashboard from "../pages/Student/StudentDashboard";
+// Import pages for different roles
+import { 
+  departmentRoutes, 
+  supervisorRoutes, 
+  studentRoutes, 
+  teacherRoutes 
+} from "../routes/roleRoutes";
 
-//Teacher Pages
-import AboutThesis from "../pages/Thesis/AboutThesis";
-import SupervisodTheses from "../pages/Teacher/supervisodAllThesis";
-import DashBoardSupervisor from "../pages/Teacher/Dashboard";
-import Committee from "../pages/Teacher/Committee/Committee"; //do not use
-import CommitteeListPage from "../pages/Teacher/Committee/CommitteeList";
-import CommitteeDetailPage from "../pages/Teacher/Committee/CommitteeDetailPage";
-import CommitteeCalendarPage from "../pages/Teacher/Committee/CommitteeCalendarPage"; //for show teacher their committe calendar
+// Inactivity detection constants
+const ACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const WARN_BEFORE_TIMEOUT = 2 * 60 * 1000; // 2 minutes
 
-// Admin Pages
-import AdminDashboard from "../pages/Admin/AdminDashboard";
-import ThesisCycle from "../pages/Admin/ThesisCyclePage";
-import ThesisCycleBetter from "../pages/Admin/ThesisCycleManagement/ThesisCyclePanel";
-import SupervisorGradingPage from "../pages/Admin/Grading/SupervisorsScore";
-import AllThesisAssignedGradingPage from "../pages/Admin/Grading/AllThesisAssignedGradingPage";
-import CommitteePanel from "../pages/Admin/CommitteePanel";
-import CommitteeScheduler from "../pages/Admin/CommiteeManagment/Scheduler";
-import Calendar from "../pages/Admin/NotUseful/Calendar";
-import ThesisDeadlinePage from "../pages/Admin/ThesisCycleManagement/ThesisDeadline";
-import ThesisCycleManagement from "../pages/Admin/ThesisCycleManagement/ThesisCycleManagement";
-// import Calendar from "../pages/Admin/NotUseful/Calendar.js"
-function Main({ setUser, logoutFunction }) {
-  const { user } = useUser();
+function Main({ user, setUser, logoutFunction }) {
+  const navigate = useNavigate();
+  const { user: contextUser } = useUser();
   const [menuCollapsed, setMenuCollapsed] = useState(false);
-  const [roleLoading, setRoleLoading] = useState(true);
   const [userRole, setUserRole] = useState("");
-  const [error, setError] = useState(null);
+  const [roleLoading, setRoleLoading] = useState(true);
+  const [lastActivity, setLastActivity] = useState(Date.now());
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
 
+  // Reset activity timer on user interaction
+  const resetActivityTimer = () => {
+    setLastActivity(Date.now());
+    setShowInactivityWarning(false);
+  };
+
+  // Add event listeners for user activity
   useEffect(() => {
-    // Detect user role on component mount
-    const detectUserRole = async () => {
-      setRoleLoading(true);
-      try {
-        // First try to detect role from user object if available
-        if (user?.role) {
-          setUserRole(user.role);
-          setRoleLoading(false);
-          return;
-        }
+    const activityEvents = ['mousedown', 'keypress', 'scroll', 'touchstart'];
+    activityEvents.forEach(event => {
+      document.addEventListener(event, resetActivityTimer);
+    });
 
-        if (user?.gid) {
-          const roleName = mapGidToRole(user.gid);
-          setUserRole(roleName);
-          setUser((prev) => ({
-            ...prev,
-            role: roleName,
-            dep_id: 1,
-            id: 1,
-          }));
+    return () => {
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, resetActivityTimer);
+      });
+    };
+  }, []);
 
-          setRoleLoading(false);
-          return;
-        }
-        console.log("user", user);
-
-        // If no role in user object, fetch from API
-        const roleData = await fetchUserRole();
-        const roleName = roleData.roleName || mapGidToRole(roleData.gid);
-
-        setUserRole(roleName);
-
-        // Update user with role information
-        setUser((prev) => ({
-          ...prev,
-          role: roleName,
-          gid: roleData.gid,
-        }));
-
-        console.log("Role detected:", roleName);
-      } catch (error) {
-        console.error("Error detecting role:", error);
-        setError("Failed to detect user role. Please try logging in again.");
-        notification.error({
-          message: "Role Detection Failed",
-          description:
-            "Could not determine your user role. Some features may be unavailable.",
+  // Check for inactivity
+  useEffect(() => {
+    const checkInactivity = () => {
+      const now = Date.now();
+      const inactive = now - lastActivity;
+      
+      // If inactive for longer than timeout, log out
+      if (inactive >= ACTIVITY_TIMEOUT) {
+        logoutFunction();
+        notification.info({
+          message: "Автоматаар гарлаа",
+          description: "Идэвхгүй байсан тул та системээс автоматаар гарлаа.",
+          duration: 5
         });
-
-        // Fallback to email-based role detection if API fails
-        if (user?.email) {
-          let fallbackRole = "";
-          if (user.email.includes("department")) fallbackRole = "department";
-          else if (user.email.includes("supervisor"))
-            fallbackRole = "supervisor";
-          else if (user.email.includes("student")) fallbackRole = "student";
-          else if (user.email.includes("teacher")) fallbackRole = "teacher";
-
-          if (fallbackRole) {
-            setUserRole(fallbackRole);
-            setUser((prev) => ({
-              ...prev,
-              role: fallbackRole,
-            }));
-          }
-        }
-      } finally {
-        setRoleLoading(false);
+      } 
+      // Show warning before logging out
+      else if (inactive >= ACTIVITY_TIMEOUT - WARN_BEFORE_TIMEOUT) {
+        setShowInactivityWarning(true);
       }
     };
 
-    detectUserRole();
-  }, [user, setUser]);
+    const inactivityInterval = setInterval(checkInactivity, 60000); // Check every minute
+    
+    return () => {
+      clearInterval(inactivityInterval);
+    };
+  }, [lastActivity, logoutFunction]);
 
-  // Define routes based on user role
+  // Get user role from context or props
+  useEffect(() => {
+    const effectiveUser = contextUser || user;
+    
+    if (effectiveUser) {
+      const role = effectiveUser.role || "";
+      setUserRole(role);
+    }
+    
+    setRoleLoading(false);
+  }, [contextUser, user]);
+
+  // Handle menu toggle
+  const handleMenuToggle = () => {
+    setMenuCollapsed(!menuCollapsed);
+  };
+
+  // Handle inactivity warning continue
+  const handleContinueSession = () => {
+    resetActivityTimer();
+  };
+
+  // Loading state
+  if (roleLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Spin tip="Хэрэглэгчийн мэдээлэл ачааллаж байна..." size="large" />
+      </div>
+    );
+  }
+
+  // Get routes based on user role
   const getRoutes = () => {
     switch (userRole) {
       case "department":
-        return (
-          <>
-            <Route index element={<Navigate to="/studentlist" replace />} />
-            <Route path="/studentlist" element={<StudentList />} />
-            <Route path="/deformset" element={<DeFormSet />} />
-            <Route path="/notifications" element={<NotificationDashboard />} />
-            {/* dashboard */}
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/allthesis/:id" element={<ThesisCycle />} />{" "}
-            {/* bsa delgerengui medeelel */}
-            <Route path="/aboutthesis/:id" element={<AboutThesis />} />{" "}
-            {/* gants bsa medeelel */}
-            <Route path="/studentPlan/:id" element={<Plan />} />
-            <Route path="/thesis-cycles" element={<ThesisCycleBetter />} />
-            <Route
-              path="/CommitteeScheduler"
-              element={<CommitteeScheduler />}
-            />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route
-              path="/supervisor/grading"
-              element={<SupervisorGradingPage />}
-            />
-            <Route
-              path="/assignedTeacher/grading"
-              element={<AllThesisAssignedGradingPage />}
-            />
-            <Route path="/committees" element={<CommitteePanel />} />
-            <Route path="/thesis-deadlines" element={<ThesisDeadlinePage />} />
-
-            <Route path="/thesis-Calendar" element={<Calendar />} />
-
-          </>
-        );
+        return departmentRoutes;
       case "supervisor":
-        return (
-          <>
-            <Route index element={<Navigate to="/proposedtopics" replace />} />
-            <Route path="/proposedtopics" element={<ProposedTopics />} />
-            <Route path="/approvedtopics" element={<ApprovedTopics />} />
-          </>
-        );
+        return supervisorRoutes;
       case "student":
-        return (
-          <>
-            <Route index element={<Navigate to="/topicliststud" replace />} />
-            <Route path="/topicliststud" element={<TopicListStud />} />
-            <Route path="/proposetopicstud" element={<ProposeTopicStud />} />
-            <Route path="/confirmedtopic" element={<ConfirmedTopicStud />} />
-            {/* student */}
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/studentPlan/:id" element={<Plan />} />
-
-            <Route path="/plan" element={<Plan />} />
-            <Route path="/teacher/committees" element={<CommitteeListPage />} />
-            <Route
-              path="/teacher/committees/detail/:id"
-              element={<CommitteeDetailPage />}
-            />
-          </>
-        );
+        return studentRoutes;
       case "teacher":
-        return (
-          <>
-            <Route index element={<Navigate to="/topiclist" replace />} />
-            <Route path="/topiclist" element={<TopicList />} />
-            <Route path="/proposetopics" element={<ProposeTopic />} />
-            <Route path="/confirmedtopics" element={<ConfirmedTopics />} />
-            {/* Teacher->suprvisor */}
-            <Route
-              path="/teacher/dashboard"
-              element={<DashBoardSupervisor />}
-            />
-            <Route path="/thesisList" element={<SupervisodTheses />} />
-            <Route path="/aboutthesis/:id" element={<AboutThesis />} />
-            <Route path="/studentPlan/:id" element={<Plan />} />
-            <Route path="/teacher/committees" element={<CommitteeListPage />} />
-            <Route
-              path="/teacher/committees/detail/:id"
-              element={<CommitteeDetailPage />}
-            />
-          </>
-        );
+        return teacherRoutes;
       default:
         return (
           <Route
@@ -221,17 +128,15 @@ function Main({ setUser, logoutFunction }) {
             element={
               <div className="flex items-center justify-center h-full">
                 <div className="text-center p-8">
-                  <h2 className="text-2xl font-bold mb-4">Access Error</h2>
+                  <h2 className="text-2xl font-bold mb-4">Эрхийн алдаа</h2>
                   <p>
-                    Your role could not be determined. Please contact an
-                    administrator.
+                    Таны эрх тодорхойлогдсонгүй. Та админтай холбогдоно уу.
                   </p>
-                  {error && <p className="text-red-500 mt-2">{error}</p>}
                   <button
                     onClick={logoutFunction}
                     className="mt-4 px-4 py-2 bg-violet-500 text-white rounded"
                   >
-                    Logout and Try Again
+                    Гарах
                   </button>
                 </div>
               </div>
@@ -241,33 +146,45 @@ function Main({ setUser, logoutFunction }) {
     }
   };
 
-  const handleMenuToggle = () => {
-    setMenuCollapsed(!menuCollapsed);
-  };
-
-  if (roleLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Spin tip="Loading user information..." size="large" />
-      </div>
-    );
-  }
-
   return (
     <div className="app-layout">
       <ToastContainer />
+      
+      {/* Navigation bar */}
       <CustomNavBar
         user={user}
         setUser={setUser}
         logoutFunction={logoutFunction}
         onClick={handleMenuToggle}
       />
+      
+      {/* Main content */}
       <div className="content">
         <SideBar user={user} collapsed={menuCollapsed} />
         <div className="routes-content">
-          <Routes>{getRoutes()}</Routes>
+          <Routes>
+            {getRoutes()}
+          </Routes>
         </div>
       </div>
+      
+      {/* Inactivity warning modal */}
+      <Modal
+        title={
+          <span>
+            <ExclamationCircleOutlined style={{ color: '#faad14', marginRight: '8px' }} />
+            Сэрэмжлүүлэг: Идэвхгүй байна
+          </span>
+        }
+        open={showInactivityWarning}
+        onOk={handleContinueSession}
+        onCancel={logoutFunction}
+        okText="Үргэлжлүүлэх"
+        cancelText="Гарах"
+      >
+        <p>Та удаан хугацаанд идэвхгүй байна. Хэрэв үргэлжлүүлэхийг хүсвэл "Үргэлжлүүлэх" товчийг дарна уу.</p>
+        <p>Эсвэл автоматаар системээс гарах болно.</p>
+      </Modal>
     </div>
   );
 }

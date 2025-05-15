@@ -15,12 +15,6 @@ export const SidebarData = {
       icon: <IoIcons.IoIosPaper />,
       cName: "nav-text",
     },
-    {
-      title: "Мэдэгдэл удирдах",
-      path: "/notifications",
-      icon: <IoIcons.IoIosNotifications />,
-      cName: "nav-text",
-    },
   ],
   supervisor: [
     {
