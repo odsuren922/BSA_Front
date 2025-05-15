@@ -23,8 +23,9 @@ header {
   display: flex;
   flex: 1;
   overflow: hidden;
-  background: rgb(213, 220, 249);
-  background: linear-gradient(90deg, rgba(213, 220, 249, 1) 0%);
+  /* background:rgb(219, 235, 250); */
+   /* rgb(213, 220, 249); */
+  background: linear-gradient(90deg, rgb(228, 232, 248) 0%);
 }
 
 /* Sidebar-ийн загвар */

@@ -24,7 +24,7 @@ const CommitteeListPage = () => {
         setIsLoading(true);
         const response = await api.get(`/committees/by-teacher/1`);
        
-        console.log(response.data.data);
+        console.log("committee",response.data.data);
         setCommittees(response.data.data);
       } catch (error) {
         console.error("Error fetching committees:", error);

@@ -30,7 +30,7 @@ import {
   Checkbox,
   Switch
 } from "antd";
-
+import { BulbTwoTone  } from "@ant-design/icons";
 import api from "../../../context/api_helper";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -62,24 +62,36 @@ const CommitteeScheduler = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deadlineloading, setDeadlineLoading] = useState(false);
   const [addDeadline, setAddDeadline] = useState(false);
+  const[componentsDeadline, setComponetsDeadlines] = useState([])
 
   useEffect(() => {
     fetchData();
+    fetchDeadlineData();
   }, []);
   useEffect(() => {
     if (selectedEvent) {
       setCalendarDate(new Date(selectedEvent.start));
     }
   }, [selectedEvent]);
+  useEffect(() => {
+    if (committees.length > 0 && componentsDeadline.length > 0) {
+      updateEvents(committees);
+    }
+  }, [componentsDeadline, committees]);
+  
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const committeesData = await api.get(`/committees/active-cycle`);
+    //   const response = await api.get(`/cycle-deadlines/by-schema?thesis_cycle_id=${thesisCycle.id}&grading_schema_id=${gradingSchema.id}`,);
+    //   console.log("deadlinsdfghjkles", response.data)
+    //   setComponetsDeadlines(response.data.deadlines);
       setCommittees(committeesData.data.data);
       console.log("committeesData.data.data", committeesData.data.data)
-      updateEvents(committeesData.data.data);
+
   
     } catch (error) {
       toast.error("Комиссийн мэдээлэл авахад алдаа гарлаа");
@@ -87,24 +99,48 @@ const CommitteeScheduler = () => {
       setLoading(false);
     }
   };
+  const fetchDeadlineData = async () => {
+    try {
+        setDeadlineLoading(true);
+
+      const response = await api.get(`/cycle-deadlines/active-schema`,);
+      console.log("deadlinsdfghjkles", response.data.deadlines)
+      setComponetsDeadlines(response.data.deadlines);
+    } catch (error) {
+      toast.error("Үнэлгээний deadline  авахад алдаа гарлаа");
+    } finally {
+        setDeadlineLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (addDeadline) {
       const startDate = form.getFieldValue("start_date");
       const startTime = form.getFieldValue("start_time");
       const endDate = form.getFieldValue("end_date");
+      const endTime = form.getFieldValue("end_date");
   
       if (startDate && startTime && endDate) {
+        console.log(startDate)
         form.setFieldsValue({
           deadline_start_date: startDate,
           deadline_start_time: startTime,
           deadline_end_date: endDate,
-          deadline_end_time: dayjs("23:00", "HH:mm")
+          deadline_end_time: endTime
         });
       }
     }
   }, [addDeadline]);
 
   const updateEvents = (committeesData) => {
+    const deadlineEvents = componentsDeadline.map(d => ({
+           title: `📌 ${d.related_component?.name || 'Тодорхойгүй'} үнэлгээний хугацаа`,
+    start: dayjs.utc(d.start_date).toDate(),
+    end: dayjs.utc(d.end_date).toDate(),
+    allDay: false,
+    type: 'deadline',
+    related_component: d.related_component,
+      }));
     const allEvents = committeesData.flatMap((committee) =>
       committee.schedules.map((schedule) => ({
         id: schedule.id,
@@ -116,7 +152,8 @@ const CommitteeScheduler = () => {
         room: schedule.room || null,
       }))
     );
-    setEvents(allEvents);
+    setEvents([...allEvents, ...deadlineEvents]);
+
   };
   
 
@@ -248,59 +285,103 @@ const CommitteeScheduler = () => {
     return map;
   }, [committees]);
 
-  const eventStyleGetter = (event) => ({
-    style: {
-      backgroundColor: committeeColorMap[event.committee] || "#3174ad",
-      borderRadius: "5px",
-      border: "none",
-      color: "white",
-      fontWeight: "bold",
-    },
-  });
+  const eventStyleGetter = (event) => {
+    if (event.type === 'deadline') {
+      return {
+        style: {
+          backgroundColor: '#fde4f2',
+          borderRadius: '5px',
+          border: 'none',
+          color: 'black',
+          fontWeight: 'bold',
+        },
+      };
+    }
+    return {
+      style: {
+        backgroundColor: committeeColorMap[event.committee] || "#3174ad",
+        borderRadius: "5px",
+        border: "none",
+        color: "white",
+        fontWeight: "bold",
+      },
+    };
+  };
+  
 
   const CustomEvent = ({ event }) => {
     const committee = committees.find((c) => c.id === event.committee);
+  
+    // 🟡 Deadline event
+    if (event.type === "deadline") {
+      return (
+        <Popover
+          content={
+            <div style={{ padding: "8px" }}>
+              <div>
+                <strong>Үнэлгээний бүрэлдэхүүн:</strong>{" "}
+                {event.related_component?.name}
+              </div>
+              <div>
+                <strong>Хугацаа:</strong>{" "}
+                {moment(event.start).format("YYYY-MM-DD HH:mm")} –{" "}
+                {moment(event.end).format("YYYY-MM-DD HH:mm")}
+              </div>
+            </div>
+          }
+          title="⏳ Үнэлгээний хугацаа"
+          trigger="hover"
+        >
+             <div style={{ padding: "2px", cursor: "pointer" }}>
+          <div style={{ fontSize: "12px" }}>
+          {event.related_component?.name}
+          </div>
+          </div>
+        </Popover>
+      );
+    }
+  
+    // 🔵 Committee meeting event
     const popoverContent = (
       <div style={{ padding: "8px" }}>
         {event.location && (
           <div>
-         <strong>Байршил:</strong> {event.location}
+            <strong>Байршил:</strong> {event.location}
           </div>
         )}
         {event.room && (
           <div>
-             <strong>Өрөө:</strong> {event.room}
+            <strong>Өрөө:</strong> {event.room}
           </div>
         )}
         {event.notes && (
           <div>
-             <strong>Тэмдэглэл:</strong> {event.notes}
+            <strong>Тэмдэглэл:</strong> {event.notes}
           </div>
         )}
         {committee && (
           <div>
-             <strong>Комисс:</strong> {committee.name}
+            <strong>Комисс:</strong> {committee.name}
           </div>
         )}
         <div>
-         <strong>Цаг:</strong>{" "}
+          <strong>Цаг:</strong>{" "}
           {moment(event.start).format("HH:mm")} - {moment(event.end).format("HH:mm")}
         </div>
       </div>
     );
-
+  
     return (
       <Popover content={popoverContent} title={event.title} trigger="hover">
         <div style={{ padding: "2px", cursor: "pointer" }}>
           <div style={{ fontSize: "12px" }}>
             {committee && <div>{committee.name}</div>}
-            {/* {event.location && <div>{event.location} - {event.room} тоот</div>}
-            {event.notes && <div>📝 {event.notes}</div>} */}
           </div>
         </div>
       </Popover>
     );
   };
+  
 
   const handleEditMeeting = (event) => {
     setSelectedEvent(event);
@@ -347,6 +428,8 @@ const CommitteeScheduler = () => {
     return acc;
   }, {});
 
+  
+
   const calendarMessages = {
     today: "Өнөөдөр",
     previous: "Өмнөх",
@@ -361,11 +444,17 @@ const CommitteeScheduler = () => {
     showMore: (total) => `+ ${total} илүү`,
   };
   
-
+  const groupedDeadlines = componentsDeadline.reduce((acc, d) => {
+    const key = d.related_component?.name || "Тодорхойгүй";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(d);
+    return acc;
+  }, {});
+  
   return (
     <div className="container mt-4">
           <ConfigProvider locale={mnMN}> 
-          <Spin spinning={loading} tip="Ачааллаж байна...">
+          <Spin spinning={loading || deadlineloading} tip="Ачааллаж байна...">
 
       <DndProvider backend={HTML5Backend}>
         <Row gutter={24}>
@@ -442,6 +531,40 @@ const CommitteeScheduler = () => {
                 ))}
               </Collapse>
             </Card>
+            <Card style={{ marginTop: "16px" }}>
+  <Typography.Title level={4}>Үнэлгээний хугацаанууд</Typography.Title>
+  <Collapse>
+    <Collapse.Panel header="Бүх үнэлгээний бүрэлдэхүүний хугацаа" key="all-deadlines">
+      <List
+        bordered
+        dataSource={componentsDeadline}
+        renderItem={(deadline) => (
+          <List.Item
+            style={{
+              borderLeft: `5px solid #fde4f2`,
+              padding: "12px",
+              display: "block",
+            }}
+          >
+            <div>
+              <Typography.Text type="primary" strong>
+              <BulbTwoTone /> {deadline.related_component?.name || "Тодорхойгүй"}
+              </Typography.Text>
+              <br />
+              <Typography.Text>
+                {dayjs.utc(deadline.start_date).tz("Asia/Ulaanbaatar").format("YYYY-MM-DD HH:mm")} ⟶{" "}
+                {dayjs.utc(deadline.end_date).tz("Asia/Ulaanbaatar").format("YYYY-MM-DD HH:mm")}
+              </Typography.Text>
+            </div>
+          </List.Item>
+        )}
+      />
+    </Collapse.Panel>
+  </Collapse>
+</Card>
+
+
+
           </Col>
 
           <Col xs={24} md={18}>
@@ -458,23 +581,33 @@ const CommitteeScheduler = () => {
                 )}
               </Space>
               <div style={{ padding: "2px", cursor: "pointer", fontSize: "12px" }}>
+           
               <DragAndDropCalendar
-                           messages={calendarMessages} 
-                localizer={localizer}
-                events={events}
-                startAccessor="start"
-                endAccessor="end"
-                style={{ height: 600 }}
-                eventPropGetter={eventStyleGetter}
-                onEventDrop={handleEventDrop}
-                onEventResize={handleEventDrop}
-                draggableAccessor={() => true}
-                date={calendarDate}
-                onNavigate={setCalendarDate}
-                components={{ event: CustomEvent }}
-                min={new Date(1970, 1, 1, 6, 0)}
-                onSelectEvent={handleEditMeeting}
-              />
+  messages={calendarMessages}
+  localizer={localizer}
+  events={events}
+  startAccessor="start"
+  endAccessor="end"
+  style={{ height: 600 }}
+  eventPropGetter={eventStyleGetter}
+  onEventDrop={handleEventDrop}
+  onEventResize={handleEventDrop}
+  date={calendarDate}
+  onNavigate={setCalendarDate}
+  components={{ event: CustomEvent }}
+  min={new Date(1970, 1, 1, 6, 0)}
+
+  draggableAccessor={(event) => event.type !== 'deadline'} // ✅ disable dragging for deadlines
+  resizableAccessor={(event) => event.type !== 'deadline'} // ✅ disable resizing for deadlines (if needed)
+
+  onSelectEvent={(event) => {
+    if (event.type !== "deadline") {
+      handleEditMeeting(event);
+    }
+  }}
+  
+/>
+
               </div>
             </Card>
           </Col>

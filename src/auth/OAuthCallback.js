@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { exchangeCodeForToken, fetchUserData } from '../oauth';
 import { useUser } from '../context/UserContext';
-
+import { fetchUserRole, mapGidToRole} from "../services/RoleService"
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,16 +32,37 @@ const OAuthCallback = () => {
         setStatus('Exchanging code for tokens...');
         const tokenData = await exchangeCodeForToken(code, state);
         
-        if (!tokenData || !tokenData.access_token) {
-          throw new Error('Failed to obtain access token');
-        }
+        // if (!tokenData || !tokenData.access_token) {
+        //   throw new Error('Failed to obtain access token');
+        // }
         
         // Fetch user data with the new token
         setStatus('Fetching user information...');
         const userData = await fetchUserData();
+        //TODO::ADD 
+ if (userData) {
+          // 2. Тухайн хэрэглэгчийн role (gid) авах
+          const roleRes = await fetchUserRole(); // { gid: "5" }
+          const role = mapGidToRole(roleRes.gid); // "supervisor", "student", ...
+
+          // 3. Context-д хадгалах (email, name, role)
+          setUser({
+            ...userData,
+            role: role,
+          });
+
+        //  console.log("User authenticated:", userData);
+          setUser(userData);
+          console.log("User authenticated:", userData);
+      
+        } else {
+          console.log("No authenticated user found");
+          setUser(null);
+        }
+
         
         // Update global user state
-        setUser(userData);
+     
         
         // Success, redirect to home
         setStatus('Authentication successful! Redirecting...');

@@ -31,7 +31,8 @@ const AboutThesisTabs = ({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
-
+  const [deadloading, setDeadLoading] = useState(false);
+const[componentsDeadlines, setComponetsDeadlines]= useState([]);
    const [scores, setScores] = useState([]);
   const safeTasks = tasks ?? [];
 ;
@@ -72,6 +73,26 @@ const AboutThesisTabs = ({
       toast.error("Оноо дуудахад алдаа гарлаа");
     } finally {
       setLoading(false);
+    }
+  };
+    useEffect(() => {
+          if (!gradingSchema?.id || !thesisCycle.id) return;
+          fetchComponentsDeadline();
+        }, [gradingSchema?.id, thesisCycle.id]);
+
+  const fetchComponentsDeadline = async () => {
+       setDeadLoading(true)
+    try {
+     
+      const response = await api.get(`/cycle-deadlines/by-schema?thesis_cycle_id=${thesisCycle.id}&grading_schema_id=${gradingSchema.id}`,);
+      console.log("deadlinsdfghjkles", response.data)
+      setComponetsDeadlines(response.data.deadlines);
+   
+    } catch (error) {
+        setDeadLoading(false)
+      toast.error("Оноо өгсөн багшийн мэдээллийг авч чадсангүй");
+    }finally{
+        setDeadLoading(false)
     }
   };
   const handlePDF = async () => {
@@ -147,6 +168,9 @@ const AboutThesisTabs = ({
                         gradingSchema={gradingSchema}
                         scores={scores}
                         loading={loading}
+                        deadloading={deadloading}
+                        componentsDeadlines ={componentsDeadlines}
+                        
       
                       />
                     ):(
@@ -240,7 +264,9 @@ const AboutThesisTabs = ({
                           thesisCycleId={thesisCycle.id}
                           scores={scores}
                           loading={loading}
+                          deadloading={deadloading}
                           onSuccess={fetchScores}
+                          componentsDeadlines ={componentsDeadlines}
                         />
                       ) : (
                         <Col xl={24} style={{ marginBottom: "10px" }}>

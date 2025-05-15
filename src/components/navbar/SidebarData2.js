@@ -12,7 +12,7 @@ export const SidebarData2 = {
       },
   
         {
-          title: "Баклаварын ажил",
+          title: "Баклаварын ажил тохиргоо",
           path: "/thesis-cycles",
         },
         {
@@ -42,12 +42,12 @@ export const SidebarData2 = {
   teacher: [
 
    // Бакалаврын ажил 
-    {
-        title: "Нүүр хуудас",
-        path: "/teacher/dashboard",
-        icon: <IoIcons.IoIosPaper />,
-        cName: "nav-text",
-      },
+    // {
+    //     title: "Нүүр хуудас",
+    //     path: "/teacher/dashboard",
+    //     icon: <IoIcons.IoIosPaper />,
+    //     cName: "nav-text",
+    //   },
     {
       title: "Судалгааны ажил",
       path: "/thesisList",

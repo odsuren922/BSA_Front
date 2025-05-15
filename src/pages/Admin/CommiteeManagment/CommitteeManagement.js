@@ -19,13 +19,11 @@ import {
     Input,
     Radio,
     Select,
-    Popover,
     message,
+    Skeleton
 } from "antd";
 import {
     CalculatorOutlined,
-    TeamOutlined,
-    DeleteOutlined,
     UserOutlined,
 } from "@ant-design/icons";
 import CommitteeCalculator from "../../../components/committee/CommitteeCalculator";
@@ -342,7 +340,8 @@ const CommitteeManagement = ({
                 </Col>
             </Row>
             {loading || loadingData ? (
-                <Spin tip="Ачааллаж байна..." />
+     <Skeleton active paragraph={{ rows: 4 }} />
+
             ) : committees.length === 0 ? (
                 <Alert
                     message="Мэдээлэл байхгүй"

@@ -364,9 +364,9 @@ const TableComponent = () => {
         }
     };
 
-    const isEditable = true;
-    // (user.role === "student" && planStatus?.teacher_status !== "approved") ||
-    // user.role === "teacher";
+    const isEditable = 
+    (user.role === "student" && planStatus?.teacher_status !== "approved") ||
+    user.role === "teacher";
 
     const renderPlanStatus = () => {
         console.log("planStatus", !planStatus);

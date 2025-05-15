@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Table, Select, Card, Typography, Row, Col ,InputNumber, Button} from "antd";
+import { Table, Select, Card, Typography, Row, Col ,InputNumber, Button, Alert} from "antd";
 import api from "../../../context/api_helper"; 
 import { toast } from "react-toastify";
 
 
 //TODO::
 import { useUser } from "../../../context/UserContext";
+import "dayjs/locale/mn";
+import dayjs from "dayjs";
 
+
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.locale('mn');
+dayjs.extend(utc);
+dayjs.extend(timezone);
 const { Option } = Select;
 const { Title } = Typography;
 
@@ -14,13 +23,14 @@ const AssignedGradingTable = () => {
   const [data, setData] = useState([]);
   const [scores, SetScores] =useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [cycleOptions, setCycleOptions] = useState([]);
+
   const [componentOptions, setComponentOptions] = useState([]);
-  const [selectedCycle, setSelectedCycle] = useState(null);
+
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [editMode, setEditMode] = useState(false);
 const [editableScores, setEditableScores] = useState({});
   const [loading, setLoading] = useState(false);
+  const [currentDeadline, setCurrentDeadline] = useState(null);
 
  const { user } = useUser();
   useEffect(() => {
@@ -42,52 +52,51 @@ const [editableScores, setEditableScores] = useState({});
     });
   
     setFiltered(merged);
-  }, [data, scores, selectedCycle, selectedComponent]);
+  }, [data, scores, selectedComponent]);
   
 
   const fetchData = async () => {
-    setLoading(true)
-    try{
-        //todo
-         const response = await api.get(`/assigned-grading/teacher/${user.id}`);
-    console.log(response.data.data)
-    const gradingList = response.data.data;
-
-    setData(gradingList);
-    setFiltered(gradingList);
-     
-    const uniqueCycles = Array.from(
-        gradingList.reduce((map, item) => {
-          if (item.thesis_cycle && !map.has(item.thesis_cycle.id)) {
-            map.set(item.thesis_cycle.id, item.thesis_cycle);
-          }
-          return map;
-        }, new Map()).values()
-      );
-      
-      const uniqueComponents = Array.from(
-        gradingList.reduce((map, item) => {
-          if (item.grading_component && !map.has(item.grading_component.id)) {
-            map.set(item.grading_component.id, item.grading_component);
-          }
-          return map;
-        }, new Map()).values()
-      );
-      
-      setCycleOptions(uniqueCycles);
-      setComponentOptions(uniqueComponents);
-    }catch  (error) {
-        console.error("Error fetching committees:", error);
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      const response = await api.get(`/assigned-grading/teacher/${user.id}`);
+      const resData = response.data;
+  
+      const components = resData.grading_components || [];
    
-
-    // Extract unique thesis cycles and components for filter options
- 
-      
-
+  
+      // Flatten students into rows for the table
+      const flattened = components.flatMap((component) =>
+        component.students.map((item) => ({
+          ...item,
+          grading_component: {
+            id: component.id,
+            name: component.name,
+            score: component.score,
+          },
+   
+        }))
+      );
+  console.log("dfg",components )
+      setData(flattened);
+      setFiltered(flattened);
+  
+      // Generate filters
+    // since only one thesis_cycle
+      setComponentOptions(components);
+    //   if (components.length > 0) {
+    //     const selected = components.find(c => c.id === selectedComponent) || components[0];
+    //     const deadline = selected.thesis_cycle_deadlines?.[0] || null;
+    //     console.log(selected.thesis_cycle_deadlines)
+    //     setCurrentDeadline(deadline);
+    //   }
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+      toast.error("Үнэлгээний мэдээлэл авахад алдаа гарлаа");
+    } finally {
+      setLoading(false);
+    }
   };
+  
   const fetchScoreData = async () => {
     const scores= await api.get(`/assigned-grading/score/${user.id}`);
     console.log('scores', scores.data.data)
@@ -100,9 +109,6 @@ const [editableScores, setEditableScores] = useState({});
   const handleFilter = () => {
     let result = [...data];
 
-    if (selectedCycle) {
-      result = result.filter(item => item.thesis_cycle?.id === selectedCycle);
-    }
 
     if (selectedComponent) {
       result = result.filter(item => item.grading_component?.id === selectedComponent);
@@ -138,7 +144,7 @@ const [editableScores, setEditableScores] = useState({});
 
   useEffect(() => {
     handleFilter();
-  }, [selectedCycle, selectedComponent]);
+  }, [selectedComponent]);
 
   const columns = [
     {
@@ -160,13 +166,7 @@ const [editableScores, setEditableScores] = useState({});
       key: "thesis",
       render: thesis => thesis.name_mongolian,
     },
-    
-    {
-      title: "Төсөл хичээлийн цикл",
-      dataIndex: "thesis_cycle",
-      key: "cycle",
-      render: cycle => cycle.name,
-    },
+ 
     {
       title: "Үнэлгээний бүрэлдэхүүн",
       dataIndex: "grading_component",
@@ -218,28 +218,19 @@ const [editableScores, setEditableScores] = useState({});
     <Card>
       {/* <Title level={4}>Хуваарилсан үнэлгээ</Title> */}
       <Row gutter={16} style={{ marginBottom: 16 }}>
+        
         <Col>
-          <Select
-            placeholder="Цикл сонгох"
-            onChange={setSelectedCycle}
-            allowClear
-            style={{ width: 500 }}
-          >
-{cycleOptions.map((cycle, index) => (
-  <Option key={`cycle-${cycle.id || index}`} value={cycle.id}>
-    {cycle.name}  {cycle.semester}
-  </Option>
-))}
+        <Select
+  placeholder="Бүрэлдэхүүн сонгох"
+  onChange={(value) => {
+    setSelectedComponent(value);
+    const selected = componentOptions.find((c) => c.id === value);
+    setCurrentDeadline(selected?.thesis_cycle_deadlines?.[0] || null);
+  }}
+  allowClear
+  style={{ width: 250 }}
+>
 
-          </Select>
-        </Col>
-        <Col>
-          <Select
-            placeholder="Бүрэлдэхүүн сонгох"
-            onChange={setSelectedComponent}
-            allowClear
-            style={{ width: 250 }}
-          >
 {componentOptions.map((comp, index) => (
   <Option key={`component-${comp.id || index}`} value={comp.id}>
     {comp.name}
@@ -247,23 +238,86 @@ const [editableScores, setEditableScores] = useState({});
 ))}
 
           </Select>
-        </Col>
+
+          {!selectedComponent ? (
+      <Row style={{ marginTop: 12 }}>
+    <Col span={24}>
+      <Alert
+        message="Эхлээд бүрэлдэхүүн сонгоно уу"
+        type="warning"
+        showIcon
+      />
+    </Col>
+  </Row>
+):(
+
+    <Row style={{ marginTop: 12 }}>
+    <Col>
+      {currentDeadline && dayjs().isAfter(dayjs.utc(currentDeadline?.end_date)) ? (
+        <Alert
+          type="error"
+    
+          message={`Энэ бүрэлдэхүүнд үнэлгээ өгөх хугацаа дууссан: ${dayjs
+            .utc(currentDeadline?.end_date)
+            .tz("Asia/Ulaanbaatar")
+            .format("YYYY-MM-DD HH:mm")}`}
+          showIcon
+        />
+      ) : (
+        <Alert
+    type={dayjs().isAfter(dayjs.utc(currentDeadline?.end_date)) ? "error" : "info"}
+    showIcon
+    message={
+      <>
+        📆 Үнэлгээний хугацаа:{" "}
+        {dayjs
+          .utc(currentDeadline?.start_date)
+          .tz("Asia/Ulaanbaatar")
+          .format("YYYY-MM-DD HH:mm")}{" "}
+        →{" "}
+        {dayjs
+          .utc(currentDeadline?.end_date)
+          .tz("Asia/Ulaanbaatar")
+          .format("YYYY-MM-DD HH:mm")}
+      </>
+    }
+
+  />
+      )}
+    </Col>
+  </Row>
+  
+   
+)
+}
+     </Col>
+
       </Row>
 
-      <Row justify="end" style={{ marginBottom: 12 }}>
-  {editMode ? (
-    <>
-      <Button onClick={() => setEditMode(false)} style={{ marginRight: 8 }}>
-        Болих
+
+
+<Row justify="end" style={{ marginBottom: 12 }}>
+  {selectedComponent && (
+    editMode ? (
+      <>
+        <Button onClick={() => setEditMode(false)} style={{ marginRight: 8 }}>
+          Болих
+        </Button>
+        <Button type="primary" onClick={handleSaveAll}>
+          Хадгалах
+        </Button>
+      </>
+    ) : (
+      <Button
+        onClick={() => setEditMode(true)}
+        disabled={currentDeadline && dayjs().isAfter(dayjs.utc(currentDeadline.end_date))}
+      >
+        Засах
       </Button>
-      <Button type="primary" onClick={handleSaveAll}>
-        Хадгалах
-      </Button>
-    </>
-  ) : (
-    <Button onClick={() => setEditMode(true)}>Засах</Button>
+    )
   )}
 </Row>
+
 
       <Table
         rowKey="id"

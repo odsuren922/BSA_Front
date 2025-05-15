@@ -21,11 +21,13 @@ const ThesisScores = ({
   gradingSchema,
   scores,
   loading,
+  deadloading,
+  componentsDeadlines 
 }) => {
   const { user } = useUser();
   const [form] = Form.useForm();
   const [assignments, setAssignments] = useState([]);
-const[componentsDeadlines, setComponetsDeadlines]= useState([]);
+
 useEffect(() => {
   const fetchAssignments = async () => {
     try {
@@ -49,30 +51,7 @@ useEffect(() => {
   console.log(thesis)
 }, [gradingSchema?.id, thesis?.student_id]);
 
-useEffect(() => {
-    fetchComponentsDeadline()
-    
-  }, [gradingSchema?.id, thesisCycle?.id]);
 
-const fetchComponentsDeadline = async () => {
-    try {
-      const response = await api.get(`/cycle-deadlines/by-schema?thesis_cycle_id=${thesisCycle.id}&grading_schema_id=${gradingSchema.id}`,);
-      console.log("deadlines", response.data)
-      setComponetsDeadlines(response.data.deadlines);
-    } catch (error) {
-      toast.error("Оноо өгсөн багшийн мэдээллийг авч чадсангүй");
-    }
-  };
-
-  const calScheduleWeek = (week) => {
-
-    const startDate = new Date(thesisCycle.start_date);
-    const weekStart = new Date(startDate);
-    weekStart.setDate(startDate.getDate() + (week - 1) * 7);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    return { start: weekStart, end: weekEnd };
-  };
 
   const columns = [
     {
@@ -83,7 +62,7 @@ const fetchComponentsDeadline = async () => {
       }
 ,     
 {
-    title: "Үнэлгээ өгөх",
+    title: "Үнэлгээ өгөх хүн",
     dataIndex: ["component", "by_who_label"],
   }, 
     {
@@ -181,7 +160,7 @@ const fetchComponentsDeadline = async () => {
 
   return (
     <Card title="Үнэлгээ">
-      {loading ? (
+      {loading ||deadloading? (
         <Spin />
       ) : (
         <Table

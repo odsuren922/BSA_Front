@@ -120,7 +120,7 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
     <Modal
       visible={show}
       onCancel={onHide}
-      title={cycle ? "Циклийг засах" : "Шинэ судалгааны ажлын цикл үүсгэх"}
+      title={cycle ? "Засах" : "Шинэ судалгааны ажлын улирал үүсгэх"}
       footer={null}
       width={800}
     >

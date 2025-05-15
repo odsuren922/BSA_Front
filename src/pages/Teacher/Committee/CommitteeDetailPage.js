@@ -15,7 +15,8 @@ import {
   Steps,
   Spin,
   InputNumber,
-  message
+  message,
+  Alert
 } from "antd";
 import { useUser } from "../../../context/UserContext";
 import { useParams, useLocation } from "react-router-dom";
@@ -25,6 +26,17 @@ import api from "../../../context/api_helper";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
+import mnMN from "antd/es/locale/mn_MN";
+import "dayjs/locale/mn";
+import dayjs from "dayjs";
+
+import 'dayjs/locale/mn';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.locale('mn');
+dayjs.extend(utc);
+dayjs.extend(timezone);
 const { TabPane } = Tabs;
 const { Text } = Typography;
 
@@ -64,6 +76,7 @@ const CommitteeDetailsPage = () => {
       const [editMode, setEditMode] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [open, setOpen] = useState(false);
+  const [deadline, setDeadline] =useState([])
   const [stepNum, setStepNum] = useState(1);
   const selectedComponent = gradingComponents.find(
     (c) => c.id === selectedComId
@@ -108,9 +121,15 @@ const CommitteeDetailsPage = () => {
         );
   
         const data = response.data.data;
-        console.log("committee data",data )
+  
         setGradingComponents(gradingSchema.data[0].grading_components);
         setCommittee(data);
+  
+        const committeeDeadline = data.thesis_cycle_deadlines?.find(
+          (d) => d.type === "committee" && d.related_id === data.id
+        );
+  
+        setDeadline(committeeDeadline || null); // Тусгай хуваарийн хугацаа
       } catch (err) {
         console.error("Committee fetch error:", err);
       } finally {
@@ -120,6 +139,7 @@ const CommitteeDetailsPage = () => {
   
     fetchCommittee();
   }, [id]);
+  
 
   const rowSelection = {
     selectedRowKeys,
@@ -180,12 +200,6 @@ const CommitteeDetailsPage = () => {
       ),
     },
 
-    {
-      title: "Дэлгэрэнгүй",
-      render: (text, record) => (
-        <a href={`/aboutthesis/${record.student.thesis.id}`}>Дэлгэрэнгүй</a>
-      ),
-    },
  {
       title: "Томилогдсон багш",
       dataIndex: "student",
@@ -202,6 +216,8 @@ const CommitteeDetailsPage = () => {
                 ? `${teacher.teacher.lastname} ${teacher.teacher.firstname}`
                 : "Багш"}
             </Tag>
+            {user.role !=="student" &&(
+
             <Button
               danger
               size="small"
@@ -209,6 +225,7 @@ const CommitteeDetailsPage = () => {
             >
               X
             </Button>
+            )}
           </div>
         ) : (
           <Text type="secondary">-</Text>
@@ -273,35 +290,7 @@ const CommitteeDetailsPage = () => {
             <a href={`/aboutthesis/${record.student.thesis.id}`}>Дэлгэрэнгүй</a>
           ),
         },
-        // {
-        //     title: "Шүүмжлэгч багш",
-        //     dataIndex: "student",
-        //     render: (student) => {
-        //       const assigned = assignedData.find((a) => a.student_id === student.id);
-        //       const teacher = committee.members.find(
-        //         (m) => m.teacher?.id === assigned?.assigned_by_id
-        //       );
-          
-        //       return assigned ? (
-        //         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        //           <Tag color="green">
-        //             {teacher
-        //               ? `${teacher.teacher.lastname} ${teacher.teacher.firstname}`
-        //               : "Багш"}
-        //           </Tag>
-        //           <Button
-        //             danger
-        //             size="small"
-        //             onClick={() => handleDeleteAssignedGrading(assigned.id)}
-        //           >
-        //             X
-        //           </Button>
-        //         </div>
-        //       ) : (
-        //         <Text type="secondary">-</Text>
-        //       );
-        //     },
-        //   }
+
     ];
     const teacherScoreColumns = graders.map((grader) => ({
         title: (
@@ -602,23 +591,53 @@ const CommitteeDetailsPage = () => {
 
           <Col xs={24} md={14} lg={24}>
             <Card  loading={loading}>
-
-
+{
+    user.role !=="student" ?(
+        <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <Text strong style={{ fontSize: 14 }}>
+         
+            <Text >
   {committee.grading_component.name} — {committee.grading_component.score} оноо
+
+  {deadline && (
+  <Alert
+  
+    type={dayjs().isAfter(dayjs.utc(deadline.end_date).tz("Asia/Ulaanbaatar"))
+      ? "error"
+      : "info"}
+    showIcon
+    message={
+      dayjs().isAfter(dayjs.utc(deadline.end_date).tz("Asia/Ulaanbaatar"))
+        ? "Үнэлгээ илгээх хугацаа дууссан"
+        : `Багш үнэлгээ өгөх хугацаа: ${dayjs
+            .utc(deadline.start_date)
+            .tz("Asia/Ulaanbaatar")
+            .format("YYYY-MM-DD HH:mm")} → ${dayjs
+            .utc(deadline.end_date)
+            .tz("Asia/Ulaanbaatar")
+            .format("YYYY-MM-DD HH:mm")}`
+    }
+    style={{ marginBottom: 12 , marginTop:12}}
+  />
+)}
+
 </Text>
+          
+
   {editMode ? (
     <>
       <Button color="purple" variant="outlined" onClick={() => setEditMode(false)} style={{ marginRight: 8 }}>
         Болих
       </Button>
-      <Button color="purple" variant="filled" onClick={handleSubmitScores}>
+      <Button color="purple" variant="filled"    disabled={dayjs().isAfter(dayjs.utc(deadline?.end_date).tz("Asia/Ulaanbaatar"))}
+      onClick={handleSubmitScores}>
         Оноо хадгалах
       </Button>
     </>
   ) : (
-    <Button  color="purple" variant="outlined" onClick={() => setEditMode(true)}>Засах</Button>
+    <Button  color="purple" variant="outlined"
+    disabled={dayjs().isAfter(dayjs.utc(deadline?.end_date).tz("Asia/Ulaanbaatar"))}
+     onClick={() => setEditMode(true)}>Засах</Button>
   )}
 </div>
 
@@ -630,6 +649,21 @@ const CommitteeDetailsPage = () => {
                 scroll={{ x: "max-content" }} 
                 // rowSelection={rowSelection}
               />
+</>
+
+    ):(
+        <Table
+        dataSource={committee.students}
+        columns={getStudentTableColumns(committee?.members || [], committee)}
+        rowKey={(record) => record.student.id} // эсвэл record.id
+        pagination={false}
+        scroll={{ x: "max-content" }} 
+        // rowSelection={rowSelection}
+      />
+    )
+}
+
+
 
 
 

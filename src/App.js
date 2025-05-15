@@ -12,50 +12,50 @@ function AppContent() {
   const { user, setUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
+//TODO::
+//   useEffect(() => {
+//     const checkAuth = async () => {
+//       setLoading(true);
+//       try {
+//         // 1. OAuth-р нэвтэрсэн хэрэглэгчийн мэдээллийг авна
+//         const userData = await checkOAuthStatus();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      try {
-        // 1. OAuth-р нэвтэрсэн хэрэглэгчийн мэдээллийг авна
-        const userData = await checkOAuthStatus();
+//         if (userData) {
+//           // 2. Тухайн хэрэглэгчийн role (gid) авах
+//           const roleRes = await fetchUserRole(); // { gid: "5" }
+//           const role = mapGidToRole(roleRes.gid); // "supervisor", "student", ...
 
-        if (userData) {
-          // 2. Тухайн хэрэглэгчийн role (gid) авах
-          const roleRes = await fetchUserRole(); // { gid: "5" }
-          const role = mapGidToRole(roleRes.gid); // "supervisor", "student", ...
+//           // 3. Context-д хадгалах (email, name, role)
+//           setUser({
+//             ...userData,
+//             role: role,
+//           });
 
-          // 3. Context-д хадгалах (email, name, role)
-          setUser({
-            ...userData,
-            role: role,
-          });
+//         //  console.log("User authenticated:", userData);
+//           setUser(userData);
+//           console.log("User authenticated:", userData);
+//           setAuthError(null);
+//         } else {
+//           console.log("No authenticated user found");
+//           setUser(null);
+//         }
 
-        //  console.log("User authenticated:", userData);
-          setUser(userData);
-          console.log("User authenticated:", userData);
-          setAuthError(null);
-        } else {
-          console.log("No authenticated user found");
-          setUser(null);
-        }
+//       } catch (error) {
+//         console.error("Authentication check failed:", error);
+//         setAuthError(error.message);
+//         setUser(null);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
 
-      } catch (error) {
-        console.error("Authentication check failed:", error);
-        setAuthError(error.message);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+//     checkAuth();
 
-    checkAuth();
-
-    const authCheckInterval = setInterval(checkAuth, 10 * 60 * 1000);
-    return () => {
-      clearInterval(authCheckInterval);
-    };
-  }, [setUser]);
+//     const authCheckInterval = setInterval(checkAuth, 10 * 60 * 1000);
+//     return () => {
+//       clearInterval(authCheckInterval);
+//     };
+//   }, [setUser]);
   
 
   if (loading) {

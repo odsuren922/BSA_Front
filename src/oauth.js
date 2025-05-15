@@ -54,7 +54,7 @@ export const exchangeCodeForToken = async (code, state) => {
 export const fetchUserData = async () => {
   try {
     const token = localStorage.getItem('oauth_token');
-    
+    console.log("userfetch data");
     if (!token) {
       throw new Error('No access token available');
     }
