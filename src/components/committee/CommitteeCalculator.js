@@ -6,7 +6,9 @@ const CommitteeCalculator = ({
   onClose, 
   onCreate, 
   availableTeachers, 
-  availableStudents 
+  availableStudents ,
+  loadingCommittees,
+   setLoadingCommittees
 }) => {
   const [numCommittees, setNumCommittees] = useState(0);
   const [manualTeachersPer, setManualTeachersPer] = useState(null);
@@ -66,6 +68,16 @@ const CommitteeCalculator = ({
       setNumCommittees(maxPossible);
     }
   };
+  const handleClick = async () => {
+
+    try {
+      await onCreate(numCommittees); // API эсвэл логик ажиллуулна
+      onClose(); // амжилттай бол modal-ыг хаана
+    } catch (error) {
+      console.error("Комисс үүсгэхэд алдаа гарлаа:", error);
+    } 
+  };
+  
 
   return (
     <Modal show={show} onHide={onClose}>
@@ -142,13 +154,21 @@ const CommitteeCalculator = ({
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>Хаах</Button>
-        {/* <Button 
+        <Button 
   variant="primary" 
-  onClick={() => onCreate(numCommittees)}
-  disabled={!isValid}
+  onClick={handleClick}
+  disabled={!isValid || loadingCommittees}
 >
-  Комисс үүсгэх
-</Button> */}
+  {loadingCommittees ? (
+    <>
+      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+      Үүсгэж байна...
+    </>
+  ) : (
+    "Комисс үүсгэх"
+  )}
+</Button>
+
 
       </Modal.Footer>
     </Modal>

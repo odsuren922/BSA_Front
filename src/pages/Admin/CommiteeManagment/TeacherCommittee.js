@@ -93,6 +93,7 @@ const TeacherCommittee = ({ cycleId, componentId ,committees, setCommittees}) =>
       });
       const newCommittee = response.data.data || response.data;
       //newCommittee.color = color;
+      console.log("newCommittee", newCommittee);
       setCommittees([...committees, newCommittee]);
       setNewCommitteeName("");
 

@@ -53,7 +53,7 @@ const CommitteeManagement = ({
     const [customTeacherCount, setCustomTeacherCount] = useState(0);
     const [customStudentCount, setCustomStudentCount] = useState(0);
     const [loading, setLoading] = useState(true);
-
+    const [loadingCommittees, setLoadingCommittees] = useState(false);
     const [scoreForm] = Form.useForm();
     const [addOutsiderModalVisible, setAddOutsiderModalVisible] =
         useState(false);
@@ -115,6 +115,7 @@ const CommitteeManagement = ({
     };
 
     const handleCreateCommittees = async (numCommittees) => {
+        setLoadingCommittees(true);
         const length = committees.length;
 
         const newcommittees = Array.from({ length: numCommittees }, (_, i) => ({
@@ -129,9 +130,9 @@ const CommitteeManagement = ({
             const responses = await Promise.all(
                 newcommittees.map((c) => api.post("/committees", c))
             );
-
+console.log("responses", responses);
             const savedCommittees = responses.map((res) => ({
-                ...res.data,
+                ...res.data.data,
                 members: [],
                 students: [],
                 externalReviewers: [],
@@ -143,6 +144,8 @@ const CommitteeManagement = ({
         } catch (err) {
             toast.error("Үүсгэхэд алдаа гарлаа");
             console.error(err);
+        } finally {
+            setLoadingCommittees(false);
         }
     };
 
@@ -419,6 +422,8 @@ const CommitteeManagement = ({
                 availableTeachers={customTeacherCount}
                 availableStudents={customStudentCount}
                 onCreate={handleCreateCommittees}
+                loadingCommittees= {loadingCommittees}
+                 setLoadingCommittees = {setLoadingCommittees}
             />
 
             <Modal
