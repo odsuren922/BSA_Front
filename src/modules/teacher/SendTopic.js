@@ -26,11 +26,13 @@ function SendTopic() {
 
   const fetchProgramData = async () => {
     try {
-      const data = await fetchData("department");
+      const data = await fetchData("departments");
       console.log('data', data);
       
       if (data && data.length > 0) {
-        const departmentPrograms = JSON.parse(data[0].programs || "[]");
+        // const departmentPrograms = JSON.parse(data[0].programs || "[]");
+        const departmentPrograms = data[0].programs || "[]";
+
         const formattedOptions = departmentPrograms.map((program) => ({
           value: program.program_id,
           label: program.program_name,
