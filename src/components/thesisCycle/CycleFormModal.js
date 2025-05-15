@@ -52,13 +52,13 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
       form.resetFields();
     }
   }, [cycle, form, gradingSchemas]);
-  useEffect(() => {
+  const startDate = Form.useWatch("start_date", form);
 
-    const formStartDate = form.getFieldValue("start_date");
-    if (selectedSchema && formStartDate) {
+  useEffect(() => {
+    if (selectedSchema && startDate) {
       const calculatedDeadlines = selectedSchema.grading_components.map((comp) => {
         const week = parseInt(comp.scheduled_week);
-        const start = dayjs(formStartDate).add(week - 1, "week");
+        const start = dayjs(startDate).add(week - 1, "week");
         const end = start.add(4, "day");
         return {
           grading_component_id: comp.id,
@@ -66,12 +66,9 @@ const CycleFormModal = ({ show, onHide, onSubmit, cycle, user, gradingSchemas })
           end_date: end,
         };
       });
-      console.log('calculatedDeadlines',calculatedDeadlines)
-
       setComponentDeadlines(calculatedDeadlines);
     }
-
-  }, [selectedSchema, form.getFieldValue("start_date")]);
+  }, [selectedSchema, startDate]);
   
 
   const handleFinish = (values) => {
