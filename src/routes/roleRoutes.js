@@ -13,6 +13,7 @@ import CommitteeScheduler from "../pages/Admin/CommiteeManagment/Scheduler";
 import Calendar from "../pages/Admin/NotUseful/Calendar";
 import Plan from "../pages/Plan/Plan";
 import AboutThesis from "../pages/Thesis/AboutThesis";
+import AllThesisAssignedGradingPage from "../pages/Admin/Grading/AllThesisAssignedGradingPage";
 
 // Import Supervisor components
 import ProposedTopics from "../modules/supervisor/ProposedTopics";
@@ -53,6 +54,10 @@ export const departmentRoutes = (
     <Route path="/calendar" element={<Calendar />} />
     <Route path="/supervisor/grading" element={<SupervisorGradingPage />} />
     <Route path="/committees" element={<CommitteePanel />} />
+    <Route
+              path="/assignedTeacher/grading"
+              element={<AllThesisAssignedGradingPage />}
+            />
   </>
 );
 
