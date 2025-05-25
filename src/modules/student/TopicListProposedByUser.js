@@ -10,7 +10,7 @@ const TopicListProposedByUser = () => {
   const [columns, setColumns] = useState([]);
   const { user } = useUser();
 
-  const userType = user?.email === "teacher@gmail.com" ? "teacher" : "student";
+  const userType = user?.role === "teacher" ? "teacher" : "student";
 
   const fetchTopics = useCallback(async () => {
     setLoading(true);
