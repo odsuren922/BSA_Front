@@ -125,7 +125,7 @@ const CommitteeScheduler = () => {
           deadline_start_date: startDate,
           deadline_start_time: startTime,
           deadline_end_date: endDate,
-          deadline_end_time: endTime
+         deadline_end_time: dayjs("23:59", "HH:mm"),
         });
       }
     }

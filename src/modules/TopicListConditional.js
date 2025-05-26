@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Layout, Tabs, Typography } from "antd";
 import { useUser } from "../context/UserContext";
-import "../Main.css";
+
 
 // Components for different tabs
 import CheckedTopicList from "./topiclist/CheckedTopicList";

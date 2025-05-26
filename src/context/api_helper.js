@@ -13,7 +13,7 @@ api.interceptors.request.use(
   (config) => {
 
     const token = localStorage.getItem("oauth_token");
-    console.log("aa");
+    console.log("Token:", token); // Log the token for debugging
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -28,7 +28,6 @@ api.interceptors.request.use(
 
 // Response Interceptor - Handle Unauthorized & Errors
 api.interceptors.response.use(
-
 
   (response) => response,
 

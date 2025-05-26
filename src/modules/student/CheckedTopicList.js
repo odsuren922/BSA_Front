@@ -3,20 +3,25 @@ import { Spin, Button, notification } from "antd";
 import { fetchData } from "../../utils";
 import TopicDetail from "../TopicDetail";
 import CustomTable from "../../components/CustomTable";
-
+import { useUser } from "../../context/UserContext";
 const CheckedTopicList = ({ active }) => {
   const [loading, setLoading] = useState(true);
   const [dataSource, setDataSource] = useState([]);
   const [columns, setColumns] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState(null);
-
+  const { user } = useUser();
   const fetchTopics = useCallback(async () => {
     if (!active) return;
 
     setLoading(true);
+    var rawData;
     try {
-      const rawData = await fetchData("topics/checkedtopics");
+        if(user.role === "student") {
+       rawData = await fetchData("topics/checkedtopics");//bagshing dewshuulsen sedew
+        }else{
+     rawData = await fetchData("topics/checkedtopicsbystud");//suragchin dewshuulsen sedew
+        }
       const transformedData = rawData.map((item) => {
         const fieldsArray = JSON.parse(item.fields);
         const fieldsObject = fieldsArray.reduce(

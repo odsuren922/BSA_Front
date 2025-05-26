@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Spin, notification } from "antd";
 import CustomTable from "../../../components/CustomTable";
 import { fetchData } from "../../../utils";
-
+/**
+ * boduul batlagdsan sedewiin jagshaalt bololtoi
+ */
 const CheckedTopicList = ({ active }) => {
   const [loading, setLoading] = useState(true);
   const [dataSource, setDataSource] = useState([]);

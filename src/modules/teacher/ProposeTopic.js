@@ -2,7 +2,7 @@ import React from "react";
 import { Layout, Tabs, Typography } from "antd";
 import SendTopic from "./SendTopic";
 import DraftList from "./DraftList";
-
+//SEDEW DEWSHUULEH FOR TEACHER AND STUDENTS
 const { Content } = Layout;
 const { Title } = Typography;
 
@@ -18,6 +18,7 @@ function ProposeTopic() {
       label: "Ноорог",
       children: <DraftList />,
     },
+   
   ];
 
   return (

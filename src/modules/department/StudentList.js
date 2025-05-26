@@ -8,7 +8,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
+//TODO:: ACTIVE STUDENT AND THEIR YEARS
 const { Title } = Typography;
 
 const StudentList = () => {
@@ -37,6 +37,7 @@ const StudentList = () => {
     },
     { title: "Цахим хаяг", dataIndex: "mail", key: "mail" },
     { title: "Утасны дугаар", dataIndex: "phone", key: "phone" },
+    { title: "Төлөв", dataIndex: "status", key: "status" },
   ];
 
   const fetchStudents = async () => {
@@ -70,6 +71,7 @@ const StudentList = () => {
       "Сэдэв сонгосон эсэх": row.is_choosed ? "Тийм" : "Үгүй",
       "Цахим хаяг": row.mail,
       "Утасны дугаар": row.phone,
+      'status': row.status,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -93,11 +95,12 @@ const StudentList = () => {
       row.is_choosed ? "Тийм" : "Үгүй",
       row.mail,
       row.phone,
+        row.status,
     ]);
 
     autoTable(doc, {
       startY: 20,
-      head: [["SISI ID", "Нэр", "Овог", "Хөтөлбөр", "Сэдэв", "Цахим хаяг", "Утас"]],
+      head: [["SISI ID", "Нэр", "Овог", "Хөтөлбөр", "Сэдэв", "Цахим хаяг", "Утас", 'status']],
       body: tableData,
     });
 

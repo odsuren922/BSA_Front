@@ -12,6 +12,7 @@ export const fetchData = async (endpoint, params = {}) => {
     await authService.refreshTokenIfNeeded();
     
     const response = await authService.api.get(`/api/${endpoint}`, { params });
+    console.log("response", response);
     const responseData = response.data?.data ?? response.data;
     return responseData;
   } catch (error) {
@@ -57,7 +58,7 @@ export const postData = async (endpoint, data = {}, method = "post") => {
     } else {
       throw new Error(`Unsupported method: ${method}`);
     }
-
+console.log("response", response);
     if (response.data?.message) {
       notification.success({
         message: "Success",

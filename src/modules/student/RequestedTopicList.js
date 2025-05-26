@@ -15,7 +15,7 @@ const RequestedTopicList = () => {
     try {
       const response = await fetchData("topic_requests");
       const rawData = response.data ?? response;
-
+console.log("rawData", rawData);
       if (!rawData || !Array.isArray(rawData)) {
         throw new Error("Invalid data format received from API");
       }

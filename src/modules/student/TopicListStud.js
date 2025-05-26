@@ -16,7 +16,7 @@ function TopicListStud() {
   const items = [
     {
       key: "1",
-      label: "Сэдвийн жагсаалт",
+      label: "Боломжит Сэдвийн жагсаалт",
       children: activeKey === "1" && (
         <CheckedTopicList active={activeKey === "1"} />
       ),
@@ -33,7 +33,7 @@ function TopicListStud() {
   return (
     <div className="p-4 bg-transparent">
       <header className="text-left mb-4">
-        <Title level={3}>Сэдвийн жагсаалт</Title>
+        <Title level={3}>Сэдвийн жагсаалт1 students</Title>
       </header>
 
       <Layout className="bg-white rounded-lg p-4">

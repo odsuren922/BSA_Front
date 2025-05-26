@@ -3,7 +3,7 @@ import { Spin, Tag, notification } from "antd";
 import { fetchData, safeParseJSON } from "../../utils";
 import CustomTable from "../../components/CustomTable";
 import { useUser } from "../../context/UserContext";
-
+import api from "../../context/api_helper"
 const TopicListProposedByUser = () => {
   const [loading, setLoading] = useState(true);
   const [dataSource, setDataSource] = useState([]);
@@ -15,10 +15,13 @@ const TopicListProposedByUser = () => {
   const fetchTopics = useCallback(async () => {
     setLoading(true);
     try {
-      const endpoint = `topics/topiclistproposedbyuser?user_type=${userType}`;
-      const rawData = await fetchData(endpoint);
+      const endpoint = `/topics/topiclistproposedbyuser?user_type=${userType}`;
+     // const rawData = await fetchData(endpoint);
+    //  console.log("userType", userType);
+    //  console.log("endpoint", endpoint);
+      const rawData = await api.get(endpoint);
 
-      const transformedData = rawData.map((item) => {
+      const transformedData = rawData.data.map((item) => {
         const fieldsArray = safeParseJSON(item.fields, []);
         const fieldsObject = fieldsArray.reduce(
           (acc, field) => ({

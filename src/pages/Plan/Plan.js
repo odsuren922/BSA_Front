@@ -167,6 +167,7 @@ const TableComponent = () => {
                 role: user.role,
                 thesis_id: thesisId,
             });
+            console.log("New task response:", response.data);
             setData([...data, response.data.task]);
             toast.success("Шинэ мөр амжилттай нэмэгдлээ");
         } catch (error) {

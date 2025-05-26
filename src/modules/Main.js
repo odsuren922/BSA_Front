@@ -109,7 +109,7 @@ function Main({ user, setUser, logoutFunction }) {
       </div>
     );
   }
-
+//TODO:: EDITED FOR TESTING
   // Get routes based on user role
   const getRoutes = () => {
     switch (userRole) {
@@ -117,8 +117,10 @@ function Main({ user, setUser, logoutFunction }) {
         return departmentRoutes;
       case "supervisor":
         return supervisorRoutes;
-      case "student":
-        return studentRoutes;
+    //   case "student":
+    //     return studentRoutes;
+    case "student":
+        return teacherRoutes;
       case "teacher":
         return teacherRoutes;
       default:

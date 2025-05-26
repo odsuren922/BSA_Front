@@ -35,6 +35,7 @@ import CommitteeListPage from "../pages/Teacher/Committee/CommitteeList";
 import CommitteeDetailPage from "../pages/Teacher/Committee/CommitteeDetailPage";
 import CommitteeCalendarPage from "../pages/Teacher/Committee/CommitteeCalendarPage";
 
+///
 
 import TestNotifications from "../TestNotification";
 
@@ -54,10 +55,7 @@ export const departmentRoutes = (
     <Route path="/calendar" element={<Calendar />} />
     <Route path="/supervisor/grading" element={<SupervisorGradingPage />} />
     <Route path="/committees" element={<CommitteePanel />} />
-    <Route
-              path="/assignedTeacher/grading"
-              element={<AllThesisAssignedGradingPage />}
-            />
+    <Route path="/test-notifications" element={<TestNotifications />} />
   </>
 );
 
@@ -89,8 +87,16 @@ export const teacherRoutes = (
   <>
     <Route index element={<Navigate to="/topiclist" replace />} />
     <Route path="/topiclist" element={<TopicList />} />
+
     <Route path="/proposetopics" element={<ProposeTopic />} />
     <Route path="/confirmedtopics" element={<ConfirmedTopics />} />
+
+    {/* <Route index element={<Navigate to="/proposedtopics" replace />} />
+    <Route path="/proposedtopics" element={<ProposedTopics />} />
+    <Route path="/approvedtopics" element={<ApprovedTopics />} /> */}
+
+
+
     <Route path="/teacher/dashboard" element={<DashBoardSupervisor />} />
     <Route path="/thesisList" element={<SupervisodTheses />} />
     <Route path="/aboutthesis/:id" element={<AboutThesis />} />

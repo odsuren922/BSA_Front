@@ -19,8 +19,9 @@ const TopicListProposedByUser = () => {
 
     try {
       // Send user type in the fetch request
-      const endpoint = `topics/topiclistproposedbyuser?user_type=teacher`;
+      const endpoint = `proposed-topics/byUser`;
       const rawData = await fetchData(endpoint);
+      console.log("rawData", rawData);
 
       // Transform the data for the table
       const transformedData = rawData.map((item) => {

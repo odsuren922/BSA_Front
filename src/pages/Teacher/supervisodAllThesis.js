@@ -25,6 +25,7 @@ const App = () => {
             const response = await api.get(`/theses`);
             //   const examineTheses = await api.get(`/examine/theses`);
             //   SetGradingTheses(examineTheses.data)
+            console.log("response", response);
             setData(response.data.thesis);
         } catch (error) {
             console.error("Error fetching theses:", error);

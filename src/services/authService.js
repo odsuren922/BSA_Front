@@ -57,6 +57,7 @@ class AuthService {
                 console.debug('Response error:', error.message, 'Status:', error.response?.status);
 
                 if (error.response?.status === 401 && !originalRequest._retry) {
+                    this.logout();
                     console.debug('Attempting to refresh token after 401 response');
                     originalRequest._retry = true;
 
@@ -369,7 +370,10 @@ class AuthService {
             return true;
         } catch (error) {
             console.error('Failed to refresh token:', error);
+if(error.response.status === 401) {
+    this.logout();
 
+}
             // Provide more context in errors
             const errorDetails = {
                 status: error.response?.status,
@@ -377,7 +381,10 @@ class AuthService {
                 data: error.response?.data,
                 timestamp: new Date().toISOString()
             };
-
+            if(error.response.status === 401) {
+                console.warn('Unauthorized access during token refresh, logging out');
+                this.logout();
+            }
             console.error('Token refresh error details:', errorDetails);
 
             return false;

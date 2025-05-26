@@ -69,7 +69,7 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
               }}
             >
               {programArray.join(", ")}{" "}
-              {/* Display the program IDs as a comma-separated string */}
+         
             </div>
           </div>
         </Col>
@@ -83,28 +83,28 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
       return;
     }
     try {
-      if (userType === "teacher@gmail.com") {
-        await postData("topic-requestsbyteacher", {
-          topic_id: data.id,
-          // student_id: user.id
-          teacher_id: "1",
-          note: textAreaValue,
-          selection_date: new Date()
-            .toISOString()
-            .replace("T", " ")
-            .slice(0, 19),
-        });
+      if (user.role === "teacher") {
+      const res=  await postData("topic-requestsbyteacher", {
+            topic_id: data.id,
+            teacher_id: user.id,
+            note: textAreaValue,
+            selection_date: new Date().toISOString().replace("T", " ").slice(0, 19),
+          });
+          
       } else {
-        await postData("topic-requests", {
-          topic_id: data.id,
-          // student_id: user.id
-          student_id: "21B1NUM0540",
-          note: textAreaValue,
-          selection_date: new Date()
-            .toISOString()
-            .replace("T", " ")
-            .slice(0, 19),
-        });
+        const payload = {
+            topic_id: data.id,
+            student_id: user.id,
+            note: textAreaValue,
+            selection_date: new Date().toISOString().replace("T", " ").slice(0, 19),
+          };
+    
+          console.log("📤 Payload:", payload);
+
+          const response = await postData("topic-requests", payload);
+        
+          console.log("✅ Response:", response);
+          
       }
 
       notification.success({
@@ -128,7 +128,7 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
     try {
       await postData("topic-response", {
         topic_id: data.id,
-        supervisor_id: 1,
+        supervisor_id: user.id,
         res: action,
         note: textAreaValue,
         res_date: new Date().toISOString().replace("T", " ").slice(0, 19),
@@ -151,7 +151,8 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
   };
 
   const renderFooter = () => {
-    if (user?.role === "supervisor") {
+    // if (user?.role === "supervisor") {
+        if (user?.role === "supervisor") {
       return [
         <Button key="cancel" onClick={onClose}>
           Болих
@@ -167,25 +168,6 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
           Батлах
         </Button>,
       ];
-      // } else if (user?.email === "teacher@gmail.com") {
-      //   return [
-      //     <Button key="cancel" onClick={onClose}>
-      //       Болих
-      //     </Button>,
-      //     <Button key="confirm" type="primary">
-      //       Зөвшөөрөх
-      //     </Button>,
-      //   ];
-      // } else if (user?.email === "student@gmail.com") {
-      //   return [
-      //     <Button key="cancel" onClick={onClose}>
-      //       Болих
-      //     </Button>,
-      //     <Button key="request" type="primary" onClick={handleSelection}>
-      //       Сонгох
-      //     </Button>,
-      //   ];
-      // }
     } else {
       return [
         <Button key="cancel" onClick={onClose}>
@@ -197,7 +179,7 @@ const TopicDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
           // onClick={handleSelection(user?.email)}
           onClick={() => handleSelection(user?.email)}
         >
-          Сонгох
+         Сэдэв сонгох
         </Button>,
       ];
     }
