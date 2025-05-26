@@ -117,7 +117,7 @@ const CycleStep2_ComponentsAndReminders = ({
               return { datetime: fullDatetime.toISOString() };
             }),
         };
-      
+      console.log("reminder", payload);
         try {
           if (hasId) {
             await api.patch(`/thesiscycle/reminder/${reminder.id}`, payload);
