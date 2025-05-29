@@ -115,8 +115,7 @@ function Main({ user, setUser, logoutFunction }) {
     switch (userRole) {
       case "department":
         return departmentRoutes;
-      case "supervisor":
-        return supervisorRoutes;
+   
     //   case "student":
     //     return studentRoutes;
     case "student":

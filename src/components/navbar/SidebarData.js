@@ -16,20 +16,20 @@ export const SidebarData = {
       cName: "nav-text",
     },
   ],
-  supervisor: [
-    {
-      title: "Дэвшүүлсэн сэдэв",
-      path: "/proposedtopics",
-      icon: <IoIcons.IoIosPaper />,
-      cName: "nav-text",
-    },
-    {
-      title: "Хянасан сэдэв",
-      path: "/approvedtopics",
-      icon: <IoIcons.IoIosPaper />,
-      cName: "nav-text",
-    },
-  ],
+//   supervisor: [
+//     {
+//       title: "Дэвшүүлсэн сэдэв",
+//       path: "/proposedtopics",
+//       icon: <IoIcons.IoIosPaper />,
+//       cName: "nav-text",
+//     },
+//     {
+//       title: "Хянасан сэдэв",
+//       path: "/approvedtopics",
+//       icon: <IoIcons.IoIosPaper />,
+//       cName: "nav-text",
+//     },
+//   ],
   student: [
     {
       title: "Сэдвийн жагсаалт",
@@ -39,7 +39,7 @@ export const SidebarData = {
     },
     {
       title: "Сэдэв дэвшүүлэх",
-      path: "/proposetopicstud",
+      path: "/proposetopics",
       icon: <IoIcons.IoIosPaper />,
       cName: "nav-text",
     },
@@ -69,5 +69,12 @@ export const SidebarData = {
       icon: <IoIcons.IoIosPaper />,
       cName: "nav-text",
     },
+
+    {
+        title: "Cэдэв Хянах",
+        path: "/supervisoring",
+        icon: <IoIcons.IoIosPaper />,
+        cName: "nav-text",
+      },
   ],
 };

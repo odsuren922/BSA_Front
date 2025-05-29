@@ -1,7 +1,8 @@
 import React from "react";
 import { Layout, Tabs, Typography } from "antd";
 import SendTopic from "./SendTopic";
-import DraftList from "./DraftList";
+import ApprovedTopic from "./ApprovedTopic";
+// import DraftList from "./DraftList";
 //SEDEW DEWSHUULEH FOR TEACHER AND STUDENTS
 const { Content } = Layout;
 const { Title } = Typography;
@@ -14,10 +15,15 @@ function ProposeTopic() {
       children: <SendTopic />,
     },
     {
-      key: "2",
-      label: "Ноорог",
-      children: <DraftList />,
-    },
+        key: "2",
+        label: "Батлагдсан сэдвүүд",
+        children: <ApprovedTopic />,
+      },
+    // {
+    //   key: "2",
+    //   label: "Ноорог",
+    //   children: <DraftList />,
+    // },
    
   ];
 

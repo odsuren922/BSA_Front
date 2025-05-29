@@ -2,7 +2,6 @@ import { Layout, Tabs, Typography } from "antd";
 import { useState } from "react";
 import "../Main.css";
 import CheckedTopicList from "./CheckedTopicList";
-import TopicListProposedByUser from "./TopicListProposedByUser";
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -21,13 +20,7 @@ function TopicListStud() {
         <CheckedTopicList active={activeKey === "1"} />
       ),
     },
-    {
-      key: "2",
-      label: "Дэвшүүлсэн сэдвийн жагсаалт",
-      children: activeKey === "2" && (
-        <TopicListProposedByUser active={activeKey === "1"} />
-      ),
-    },
+  
   ];
 
   return (

@@ -15,20 +15,20 @@ import Plan from "../pages/Plan/Plan";
 import AboutThesis from "../pages/Thesis/AboutThesis";
 import AllThesisAssignedGradingPage from "../pages/Admin/Grading/AllThesisAssignedGradingPage";
 
-// Import Supervisor components
-import ProposedTopics from "../modules/supervisor/ProposedTopics";
-import ApprovedTopics from "../modules/supervisor/ApprovedTopics";
+// // Import Supervisor components
+// import ProposedTopics from "../modules/supervisor/ProposedTopics";
 
 // Import Student components
 import TopicListStud from "../modules/student/TopicListStud";
-import ProposeTopicStud from "../modules/student/ProposeTopicStud";
 import ConfirmedTopicStud from "../modules/student/ConfirmedTopiclist";
 import StudentDashboard from "../pages/Student/StudentDashboard";
 
 // Import Teacher components
 import TopicList from "../modules/teacher/TopicList";
 import ProposeTopic from "../modules/teacher/ProposeTopic";
-import ConfirmedTopics from "../modules/teacher/ConfirmedTopics";
+import ConfirmedTopics from "../modules/teacher/ConfirmedTopics"; 
+import ApprovedTopics from "../modules/teacher/supervisingPorposedTopic";
+
 import DashBoardSupervisor from "../pages/Teacher/Dashboard";
 import SupervisodTheses from "../pages/Teacher/supervisodAllThesis";
 import CommitteeListPage from "../pages/Teacher/Committee/CommitteeList";
@@ -60,20 +60,20 @@ export const departmentRoutes = (
 );
 
 // Supervisor routes
-export const supervisorRoutes = (
-  <>
-    <Route index element={<Navigate to="/proposedtopics" replace />} />
-    <Route path="/proposedtopics" element={<ProposedTopics />} />
-    <Route path="/approvedtopics" element={<ApprovedTopics />} />
-  </>
-);
+// export const supervisorRoutes = (
+//   <>
+//     <Route index element={<Navigate to="/proposedtopics" replace />} />
+//     <Route path="/proposedtopics" element={<ProposedTopics />} />
+//     <Route path="/approvedtopics" element={<ApprovedTopics />} />
+//   </>
+// );
 
 // Student routes
 export const studentRoutes = (
   <>
     <Route index element={<Navigate to="/topicliststud" replace />} />
     <Route path="/topicliststud" element={<TopicListStud />} />
-    <Route path="/proposetopicstud" element={<ProposeTopicStud />} />
+    <Route path="/proposetopics" element={<ProposeTopic />} />
     <Route path="/confirmedtopic" element={<ConfirmedTopicStud />} />
     <Route path="/student/dashboard" element={<StudentDashboard />} />
     <Route path="/studentPlan/:id" element={<Plan />} />
@@ -92,8 +92,8 @@ export const teacherRoutes = (
     <Route path="/confirmedtopics" element={<ConfirmedTopics />} />
 
     {/* <Route index element={<Navigate to="/proposedtopics" replace />} />
-    <Route path="/proposedtopics" element={<ProposedTopics />} />
-    <Route path="/approvedtopics" element={<ApprovedTopics />} /> */}
+    <Route path="/proposedtopics" element={<ProposedTopics />} /> */}
+    <Route path="/supervisoring" element={<ApprovedTopics />} />
 
 
 

@@ -1,66 +1,85 @@
-import React, { useEffect } from "react";
-import { Modal, Row, Col, Button, message, notification } from "antd";
+import React, { useEffect, useState } from "react";
+import { Modal, Row, Col, Button, message, notification, Input } from "antd";
 import { postData } from "../utils";
 
 const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
+  const [note, setNote] = useState("");
+
   useEffect(() => {
     console.log("Modal Data:", data);
+    setNote(""); // reset note when modal opens
   }, [data]);
 
   const renderFields = () => {
-    if (!data?.fields) return null;
+    if (!data) return <p>Мэдээлэл олдсонгүй.</p>;
 
-    let fieldsArray = [];
+    const topFields = [
+      { label: "Гарчиг (монгол)", value: data.title_mn },
+      { label: "Гарчиг (англи)", value: data.title_en },
+      { label: "Тайлбар", value: data.description },
+    ];
 
-    try {
-      const firstParse = JSON.parse(data.fields);
-      fieldsArray = JSON.parse(firstParse); // stringified JSON array
-    } catch (error) {
-      console.error("❗ Failed to parse fields in ApproveDetail:", error);
-      return <p>Мэдээллийг уншиж чадсангүй.</p>;
-    }
+    const renderedTopFields = (
+      <Row gutter={[16, 16]} style={{ marginBottom: "16px" }}>
+        {topFields.map((field, index) => (
+          <Col key={index} span={8}>
+            <div>
+              <strong>{field.label}</strong>
+              <div style={{ color: "#595959", fontWeight: 500 }}>{field.value}</div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+    );
 
-    // 3 баганатай харуулахын тулд мөрөөр нь хуваах
+    const fieldValues = data.field_values || [];
     const rows = [];
-    for (let i = 0; i < fieldsArray.length; i += 3) {
-      rows.push(fieldsArray.slice(i, i + 3));
+    for (let i = 0; i < fieldValues.length; i += 3) {
+      rows.push(fieldValues.slice(i, i + 3));
     }
 
-    return rows.map((row, rowIndex) => (
+    const renderedFieldValues = rows.map((row, rowIndex) => (
       <Row key={rowIndex} gutter={[16, 16]} style={{ marginBottom: "16px" }}>
-        {row.map((field, colIndex) => (
+        {row.map((fv, colIndex) => (
           <Col key={colIndex} span={8}>
             <div>
-              <strong>{field.field2}</strong>
-              <div
-                style={{
-                  color: "#595959",
-                  fontWeight: "500",
-                }}
-              >
-                {field.value}
-              </div>
+              <strong>{fv.field?.name}</strong>
+              <div style={{ color: "#595959", fontWeight: 500 }}>{fv.value}</div>
             </div>
           </Col>
         ))}
       </Row>
     ));
+
+    return (
+      <>
+        {renderedTopFields}
+        {renderedFieldValues}
+        <div style={{ marginTop: 24 }}>
+          <strong>Тайлбар (заавал биш)</strong>
+          <Input.TextArea
+            rows={4}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Энд өөрийн тайлбараа бичнэ үү..."
+          />
+        </div>
+      </>
+    );
   };
 
-  const handleAction = async (action) => {
+  const handleAction = async () => {
     try {
       const payload = {
-        topic_id: data.topic_id,
-        req_id: data.req_id,
-        student_id: data.created_by_id,
-        res_date: new Date().toISOString().replace("T", " ").slice(0, 19),
+        topic_id: data.id,
+        note: note,
       };
 
-      await postData("topic_confirm", payload);
+      await postData("proposal-topic-requests", payload);
 
       notification.success({
         message: "Амжилттай",
-        description: "Сэдвийг амжилттай зөвшөөрлөө!",
+        description: "Сэдвийн хүсэлт амжилттай илгээгдлээ!",
       });
 
       if (onActionComplete) onActionComplete();
@@ -75,14 +94,14 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
     <Button key="cancel" onClick={onClose}>
       Болих
     </Button>,
-    <Button key="confirm" type="primary" onClick={() => handleAction("submitted")}>
-      Зөвшөөрөх
+    <Button key="confirm" type="primary" onClick={handleAction}>
+      Сэдэв сонгох хүсэлт гаргах
     </Button>,
   ];
 
   return (
     <Modal
-      title="Дэлгэрэнгүй"
+      title="Сэдвийн дэлгэрэнгүй"
       open={isModalOpen}
       onCancel={onClose}
       width={800}

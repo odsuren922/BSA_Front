@@ -14,8 +14,6 @@ function SideBar({ user }) {
   let sidebarItems = [];
   if (user?.role === "student") {
     sidebarItems = SidebarData.teacher;
-  } else if (user?.role === "supervisor") {
-    sidebarItems = SidebarData.supervisor;
   } else if (user?.role === "teacher") {
     sidebarItems = SidebarData.teacher;
   } 
@@ -26,7 +24,7 @@ function SideBar({ user }) {
   let sidebarItems2 = [];
 //   if (user?.role === "department") {
     if (user?.role === "student") {
-    sidebarItems2 = SidebarData2.department;
+    sidebarItems2 = SidebarData2.teacher;
   } else if (user?.role === "supervisor") {
     sidebarItems2 = SidebarData2.supervisor;
   } else if (user?.role === "teacher") {
@@ -77,7 +75,7 @@ function SideBar({ user }) {
         {
           key: "main-menu-1",
           icon: <BookOutlined />,
-          label: "Бакалаврын судалгаа",
+          label: "Сэдэв сонголт",
           children: menuItems,
         },
         {
