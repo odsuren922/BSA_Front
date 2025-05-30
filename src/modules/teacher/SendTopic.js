@@ -14,11 +14,9 @@ import { fetchData, postData } from "../../utils";
 import ProposedTopicsTable from "../../components/proposal/ProposedTopicsTable";
 import { useUser } from "../../context/UserContext";
 
-function SendTopic() {
+function SendTopic({ originalTopics, fetchTopicData, loading }) {
+  const [proposedTopics, setProposedTopics] = useState([]);//Шүүлттэй эсвэл харагдаж буй хувилбар
   const [fieldLists, setFieldLists] = useState([]);
-  const [proposedTopics, setProposedTopics] = useState([]);
-  const [originalTopics, setOriginalTopics] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [loadingField, setLoadingField] = useState(true);
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -29,36 +27,26 @@ function SendTopic() {
     notification[type]({ message, description });
   };
 
-  const fetchTopicData = async () => {
-    setLoading(true);
+
+  const fetchProposalData = async () => {
+    setLoadingField(true);
     try {
-      const data = await fetchData("proposed-topics/byUser");
-      setProposedTopics(data);
-      setOriginalTopics(data);
+      const data = await fetchData("proposal-fields/active");
+      setFieldLists(data);
     } catch (error) {
       console.error("Error fetching proposal data:", error);
     } finally {
-      setLoading(false);
+      setLoadingField(false);
     }
   };
-
   useEffect(() => {
-    const fetchProposalData = async () => {
-      setLoadingField(true);
-      try {
-        const data = await fetchData("proposal-fields/active");
-        setFieldLists(data);
-      } catch (error) {
-        console.error("Error fetching proposal data:", error);
-      } finally {
-        setLoadingField(false);
-      }
-    };
-
     fetchProposalData();
-    fetchTopicData();
   }, []);
-
+  
+  useEffect(() => {
+    setProposedTopics(originalTopics);
+  }, [originalTopics]);
+  
   const showModal = () => {
     setEditingTopic(null);
     form.resetFields();

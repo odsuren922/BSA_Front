@@ -56,7 +56,7 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
         {renderedTopFields}
         {renderedFieldValues}
         <div style={{ marginTop: 24 }}>
-          <strong>Тайлбар (заавал биш)</strong>
+          <strong>Тайлбар</strong>
           <Input.TextArea
             rows={4}
             value={note}
@@ -85,7 +85,7 @@ const ApproveDetail = ({ isModalOpen, data, onClose, onActionComplete }) => {
       if (onActionComplete) onActionComplete();
       onClose();
     } catch (error) {
-      console.error("❌ Error handling topic confirm:", error);
+      console.error("Error handling topic confirm:", error);
       message.error("Алдаа гарлаа!");
     }
   };
