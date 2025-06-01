@@ -10,7 +10,7 @@ export const fetchData = async (endpoint, params = {}) => {
   try {
     // Ensure we have a fresh token before making the request
     await authService.refreshTokenIfNeeded();
-    
+    console.log("endpoint", endpoint);
     const response = await authService.api.get(`/api/${endpoint}`, { params });
     console.log("response", response);
     const responseData = response.data?.data ?? response.data;

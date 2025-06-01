@@ -112,7 +112,8 @@ const ProposedTopicsTable = ({ data, setData, type, onEdit }) => {
               </Popconfirm>
             </div>
           ) : null,
-      }
+      },
+      
       
   ];
 

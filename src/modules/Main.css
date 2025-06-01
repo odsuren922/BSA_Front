@@ -30,7 +30,9 @@ header {
 .row-blue {
     background-color: #d7eef8 !important;
   }
-  
+  .row-green {
+    background-color: #ebfadb !important; /* light green */
+  }
 
 /* Sidebar-ийн загвар */
 .nav-menu-static {

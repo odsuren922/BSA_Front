@@ -331,7 +331,7 @@ function ApprovedTopic({ originalTopics, fetchTopicData, loading }) {
             title: "Төлөв",
             key: "status",
             render: (record) =>
-              record.is_selected ? (
+              record.status === 'approved' ? (
                 <Tag color="green">Сонгогдсон</Tag>
               ) : (
                 <Tag color="default">-</Tag>
@@ -359,9 +359,9 @@ function ApprovedTopic({ originalTopics, fetchTopicData, loading }) {
             key: "action",
             render: (_, record) => {
               // Энэ topic-аас сонгогдсон request байна уу?
-              const selectedRequest = topic.topic_requests.find((r) => r.is_selected);
+              const selectedRequest = topic.topic_requests.find((r) => r.status === 'approved');
           
-              if (record.is_selected) {
+              if (record.status === 'approved') {
                 // Сонгогдсон хүсэлт бол "Татгалзах" товч
                 return (
                   <Button

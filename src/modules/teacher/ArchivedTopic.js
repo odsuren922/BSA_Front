@@ -200,7 +200,7 @@ function ArchivedTopic({ originalTopics, loading, fetchTopicData }) {
                         title: "Төлөв",
                         key: "status",
                         render: (record) =>
-                          record.is_selected ? (
+                          record.status === 'approved' ? (
                             <Tag color="green">Сонгогдсон</Tag>
                           ) : (
                             <Tag color="default">-</Tag>

@@ -13,7 +13,6 @@ import CustomNavBar from "../components/navbar/CustomNavBar";
 // Import pages for different roles
 import { 
   departmentRoutes, 
-  supervisorRoutes, 
   studentRoutes, 
   teacherRoutes 
 } from "../routes/roleRoutes";
@@ -115,13 +114,10 @@ function Main({ user, setUser, logoutFunction }) {
     switch (userRole) {
       case "department":
         return departmentRoutes;
-   
-    //   case "student":
-    //     return studentRoutes;
     case "student":
-        return teacherRoutes;
+        return departmentRoutes;
       case "teacher":
-        return teacherRoutes;
+        return departmentRoutes;
       default:
         return (
           <Route

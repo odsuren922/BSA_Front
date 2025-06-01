@@ -36,6 +36,8 @@ import {
     const [selectedTopic, setSelectedTopic] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [approveComment, setApproveComment] = useState("");
+    const [approvedTopics, setApprovedTopics] = useState([]);
+
 const [rejectComment, setRejectComment] = useState("");
     const handleTabChange = (key) => {
       setActiveKey(key);
@@ -43,38 +45,49 @@ const [rejectComment, setRejectComment] = useState("");
     };
   
     const fetchAllTopics = async () => {
-      setLoading(true);
-      try {
-        const [teacherRes, studentRes] = await Promise.all([
-          api.get("/proposed-topics/by-teachers/submitted"),
-          api.get("/proposed-topics/by-students/submitted"),
-        ]);
-        setTeacherTopics(teacherRes.data.data);
-        setStudentTopics(studentRes.data.data);
-      } catch (error) {
-        console.error("Failed to fetch topic data", error);
-        notification.error({
-          message: "Алдаа",
-          description: "Сэдвүүдийг татаж чадсангүй. Сүлжээг шалгана уу.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+        setLoading(true);
+        try {
+         //TODO:: Teacher has the permission to examiner (sedew hynah) the proposed topics
+         //get su
+         const permission = await api.get("/permissions");
+      
+          const [teacherRes, studentRes, approvedRes] = await Promise.all([
+            api.get("/proposed-topics/by-teachers/submitted"),
+            api.get("/proposed-topics/by-students/submitted"),
+            api.get("/proposed-topics/approved-by-user"),
+          ]);
+          setTeacherTopics(teacherRes.data.data);
+          setStudentTopics(studentRes.data.data);
+          setApprovedTopics(approvedRes.data.data);
+        } catch (error) {
+          console.error("Failed to fetch topic data", error);
+          notification.error({
+            message: "Алдаа",
+            description: "Сэдвүүдийг татаж чадсангүй. Сүлжээг шалгана уу.",
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+      
   
     useEffect(() => {
       fetchAllTopics();
     }, []);
   
     useEffect(() => {
-      const source = activeKey === "1" ? teacherTopics : studentTopics;
-      if (statusFilter) {
-        setFilteredTopics(source.filter((t) => t.status === statusFilter));
-      } else {
-        setFilteredTopics(source);
-      }
-    }, [teacherTopics, studentTopics, activeKey, statusFilter]);
-  
+        let source = [];
+        if (activeKey === "1") source = teacherTopics;
+        else if (activeKey === "2") source = studentTopics;
+        else if (activeKey === "3") source = approvedTopics;
+      
+        if (statusFilter) {
+          setFilteredTopics(source.filter((t) => t.status === statusFilter));
+        } else {
+          setFilteredTopics(source);
+        }
+      }, [teacherTopics, studentTopics, approvedTopics, activeKey, statusFilter]);
+      
     const openModal = (record) => {
       setSelectedTopic(record);
       setIsModalVisible(true);
@@ -173,18 +186,20 @@ const [rejectComment, setRejectComment] = useState("");
         <header className="text-left mb-4">
           <Title level={3}>Сэдвийн жагсаалт</Title>
         </header>
-  
+
         <Layout className="bg-white rounded-lg p-4">
           <Content className="p-4">
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-              <Tabs
-                activeKey={activeKey}
-                onChange={handleTabChange}
-                items={[
-                  { key: "1", label: "Багшийн дэвшүүлсэн сэдвүүд" },
-                  { key: "2", label: "Оюутны дэвшүүлсэн сэдвүүд" },
-                ]}
-              />
+            <Tabs
+  activeKey={activeKey}
+  onChange={handleTabChange}
+  items={[
+    { key: "1", label: "Багшийн дэвшүүлсэн сэдвүүд" },
+    { key: "2", label: "Оюутны дэвшүүлсэн сэдвүүд" },
+    { key: "3", label: "Миний зөвшөөрсөн сэдвүүд" }, // new tab
+  ]}
+/>
+
               <Select
                 placeholder="Төлөв шүүх"
                 value={statusFilter}
@@ -277,6 +292,16 @@ const [rejectComment, setRejectComment] = useState("");
           </div>
         ))}
       </Descriptions.Item>
+      <Descriptions.Item label="Түүх">
+  {selectedTopic.approval_logs.map((log, i) => (
+    <div key={i} style={{ marginBottom: 8 }}>
+      <strong>{log.action === "approved" ? "Зөвшөөрсөн" : "Татгалзсан"}:</strong>{" "}
+      {log.reviewer?.lastname} {log.reviewer?.firstname} - {log.comment || "Тайлбаргүй"}<br />
+      <small>{new Date(log.acted_at).toLocaleString("mn-MN")}</small>
+    </div>
+  ))}
+</Descriptions.Item>
+
     </Descriptions>
   )}
 </Modal>

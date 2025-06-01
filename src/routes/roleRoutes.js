@@ -19,7 +19,7 @@ import AllThesisAssignedGradingPage from "../pages/Admin/Grading/AllThesisAssign
 // import ProposedTopics from "../modules/supervisor/ProposedTopics";
 
 // Import Student components
-import TopicListStud from "../modules/student/TopicListStud";
+// import TopicListStud from "../modules/student/TopicListStud";
 import ConfirmedTopicStud from "../modules/student/ConfirmedTopiclist";
 import StudentDashboard from "../pages/Student/StudentDashboard";
 
@@ -71,10 +71,11 @@ export const departmentRoutes = (
 // Student routes
 export const studentRoutes = (
   <>
-    <Route index element={<Navigate to="/topicliststud" replace />} />
-    <Route path="/topicliststud" element={<TopicListStud />} />
+    <Route index element={<Navigate to="/topiclist" replace />} />
+    <Route path="/topiclist" element={<TopicList />} />
     <Route path="/proposetopics" element={<ProposeTopic />} />
-    <Route path="/confirmedtopic" element={<ConfirmedTopicStud />} />
+    {/* <Route path="/confirmedtopic" element={<ConfirmedTopicStud />} /> */}
+
     <Route path="/student/dashboard" element={<StudentDashboard />} />
     <Route path="/studentPlan/:id" element={<Plan />} />
     <Route path="/plan" element={<Plan />} />
@@ -87,10 +88,8 @@ export const teacherRoutes = (
   <>
     <Route index element={<Navigate to="/topiclist" replace />} />
     <Route path="/topiclist" element={<TopicList />} />
-
     <Route path="/proposetopics" element={<ProposeTopic />} />
-    <Route path="/confirmedtopics" element={<ConfirmedTopics />} />
-
+    {/* <Route path="/confirmedtopics" element={<ConfirmedTopics />} /> */}
     {/* <Route index element={<Navigate to="/proposedtopics" replace />} />
     <Route path="/proposedtopics" element={<ProposedTopics />} /> */}
     <Route path="/supervisoring" element={<ApprovedTopics />} />

@@ -13,10 +13,13 @@ function SideBar({ user }) {
 //Based on role sidebar changed 
   let sidebarItems = [];
   if (user?.role === "student") {
-    sidebarItems = SidebarData.teacher;
+    sidebarItems = SidebarData.department;
   } else if (user?.role === "teacher") {
-    sidebarItems = SidebarData.teacher;
+    sidebarItems = SidebarData.department;
   } 
+  else if (user?.role === "department") {
+    sidebarItems2 = SidebarData2.department;
+}
 //   else if (user?.role === "student") {
 //     sidebarItems = SidebarData.student;
 //   }
@@ -24,11 +27,13 @@ function SideBar({ user }) {
   let sidebarItems2 = [];
 //   if (user?.role === "department") {
     if (user?.role === "student") {
-    sidebarItems2 = SidebarData2.teacher;
-  } else if (user?.role === "supervisor") {
-    sidebarItems2 = SidebarData2.supervisor;
-  } else if (user?.role === "teacher") {
-    sidebarItems2 = SidebarData2.teacher;
+    sidebarItems2 = SidebarData2.department;
+  } 
+  else if (user?.role === "department") {
+    sidebarItems2 = SidebarData2.department;
+}
+   else if (user?.role === "teacher") {
+    sidebarItems2 = SidebarData2.department;
   } 
 //   else if (user?.role === "student") {
 //     sidebarItems2 = SidebarData2.student;
