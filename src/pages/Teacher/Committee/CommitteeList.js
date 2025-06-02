@@ -22,7 +22,7 @@ const CommitteeListPage = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get(`/committees/by-teacher/1`);
+        const response = await api.get(`/committees/by-teacher/`);
        
         console.log("committee",response.data.data);
         setCommittees(response.data.data);

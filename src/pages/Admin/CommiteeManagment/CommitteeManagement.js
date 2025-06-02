@@ -46,7 +46,7 @@ const CommitteeManagement = ({
     fetchDatacom,
     loadingData,
 }) => {
-    const gradingComponent = committees.grading_component;
+    const gradingComponentId = componentId || null;
     const [showCalculator, setShowCalculator] = useState(false);
     const [studentCounts, setStudentCounts] = useState([]);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -67,6 +67,7 @@ const CommitteeManagement = ({
     }, []);
 
     const fetchData = async () => {
+        console.log("committees", committees);
         setLoading(true);
         try {
             const [counts, externalScore] = await Promise.all([
@@ -391,6 +392,7 @@ console.log("responses", responses);
                                 committees={committees}
                                 committee={committee}
                                 setCommittees={setCommittees}
+                                gradingComponentId={componentId}
                                 index={index}
                                 isCommitteeFinalized={isCommitteeFinalized}
                                 componentId={componentId}

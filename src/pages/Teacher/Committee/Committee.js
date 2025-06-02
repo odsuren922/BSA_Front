@@ -80,7 +80,7 @@ const CommitteeScheduler = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get(`/committees/by-teacher/1`);
+        const response = await api.get(`/committees/by-teacher`); //TODO::
         console.log(response.data.data);
         setCommittees(response.data.data);
         updateEvents(response.data.data);

@@ -20,12 +20,9 @@ function SideBar({ user }) {
   else if (user?.role === "department") {
     sidebarItems2 = SidebarData2.department;
 }
-//   else if (user?.role === "student") {
-//     sidebarItems = SidebarData.student;
-//   }
+
 //TODO:: EDITED FOR TESTING 
   let sidebarItems2 = [];
-//   if (user?.role === "department") {
     if (user?.role === "student") {
     sidebarItems2 = SidebarData2.department;
   } 
@@ -35,9 +32,7 @@ function SideBar({ user }) {
    else if (user?.role === "teacher") {
     sidebarItems2 = SidebarData2.department;
   } 
-//   else if (user?.role === "student") {
-//     sidebarItems2 = SidebarData2.student;
-//   }
+
 
 
 

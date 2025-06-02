@@ -12,8 +12,7 @@ import {
     notification,
     Popconfirm,
 } from "antd";
-import api from "../../context/api_helper";
-
+import {fetchData, postData} from "../../utils"
 const { Content } = Layout;
 const { Title } = Typography;
 
@@ -26,8 +25,8 @@ const EditableTable = () => {
     const fetchPosts = async () => {
         try {
             setLoading(true);
-            const res = await api.get("/proposal-fields");
-            const fieldsData = res.data.data.map((item, index) => ({
+            const res = await fetchData("proposal-fields");
+            const fieldsData = res.map((item, index) => ({
                 key: item.id || `row-${index}`,
                 id: item.id,
                 mongolianField: item.name,
@@ -77,9 +76,8 @@ const EditableTable = () => {
                 status: item.status,
             }));
 
-            await api.post("proposal-fields/bulk-upsert", {
-                fields: updatedRows,
-            });
+           await postData(`proposal-fields/bulk-upsert`, {  fields: updatedRows}, "post");
+
 
             notification.success({
                 message: "Амжилттай",
@@ -102,7 +100,8 @@ const EditableTable = () => {
     
         try {
             if (item.id) {
-                await api.delete(`/proposal-fields/${item.id}`);
+                await postData(`proposal-fields/${item.id}`, {}, "delete");
+
             }
     
             const newData = dataSource.filter((i) => i.key !== key);

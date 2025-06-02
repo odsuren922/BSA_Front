@@ -33,6 +33,7 @@ const CommitteeDisplay = ({
     renderCommitteeStudentPrograms,
     componentId,
     setCommittees,
+    gradingComponentId
 }) => {
     const [selectedCommittee, setSelectedCommittee] = useState(null);
     const [externalReviewersScore, setExternalReviewersScore] = useState([]);
@@ -419,7 +420,7 @@ const CommitteeDisplay = ({
             // Илгээх payload жишээ:
             const payload = {
            
-              grading_component_id: committee.grading_component.id,
+              grading_component_id: gradingComponentId,
               external_scores: externalScores
             };
             console.log("payload",payload)
@@ -427,7 +428,7 @@ const CommitteeDisplay = ({
           try {
             console.log("Editable scores payload", {
                 committee_id: committee.id,
-                component_id: committee.grading_component.id,
+                component_id:gradingComponentId,
                 scores,
               });
 
@@ -440,7 +441,7 @@ const CommitteeDisplay = ({
               if (scores.length > 0) {
                 const res = await api.post("/committee-scores/save-editable-scores", {
                   committee_id: committee.id,
-                  component_id: committee.grading_component.id,
+                  component_id: gradingComponentId,
                   scores,
                 });
               
@@ -555,7 +556,7 @@ const CommitteeDisplay = ({
                 "/committee-scores/batch-finalize-by-committee",
                 {
                     committee_id: committee.id,
-                    component_id: committee.grading_component.id,
+                    component_id: gradingComponentId,
 
                     scores: studentAverages, // Include calculated averages
                 }

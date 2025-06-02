@@ -3,8 +3,6 @@ import { Table, Select, Card, Typography, Row, Col ,InputNumber, Button, Alert} 
 import api from "../../../context/api_helper"; 
 import { toast } from "react-toastify";
 
-
-//TODO::
 import { useUser } from "../../../context/UserContext";
 import "dayjs/locale/mn";
 import dayjs from "dayjs";
@@ -58,7 +56,7 @@ const [editableScores, setEditableScores] = useState({});
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/assigned-grading/teacher/${user.id}`);
+      const response = await api.get(`/assigned-grading/teacher`);
       const resData = response.data;
   
       const components = resData.grading_components || [];
@@ -76,7 +74,7 @@ const [editableScores, setEditableScores] = useState({});
    
         }))
       );
-  console.log("dfg",components )
+
       setData(flattened);
       setFiltered(flattened);
   
@@ -98,7 +96,7 @@ const [editableScores, setEditableScores] = useState({});
   };
   
   const fetchScoreData = async () => {
-    const scores= await api.get(`/assigned-grading/score/${user.id}`);
+    const scores= await api.get(`/assigned-grading/score`);
     console.log('scores', scores.data.data)
     SetScores(scores.data.data)
       
