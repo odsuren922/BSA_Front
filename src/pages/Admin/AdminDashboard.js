@@ -41,9 +41,7 @@ const AdminDashboard = () => {
     try {
       //   const response = await api.get(`/active-cycles`);
       console.log("dep_id",user.dep_id);
-      const response = await api.get("/active-cycles", {
-        params: { dep_id: user.dep_id },
-      });
+      const response = await api.get("/active-cycles");
       console.log('response', response.data);
 
       if (response.data && response.data.id) {

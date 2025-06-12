@@ -9,12 +9,12 @@ export const SidebarData = {
       icon: <IoIcons.IoIosPaper />,
       cName: "nav-text",
     },
-    {
-      title: "Маягт тохиргоо",
-      path: "/deformset",
-      icon: <IoIcons.IoIosPaper />,
-      cName: "nav-text",
-    },
+    // {
+    //   title: "Маягт тохиргоо",
+    //   path: "/deformset",
+    //   icon: <IoIcons.IoIosPaper />,
+    //   cName: "nav-text",
+    // },
   ],
 //   supervisor: [
 //     {

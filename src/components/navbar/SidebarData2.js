@@ -10,6 +10,12 @@ export const SidebarData2 = {
         icon: <IoIcons.IoIosPaper />,
         cName: "nav-text",
       },
+       {
+            title: "Маягт тохиргоо",
+            path: "/deformset",
+            icon: <IoIcons.IoIosPaper />,
+            cName: "nav-text",
+          },
   
         {
           title: "Баклаварын ажил тохиргоо",
