@@ -132,7 +132,7 @@ const GradingSchemaManagement = () => {
         //     setModalVisible(true);
         //   }}
       >
-        Шинээр нэмэх
+        Шинээр нэмэхn
       </Button>
         </Col>
       </Row>

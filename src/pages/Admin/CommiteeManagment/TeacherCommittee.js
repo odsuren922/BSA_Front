@@ -240,7 +240,7 @@ const TeacherCommittee = ({ cycleId, componentId ,committees, setCommittees}) =>
     },
 
     {
-      title: "Superior",
+      title: "Албан тушаал",
       key: "superior",
       render: (_, record) => {
         const superior = record.superior ?? "";

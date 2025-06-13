@@ -48,9 +48,7 @@ const ThesisCycleManagement = ({ onDataChange , user, schemas}) => {
     setLoading(true);
     console.log(user.dep_id);
     try {
-      const response = await api.get(`/thesis-cycles`,{
-        params: { dep_id: user.dep_id }
-      });
+      const response = await api.get(`/thesis-cycles`);
       
       setCycles(response.data);
       console.log(response.data);

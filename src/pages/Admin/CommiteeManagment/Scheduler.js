@@ -596,8 +596,8 @@ const CommitteeScheduler = () => {
   components={{ event: CustomEvent }}
   min={new Date(1970, 1, 1, 6, 0)}
 
-  draggableAccessor={(event) => event.type !== 'deadline'} // ✅ disable dragging for deadlines
-  resizableAccessor={(event) => event.type !== 'deadline'} // ✅ disable resizing for deadlines (if needed)
+  draggableAccessor={(event) => event.type !== 'deadline'} 
+  resizableAccessor={(event) => event.type !== 'deadline'}
 
   onSelectEvent={(event) => {
     if (event.type !== "deadline") {

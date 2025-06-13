@@ -12,7 +12,7 @@ import {
     notification,
     Popconfirm,
 } from "antd";
-import {fetchData, postData} from "../../utils"
+import { fetchData, postData } from "../../utils";
 const { Content } = Layout;
 const { Title } = Typography;
 
@@ -60,8 +60,6 @@ const EditableTable = () => {
         form.setFieldsValue({ dataSource: updated });
     };
 
-
-
     const handleSaveAll = async () => {
         try {
             const values = await form.validateFields();
@@ -76,8 +74,11 @@ const EditableTable = () => {
                 status: item.status,
             }));
 
-           await postData(`proposal-fields/bulk-upsert`, {  fields: updatedRows}, "post");
-
+            await postData(
+                `proposal-fields/bulk-upsert`,
+                { fields: updatedRows },
+                "post"
+            );
 
             notification.success({
                 message: "Амжилттай",
@@ -95,19 +96,18 @@ const EditableTable = () => {
     };
     const handleDelete = async (key) => {
         const item = dataSource.find((item) => item.key === key);
-    
+
         if (!item) return;
-    
+
         try {
             if (item.id) {
                 await postData(`proposal-fields/${item.id}`, {}, "delete");
-
             }
-    
+
             const newData = dataSource.filter((i) => i.key !== key);
             setDataSource(newData);
             form.setFieldsValue({ dataSource: newData });
-    
+
             notification.success({
                 message: "Устгасан",
                 description: "Талбар амжилттай устгагдлаа.",
@@ -119,29 +119,30 @@ const EditableTable = () => {
             });
         }
     };
-    
+
     const columns = [
         {
             title: "Монгол талбар",
             dataIndex: "mongolianField",
-            render: (text, record, index) => (
+            render: (text, record, index) =>
                 isBulkEditing ? (
                     <Form.Item
                         name={["dataSource", index, "mongolianField"]}
                         style={{ margin: 0 }}
-                        rules={[{ required: true, message: "Хоосон байж болохгүй" }]}
+                        rules={[
+                            { required: true, message: "Хоосон байж болохгүй" },
+                        ]}
                     >
                         <Input />
                     </Form.Item>
                 ) : (
                     text
-                )
-            ),
+                ),
         },
         {
             title: "English Field",
             dataIndex: "englishField",
-            render: (text, record, index) => (
+            render: (text, record, index) =>
                 isBulkEditing ? (
                     <Form.Item
                         name={["dataSource", index, "englishField"]}
@@ -152,15 +153,17 @@ const EditableTable = () => {
                     </Form.Item>
                 ) : (
                     text
-                )
-            ),
+                ),
         },
         {
             title: "Зорилтот хэрэглэгч",
             dataIndex: "targeted_to",
-            render: (text, record, index) => (
+            render: (text, record, index) =>
                 isBulkEditing ? (
-                    <Form.Item name={["dataSource", index, "targeted_to"]} style={{ margin: 0 }}>
+                    <Form.Item
+                        name={["dataSource", index, "targeted_to"]}
+                        style={{ margin: 0 }}
+                    >
                         <Select
                             options={[
                                 { value: "both", label: "Бүгд" },
@@ -175,15 +178,17 @@ const EditableTable = () => {
                         student: "Оюутан",
                         teacher: "Багш",
                     }[text]
-                )
-            ),
+                ),
         },
         {
             title: "Төлөв",
             dataIndex: "status",
-            render: (text, record, index) => (
+            render: (text, record, index) =>
                 isBulkEditing ? (
-                    <Form.Item name={["dataSource", index, "status"]} style={{ margin: 0 }}>
+                    <Form.Item
+                        name={["dataSource", index, "status"]}
+                        style={{ margin: 0 }}
+                    >
                         <Select
                             options={[
                                 { value: "active", label: "Идэвхтэй" },
@@ -198,14 +203,16 @@ const EditableTable = () => {
                         inactive: "Идэвхгүй",
                         archived: "Архивлагдсан",
                     }[text]
-                )
-            ),
+                ),
         },
         {
             title: "Үйлдэл",
             dataIndex: "operation",
             render: (_, record) => (
-                <Popconfirm title="Устгах уу?" onConfirm={() => handleDelete(record.key)}>
+                <Popconfirm
+                    title="Устгах уу?"
+                    onConfirm={() => handleDelete(record.key)}
+                >
                     <Button type="link" danger disabled={!isBulkEditing}>
                         Устгах
                     </Button>
@@ -217,44 +224,70 @@ const EditableTable = () => {
     return (
         <div className="p-4">
             <Spin spinning={loading}>
-                <Card title="Тогтмол талбарууд" style={{ marginBottom: "16px" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                        {["Сэдвийн нэр (Монгол)", "Сэдвийн нэр (Англи)", "Товч агуулга", "Зорилтот хөтөлбөр"].map(
-                            (label, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        width: "24%",
-                                        textAlign: "center",
-                                        border: "1px solid #ddd",
-                                        borderRadius: "8px",
-                                        padding: "8px",
-                                    }}
-                                >
-                                    {label}
-                                </div>
-                            )
-                        )}
+                <Card
+                    title="Тогтмол талбарууд"
+                    style={{ marginBottom: "16px" }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "8px",
+                        }}
+                    >
+                        {[
+                            "Сэдвийн нэр (Монгол)",
+                            "Сэдвийн нэр (Англи)",
+                            "Товч агуулга",
+                            "Зорилтот хөтөлбөр",
+                        ].map((label, index) => (
+                            <div
+                                key={index}
+                                style={{
+                                    width: "24%",
+                                    textAlign: "center",
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    padding: "8px",
+                                }}
+                            >
+                                {label}
+                            </div>
+                        ))}
                     </div>
                 </Card>
-        
-                <div className="flex justify-between mb-4">
-        
-                <Button color="primary" variant="filled" onClick={handleAdd} type="default" disabled={!isBulkEditing}>
-    Талбар нэмэх
-</Button>
 
-              
+                <div className="flex justify-between mb-4">
+                    <Button
+                        color="primary"
+                        variant="filled"
+                        onClick={handleAdd}
+                        type="default"
+                        disabled={!isBulkEditing}
+                    >
+                        Талбар нэмэх
+                    </Button>
+
                     <div>
                         {isBulkEditing ? (
                             <>
-                                <Button type="primary" onClick={handleSaveAll} style={{ marginRight: 8 }}>
+                                <Button
+                                    type="primary"
+                                    onClick={handleSaveAll}
+                                    style={{ marginRight: 8 }}
+                                >
                                     Бүгдийг хадгалах
                                 </Button>
-                                <Button onClick={() => setIsBulkEditing(false)}>Цуцлах</Button>
+                                <Button onClick={() => setIsBulkEditing(false)}>
+                                    Цуцлах
+                                </Button>
                             </>
                         ) : (
-                            <Button color="primary" variant="outlined" onClick={() => setIsBulkEditing(true)}>
+                            <Button
+                                color="primary"
+                                variant="outlined"
+                                onClick={() => setIsBulkEditing(true)}
+                            >
                                 Засварлах горим
                             </Button>
                         )}
@@ -281,7 +314,13 @@ const DeFormSet = () => {
             <header style={{ textAlign: "left" }}>
                 <Title level={3}>Сэдэв дэвшүүлэх хэлбэр</Title>
             </header>
-            <Layout style={{ background: "white", borderRadius: "10px", padding: "16px 0" }}>
+            <Layout
+                style={{
+                    background: "white",
+                    borderRadius: "10px",
+                    padding: "16px 0",
+                }}
+            >
                 <Content style={{ padding: "0 16px" }}>
                     <EditableTable />
                 </Content>
