@@ -10,7 +10,7 @@ import {
   Select,
   Table,
   Spin,
-  Skeleton,Tooltip
+  Skeleton,Tooltip, Modal,Typography
 } from "antd";
 import GradingSchemaTable from "../../components/grading/GradingSchemaTable";
 import StudentCount from "../../components/Common/StudentCount";
@@ -25,7 +25,7 @@ import { exportThesisToExcel } from "../../components/thesis/ExportThesisScoreEx
 
 const { Search } = Input;
 const { Option } = Select;
-
+const { Title } = Typography;
 const ThesisCyclePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ const ThesisCyclePage = () => {
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedSupervisor, setSelectedSupervisor] = useState(null);
-
+  const [showGradingModal, setShowGradingModal] = useState(false);
   useEffect(() => {
     fetchThesisCycle();
     fetchGradingSchema();
@@ -71,11 +71,6 @@ const ThesisCyclePage = () => {
         setLoadingStudentCounts(true);
         setTableLoading(true);
 
-    //   const cycleResponse = await api.get(`/thesis-cycles/${id}`);
-    //   const thesesResponse = await api.get(`/cycles/${id}/theses`);
-    //   const studentCountByProgram = await api.get(
-    //     `/cycles/${id}/student-counts`
-    //   );
     const [cycleResponse, thesesResponse, studentCountByProgram] = await Promise.all([
         api.get(`/thesis-cycles/${id}`),
         api.get(`/cycles/${id}/theses`),
@@ -155,39 +150,8 @@ const ThesisCyclePage = () => {
     //   setTableLoading(false);
     }
   };
-  const totalScoreColumn = {
-    title: "Нийт оноо",
-    key: "total_score",
-    render: (_, record) => {
-      const total = record.scores?.reduce((sum, s) => {
-        return sum + parseFloat(s.score || 0);
-      }, 0);
-      return <strong>{total.toFixed(2)}</strong>;
-    },
-  };
-  
-//   const gradingComponentColumns = Array.isArray(gradingSchema) && gradingSchema.length > 0
-//   ? [
-//       ...gradingSchema[0].grading_components.map((component) => ({
-//         title: component.name,
-//         key: `component_${component.id}`,
-//         render: (_, record) => {
-//           const scoreObj = record.scores?.find((s) => s.component_id === component.id);
-//           return <span>{scoreObj ? scoreObj.score : "-"}</span>;
-//         },
-//       })),
-//       {
-//         title: "Нийт оноо",
-//         key: "total_score",
-//         render: (_, record) => {
-//           const total = record.scores?.reduce((sum, s) => {
-//             return sum + parseFloat(s.score || 0);
-//           }, 0);
-//           return <strong>{total.toFixed(2)}</strong>;
-//         },
-//       },
-//     ]
-//   : [];
+
+
 const gradingComponentColumns = Array.isArray(gradingSchema) && gradingSchema.length > 0
   ? [
       ...gradingSchema[0].grading_components.flatMap((component) => {
@@ -448,6 +412,19 @@ const gradingComponentColumns = Array.isArray(gradingSchema) && gradingSchema.le
                   <strong>Дуусах өдөр:</strong> {thesisCycle.end_date}
                 </p>
               </Col>
+
+              <button
+                  className="btn btn-sm"
+                  style={{ backgroundColor: "#e3f2fd", color: "#1976d2" }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    console.log("Үнэлгээний схем товч дарагдлаа");
+                    await fetchGradingSchema();
+                    setShowGradingModal(true);
+                  }}
+                >
+                  Үнэлгээний схем харах
+                </button>
             </Row>
           </Card>
         ) : (
@@ -456,20 +433,6 @@ const gradingComponentColumns = Array.isArray(gradingSchema) && gradingSchema.le
           </Card>
         )}
       </Spin>
-
-
-{/* 
-<Spin spinning={loadingGradingSchema}>
-        {thesisCycle && (
-          <Card title="Үнэлгээний схем" className="mb-4">
-            <GradingSchemaTable
-              gradingSchema={gradingSchema}
-              thesisCycle={thesisCycle}
-              cycleId={id}
-            />
-          </Card>
-        )}
-      </Spin> */}
 
 <Spin spinning={loadingStudentCounts}>
         <Row gutter={[16, 16]} className="mb-4">
@@ -562,6 +525,20 @@ const gradingComponentColumns = Array.isArray(gradingSchema) && gradingSchema.le
   </Spin>
 </Card>
 
+<Modal
+  title={<Title level={4}>Үнэлгээний схем</Title>}
+  open={showGradingModal}
+  onCancel={() => setShowGradingModal(false)}
+  footer={null}
+  width={800} // similar to size="lg"
+  centered
+>
+  <GradingSchemaTable
+    gradingSchema={gradingSchema}
+    thesisCycle={thesisCycle}
+    cycleId={id}
+  />
+</Modal>
 
 
     </Container>
